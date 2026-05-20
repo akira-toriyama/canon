@@ -6,6 +6,9 @@
 .define rift_focus_next : rift-cli execute window next
 .define rift_focus_prev : rift-cli execute window prev
 
+# rift Mission Control: 全ワークスペースをグリッド表示
+.define rift_mc_show_all : rift-cli execute mission-control show-all
+
 # AltTab (lwouis/alt-tab-macos) を CLI で直接起動する（キー合成ではない）。
 # `--show=N` の N は AltTab 設定 → Controls タブのショートカット枠の順（0 始まり）。
 # "全スペース表示" 等は枠ごとの設定なので index と意味は AltTab 設定依存。
@@ -42,6 +45,11 @@ ${ULTRA_LL} - ${X_A} : @alttab_all_spaces
 
 # doc: AltTab 起動（現スペース。旧 alt+tab）
 ${ULTRA_LL} - ${X_S} : @alttab_current_space
+
+# X_1 = L の右。単押し専用バインド（修飾子セットとの組合せは render-vars.sh の
+# FALLBACK_EXCLUDE_KEYS で sound フォールバック対象外＝紛れ込ませない）。
+# doc: Mission Control（全ワークスペースをグリッド表示）
+${X_1} : @rift_mc_show_all
 
 # ---- emacs/readline 風 Ctrl+key remap ----
 # doc: ← Left

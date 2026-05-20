@@ -25,7 +25,10 @@ BEGIN = "<!-- AUTO-GENERATED (scripts/gen-skhd-doc.py from host/skhd/skhdrc.tmpl
 END = "<!-- END AUTO-GENERATED -->"
 
 DOC_RE = re.compile(r"^#\s*doc:\s*(.+?)\s*$")
-BIND_RE = re.compile(r"^(?P<mods>.+?)\s*-\s*(?P<key>\S+)\s*(?:\[|:)")
+# 修飾子は任意（`${X_1} : cmd` のような単押しキーも有効なバインド）。
+# mods があれば `<mods> - <key>`、無ければ `<key>` のみ。mods トークンに
+# `-` は現れない（区切りの ` - ` のみが `-`）ため [^-] で前段を限定する。
+BIND_RE = re.compile(r"^(?:(?P<mods>[^-]+?)\s*-\s*)?(?P<key>\S+)\s*(?:\[|:)")
 _MOD = {"ctrl": "Ctrl", "alt": "Alt", "shift": "Shift", "cmd": "Cmd",
         "rctrl": "RCtrl", "ralt": "RAlt", "rshift": "RShift", "rcmd": "RCmd"}
 
@@ -45,8 +48,11 @@ def chord(line: str) -> str:
     m = BIND_RE.match(line)
     if not m:
         raise SystemExit(f"skhdrc.tmpl: バインド行を解釈できない: {line!r}")
+    key = _unvar(m.group("key"))
+    if not m.group("mods"):
+        return key  # 単押しキー（修飾子なし）
     mods = " + ".join(_unvar(t.strip()) for t in m.group("mods").split("+"))
-    return f"{mods} + {_unvar(m.group('key'))}"
+    return f"{mods} + {key}"
 
 
 def build_block() -> str:
