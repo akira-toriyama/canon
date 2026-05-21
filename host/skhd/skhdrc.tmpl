@@ -74,3 +74,71 @@ ctrl - j : skhd -k "return"
 # skhd.zig は重複 binding をハードエラーにするため手管理しない)。
 # 効果音ファイルは render.sh の SE_UNDEFINED で定義。ここには記述しない
 # (生成物にのみ現れる。# doc: 無し = README ショートカット表には載せない)。
+
+
+# ====================================================================
+# rift 移植 TODO（元 rift config からの段階移植・1 件ずつ実バインド化）
+# --------------------------------------------------------------------
+# 進捗管理: 移植したら該当行の末尾に `# ✅ 移植済: <ZMK chord> → <alias/cmd>`
+# を付けるか、行ごと削除する。chord 割当はユーザが 1 件ずつ指示する方針
+# （memory: rift-binding-one-at-a-time）。rift-cli への CLI 対応は全件可。
+# --------------------------------------------------------------------
+
+# # アクティブな Space の rift 管理を ON/OFF。
+# # OFF = タイル化を止めて macOS 標準の自由配置に戻る。
+# # default_disable=true なので各スペースは最初これで有効化する。
+# "Alt + Z" = "toggle_space_activated"
+
+# # ワークスペース切替（キー番号＝順番、0始まりindexに対応）
+# # 全WS master_stack（WS1=first WS2=second WS3 WS4）
+# "Alt + 1" = { switch_to_workspace = 0 }
+# "Alt + 2" = { switch_to_workspace = 1 }
+# "Alt + 3" = { switch_to_workspace = 2 }
+# "Alt + 4" = { switch_to_workspace = 3 }
+
+# # フォーカス窓を別WSへ送る（自分は残る）。Alt+N=自分が移動 と番号一致。
+# "comb1 + 1" = { move_window_to_workspace = 0 }
+# "comb1 + 2" = { move_window_to_workspace = 1 }
+# "comb1 + 3" = { move_window_to_workspace = 2 }
+# "comb1 + 4" = { move_window_to_workspace = 3 }
+
+# # 全ワークスペースをグリッド表示（オーバービュー）／解除
+# "Alt + Space" = "show_mission_control_all"     # ✅ 移植済: X_1 単押し → @rift_mc_show_all
+# "Alt + Escape" = "dismiss_mission_control"
+
+# # 他モードは不使用のため無効化（誤爆で構造が乱れるのを防ぐ）。
+# # Alt+Ctrl+3 だけ「master_stack へ強制復帰」用の保険として残す。
+# # "Alt + Ctrl + 1" = { set_workspace_layout = { mode = "traditional" } }
+# # "Alt + Ctrl + 2" = { set_workspace_layout = { mode = "bsp" } }
+# "Alt + Ctrl + 3" = { set_workspace_layout = { mode = "master_stack" } }
+# # "Alt + Ctrl + 4" = { set_workspace_layout = { mode = "scrolling" } }
+# # "Alt + Ctrl + 5" = { set_workspace_layout = { mode = "stack" } }
+
+# # フォーカス順送り（master_stack でも有効）
+# "Alt + Ctrl + J" = "next_window"     # 既存 @rift_focus_next (ULTRA_LL+F) と重複。再追加は基本不要
+# "Alt + Ctrl + K" = "prev_window"     # 既存 @rift_focus_prev (ULTRA_LL+D) と重複。再追加は基本不要
+
+# # ウィンドウ入れ替え確認用（bsp/master_stack 比較）
+# # move_node: 掴んでその方向へ移動＝隣と位置交換
+# "comb1 + H" = { move_node = "left" }
+# "comb1 + J" = { move_node = "down" }
+# "comb1 + K" = { move_node = "up" }
+# "comb1 + L" = { move_node = "right" }
+# # フォーカスだけを方向移動（comb2 = 素の Alt。comb1 と同じ HJKL 体系）
+# "comb2 + H" = { move_focus = "left" }
+# "comb2 + J" = { move_focus = "down" }
+# "comb2 + K" = { move_focus = "up" }
+# "comb2 + L" = { move_focus = "right" }
+# # master_stack 専用: フォーカス中を主役(master)へ昇格
+# "Alt + Ctrl + M" = "promote_to_master"
+
+# # master_stack 専用: master 領域の幅をその場で増減（±0.05、0.05〜0.95 でクランプ）。
+# # H=狭める / L=広げる（vim 風）。現在 master_ratio=0.65。
+# "Alt + Ctrl + H" = { adjust_master_ratio = { delta = -0.05 } }
+# "Alt + Ctrl + L" = { adjust_master_ratio = { delta = 0.05 } }
+
+# # フォーカス窓を outer gap を残してタイリング領域いっぱいに（トグル）。
+# "Alt + F" = "toggle_fullscreen_within_gaps"
+
+# # フォーカス窓だけをフローティング化/タイル復帰（トグル）。T=Toggle float。
+# "Alt + T" = "toggle_window_floating"
