@@ -2,11 +2,13 @@
 // macros { } ブロック内に #include して使う
 // EN_MACRO マクロは keymap_defines.h で定義
 //
-// 各行末の `disp:[X]` が keymap-drawer 上の表示文字 (= 唯一のソース)。
-// keymap_drawer.config.yaml の raw_binding_map の en_* ブロックは
-// scripts/gen-eiji-drawer-map.py がこのファイルから自動生成する
-// (CI: .github/workflows/verify-eiji-sync.yml が同期を検証)。
-// 追加・削除・リネーム時はこのファイルだけ編集し、スクリプトを再実行する。
+// ─── このファイルは「手書きの単一ソース」───────────────
+// 反映先（生成物）: keymap_drawer.config.yaml の raw_binding_map > en_*
+// 生成スクリプト : scripts/gen-eiji-drawer-map.py（stdlib のみ）
+// 同期検証 (CI) : .github/workflows/verify-eiji-sync.yml
+//
+// 追加・削除・リネーム時はこのファイルを編集し、上記スクリプトを再実行する。
+// 各行末の `disp:[X]` が keymap-drawer 上の表示文字（唯一のソース）。
 
     // EIJI 切替 → 数字キー（NUMBER_LAYER 用）
     EN_MACRO(en_0, N0)  // disp:[0]
