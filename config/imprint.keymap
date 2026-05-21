@@ -82,7 +82,11 @@
         FOOTER_TD
       >;
     };
-    LEFT_ARROW_LAYER {
+    // ar_* hold-tap で発動する矢印サブレイヤー（hold 中の単発キーで
+    // 行頭/行末/ページ送りを混在発火させるための層）。
+    // 各 display-name は keymap-drawer 出力のラベル（矢印記号で簡潔に）、
+    // 実キーは `&kp <KEY>` 行の対応を直接参照。
+    LEFT_ARROW_LAYER {  // ar_left hold + 右親指右隣 = HOME
       display-name = "←";
       bindings = <
         ROW_NONE
@@ -92,7 +96,7 @@
         THUMB_TD
       >;
     };
-    RIGHT_ARROW_LAYER {
+    RIGHT_ARROW_LAYER {  // ar_right hold + 右親指右隣 = END
       display-name = "→";
       bindings = <
         ROW_NONE
@@ -102,7 +106,7 @@
         THUMB_TD
       >;
     };
-    UP_ARROW_LAYER {
+    UP_ARROW_LAYER {  // ar_up hold + 右親指左隣 = PAGE_UP
       display-name = "↑";
       bindings = <
         ROW_NONE
@@ -112,7 +116,7 @@
         THUMB_TD
       >;
     };
-    DOWN_ARROW_LAYER {
+    DOWN_ARROW_LAYER {  // ar_down hold + 右親指左隣 = PAGE_DOWN
       display-name = "↓";
       bindings = <
         ROW_NONE
