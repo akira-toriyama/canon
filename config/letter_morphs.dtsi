@@ -1,6 +1,10 @@
 // al_a 〜 al_z の letter mod-morph 群（Shift で eiji_macro 経由の大文字化）
 // behaviors { } ブロック内に #include して使う
 // LETTER_MORPH マクロは keymap_defines.h で定義
+//
+// 役割: 通常タップは小文字、Shift 同時押しは EIJI 切替を挟んだ大文字確定
+// （en_* マクロ経由）。IME 状態に依らず英大文字が出るようにするための層。
+// 追加・削除・リネーム時はこのファイルだけ編集する（生成物はなし）。
 
     LETTER_MORPH(al_a, A)
     LETTER_MORPH(al_b, B)
