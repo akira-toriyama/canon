@@ -41,16 +41,6 @@ export X_2=0x54 # UP_ARROW
 export X_3=0x55 # DELETE
 export X_4=0x56 # TAB
 
-# ---- フォールバック生成除外キー ----
-# se_undefined フォールバック生成から完全に外す X_ キー（修飾子セット版も
-# 作らない）。空白区切りの変数名リスト。
-# （例: "X_1 X_2"）。単押し専用で別途実バインド済みのキー等、modset と
-# 組み合わせると紛らわしいものを列挙する。現状は除外対象なし。
-# render.sh が source して使う（envsubst 非対象で export しない設計のため
-# 単体検査では未使用に見える）。
-# shellcheck disable=SC2034
-FALLBACK_EXCLUDE_KEYS=""
-
 # ---- ZMKで定義したmodifier セット ----
 export ULTRA_LL="rctrl + ralt + rshift"      # ULTRA_LL: RALT+RSHIFT+RCTRL (RGUI なし)
 export MIRACLE_LM="rctrl + rcmd + rshift"      # MIRACLE_LM: RGUI+RSHIFT+RCTRL (RALT なし)
