@@ -91,7 +91,7 @@ jobs:
       # ノートを artifact として上げる（版を消費しない＝完全プレビュー）。
       - name: Upload preview (dry run)
         if: steps.ver.outputs.release == 'true' && github.event.inputs.dry_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-preview-${{ steps.ver.outputs.version }}
           path: |
