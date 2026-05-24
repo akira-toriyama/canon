@@ -6,7 +6,7 @@ ZMK ファームから届くチョードを macOS 側で捕まえてアクショ
 
 ## ファイル
 
-- [config.tmpl](./config.tmpl): TOML テンプレート（唯一のソース）。`${UTRA_LL}` 等の
+- [config.tmpl](./config.tmpl): TOML テンプレート（唯一のソース）。`${ULTRA_LL}` 等の
   修飾子セットは [render-vars.sh](./render-vars.sh) で定義され envsubst で展開。
 - [render.sh](./render.sh): 生成 → `chord --validate` → `~/.config/chord/config.toml`
   へデプロイ → `chord --reload`。chord 未インストール時は validate/reload を skip
@@ -68,10 +68,12 @@ config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen
 
 ## chord 文法の制約メモ
 
-- **L/R 修飾子は区別されない**: chord は `rctrl/ralt/rshift/rcmd` トークンを受理せず、
-  全て `ctrl/opt/alt/shift/cmd/fn/hyper` に丸める。よって ZMK の右側修飾子チョード
-  ("ULTRA_LL" 等) は「左 modifier 3 個＋同キー」も同じイベントとして拾う。実用上は
-  左 modifier 3 個同時押しが偶発する確率は低いが、設計意図は厳密には保たれない。
+- **L/R 修飾子の扱い**: chord 側 PR1 (`ed1c032 feat(core)!: side-specific modifier
+  tokens`) で `rctrl/ralt/rshift/rcmd` 等のトークンが追加された（未リリース）。
+  本 PR (capsule-corp 移行ベースライン) は **pre-v0.2.0 を前提**としており、
+  device-independent な `ctrl/alt/shift/cmd` で記述している。chord v0.2.0
+  リリース後の follow-up PR で `rctrl + ralt + rshift` 等へ置換し ZMK 右側
+  修飾子チョード専用に厳格化する予定（"設計意図復活"）。
 - **同一 input + 別 apps** の per-app 振り分けは「document 順で最初に match した
   binding が発火」。config.tmpl のタブ移動はこの規則で Chrome / VS Code を切替えている。
 - **F13–F24・マウス side1/side2・スクロール wheel** は chord でバインド可能（skhd.zig

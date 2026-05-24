@@ -4,7 +4,7 @@
 config.tmpl の各 `[[bindings]]` 直前の `# doc: <動作>` 行を唯一のソースとし、
 README.md 内の AUTO-GENERATED マーカー間（markdown 表）を書き換える。
 ショートカット表記は `input = "..."` から導出。`${ULTRA_LL}` 等は名前のまま
-表示（chord は L/R 修飾子を区別しないが、ZMK 側の論理名で表に出す）。
+表示（envsubst 後の `ctrl + alt + shift` ではなく ZMK 側の論理名で表に出す）。
 
   python3 scripts/gen-chord-doc.py          # 生成して README を更新
   python3 scripts/gen-chord-doc.py --check   # 差分があれば exit 1 (CI 用)

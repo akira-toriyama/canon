@@ -49,7 +49,7 @@ keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット�
 host/chord/     macOS chord ブリッジ（render.sh, config.tmpl, render-vars.sh）
 scripts/        build-zmk.sh / render-chord.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
-.github/        CI（build / draw / verify-eiji-sync / commit-lint / shellcheck / release）
+.github/        CI（build / draw / verify-eiji-sync / verify-chord-doc / commit-lint / shellcheck / release）
 ```
 
 ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `build.yaml`
