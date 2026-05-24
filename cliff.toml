@@ -5,7 +5,7 @@
 header = """
 # Changelog
 
-入力デバイス設定（ZMK ファーム + skhd）のリリース履歴。\n
+入力デバイス設定（ZMK ファーム + chord）のリリース履歴。\n
 """
 body = """
 {% if version %}\

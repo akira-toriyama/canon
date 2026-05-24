@@ -1,6 +1,6 @@
 # コミット規約とバージョニング
 
-このリポジトリ（入力デバイス設定: ZMK ファーム + skhd ブリッジ）は
+このリポジトリ（入力デバイス設定: ZMK ファーム + chord ブリッジ）は
 **gitmoji + Conventional Commits 併用**でコミットし、コミットメッセージから
 [git-cliff](https://git-cliff.org) が semver を算出してリリースする。
 
@@ -18,7 +18,7 @@
   bot の `:bento:` と整合）。例: `:bug:`。
 - `<type>` … Conventional Commits の型（`feat` `fix` `perf` `refactor` `docs`
   `test` `build` `ci` `chore` `style` `revert`）。**semver はこの型で決まる**。
-- `<scope>` … 任意。`keymap` `combos` `skhd` `ci` 等。
+- `<scope>` … 任意。`keymap` `combos` `chord` `ci` 等。
 - `!` … 破壊的変更。または footer に `BREAKING CHANGE: <説明>`。
 - `<subject>` … 命令形・簡潔に。日本語可（既存履歴に合わせる）。
 
@@ -27,7 +27,7 @@
 ```
 :sparkles: feat(keymap): EIJI レイヤーに矢印クラスタを追加
 :bug: fix(combos): 左手 home-row combo の誤爆を修正
-:zap: perf(skhd): render.sh の kVK 変換を一度の走査に
+:zap: perf(chord): render.sh の envsubst 変数列挙を一度の走査に
 :boom: feat(keymap)!: base レイヤーの数字段を全面再配置
 :memo: docs: README にローカルビルド手順を追記
 :wrench: chore: prettier 設定を追加

@@ -1,3 +1,0 @@
-# 生成物は ~/.config/skhd/skhdrc へデプロイされ repo には残らないが、
-# 旧運用や手動生成で skhdrc がこのディレクトリに出来た場合に備えて無視。
-skhdrc
