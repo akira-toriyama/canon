@@ -1,6 +1,6 @@
 # Security Policy
 
-入力デバイス設定（ZMK ファーム + macOS skhd ブリッジ）の個人リポジトリです。
+入力デバイス設定（ZMK ファーム + macOS chord ブリッジ）の個人リポジトリです。
 攻撃対象面は限定的ですが、報告経路を明示します。
 
 ## 報告方法
@@ -10,7 +10,7 @@
 
 対象となりうる例:
 
-- `host/skhd/render.sh` が生成・配置するコードや、`scripts/` の
+- `host/chord/render.sh` が生成・配置するコードや、`scripts/` の
   スクリプトに起因するローカル権限・任意コード実行の問題
 - GitHub Actions ワークフローの供給網リスク（third-party action 等）
 

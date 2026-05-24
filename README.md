@@ -6,14 +6,15 @@
 
 - **Cyboard Imprint** — ZMK ファームウェア設定（リポジトリルート = ZMK
   user-config）。分割キーボード。修飾キーの組み合わせ（chord）を ZMK が送出する。
-- **skhd.zig** — macOS ホスト側ブリッジ（[`host/skhd/`](host/skhd/)）。ZMK が
-  送る chord を [skhd.zig](https://github.com/jackielii/skhd.zig) で受けて
-  macOS 操作へ変換する。
+- **chord** — macOS ホスト側ブリッジ（[`host/chord/`](host/chord/)）。ZMK が
+  送る chord を [akira-toriyama/chord](https://github.com/akira-toriyama/chord)
+  （CGEventTap / Swift 6 / TOML 設定）で受けて macOS 操作へ変換する。F13–F24・
+  マウスボタン・スクロールも扱える（旧 skhd.zig からの移行モチベ）。
 
-ZMK 側で修飾キー（modifier）＋ base key の chord を送り、host の skhd が
+ZMK 側で修飾キー（modifier）＋ base key の chord を送り、host の chord が
 解釈する。修飾キーは super / hyper / meta を意識した割り当て。両者の対応は
-[`host/skhd/render.sh`](host/skhd/render.sh) がテンプレートから `skhdrc` を
-生成・検証・反映してブリッジする。
+[`host/chord/render.sh`](host/chord/render.sh) がテンプレートから `config.toml`
+を生成・検証・反映してブリッジする。
 
 ```mermaid
 flowchart LR
@@ -21,12 +22,12 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK ファーム"]
   end
   subgraph MAC["macOS ホスト"]
-    SKHD["skhd.zig<br/>~/.config/skhd/skhdrc"]
+    CHORD["chord<br/>~/.config/chord/config.toml"]
     ACT["macOS 操作"]
   end
-  TMPL["skhdrc.tmpl"] -->|"render.sh: 生成・検証・反映"| SKHD
-  FW -->|"chord: 修飾キー + base key"| SKHD
-  SKHD -->|"解釈してマップ"| ACT
+  TMPL["config.tmpl"] -->|"render.sh: 生成・検証・反映"| CHORD
+  FW -->|"chord: 修飾キー + base key"| CHORD
+  CHORD -->|"解釈してマップ"| ACT
 ```
 
 ## 環境構築
@@ -45,8 +46,8 @@ config/         ZMK キーマップ / behaviors / combos / west.yml（ルート�
 build.yaml      ビルド対象（assimilator-bt × imprint_left / imprint_right）
 boards/ zephyr/  ZMK board-root（ボード/シールドは Cyboard モジュール由来。空で正常）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
-host/skhd/      macOS skhd ブリッジ（render.sh, skhdrc.tmpl）
-scripts/        build-zmk.sh / render-skhd.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
+host/chord/     macOS chord ブリッジ（render.sh, config.tmpl, render-vars.sh）
+scripts/        build-zmk.sh / render-chord.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
 .github/        CI（build / draw / verify-eiji-sync / commit-lint / shellcheck / release）
 ```
@@ -88,17 +89,18 @@ Actions の **Release** を手動起動 → コミットから次版を算出し
 （[docs/commit-convention.md](docs/commit-convention.md)）。`main` 保護尊重の
 ため CHANGELOG は main へ自動 push しない。
 
-## skhd
+## chord
 
 ```sh
-./scripts/render-skhd.sh   # skhdrc を生成 → 検証 → ~/.config/skhd/skhdrc へ反映・reload
+./scripts/render-chord.sh   # config.toml を生成 → 検証 → ~/.config/chord/config.toml へ反映・reload
 ```
 
-clone 位置に依存しない。検証に失敗した設定は反映せず、稼働中の `skhdrc` を
-壊さない。
+clone 位置に依存しない。`chord --validate` が通った設定だけがデプロイされ、稼働中の
+`config.toml` を壊さない（chord 未インストール時は validate を skip しつつデプロイ、
+reload はインストール後に自動）。
 
 ショートカット一覧・修飾セット・更新手順は
-[host/skhd/README.md](host/skhd/README.md)。
+[host/chord/README.md](host/chord/README.md)。
 
 ## keymap
 

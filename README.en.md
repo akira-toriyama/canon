@@ -6,14 +6,16 @@ Monorepo for input-device configuration.
 
 - **Cyboard Imprint** — ZMK firmware config (repo root = ZMK user-config).
   A split keyboard; ZMK emits modifier-combination chords.
-- **skhd.zig** — macOS host-side bridge ([`host/skhd/`](host/skhd/)). Chords
-  sent by ZMK are received by [skhd.zig](https://github.com/jackielii/skhd.zig)
-  and translated into macOS actions.
+- **chord** — macOS host-side bridge ([`host/chord/`](host/chord/)). Chords sent
+  by ZMK are received by [akira-toriyama/chord](https://github.com/akira-toriyama/chord)
+  (CGEventTap / Swift 6 / TOML config) and translated into macOS actions. F13–F24,
+  mouse buttons and scroll wheel are bindable too (the motivation for migrating
+  off skhd.zig).
 
-ZMK sends a chord of a modifier key + a base key; skhd on the host decodes it.
+ZMK sends a chord of a modifier key + a base key; chord on the host decodes it.
 The modifiers are assigned with super / hyper / meta in mind.
-[`host/skhd/render.sh`](host/skhd/render.sh) bridges the two by generating,
-validating and deploying `skhdrc` from a template.
+[`host/chord/render.sh`](host/chord/render.sh) bridges the two by generating,
+validating and deploying `config.toml` from a template.
 
 ```mermaid
 flowchart LR
@@ -21,12 +23,12 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK firmware"]
   end
   subgraph MAC["macOS host"]
-    SKHD["skhd.zig<br/>~/.config/skhd/skhdrc"]
+    CHORD["chord<br/>~/.config/chord/config.toml"]
     ACT["macOS action"]
   end
-  TMPL["skhdrc.tmpl"] -->|"render.sh: generate / validate / deploy"| SKHD
-  FW -->|"chord: modifier + base key"| SKHD
-  SKHD -->|"decode & map"| ACT
+  TMPL["config.tmpl"] -->|"render.sh: generate / validate / deploy"| CHORD
+  FW -->|"chord: modifier + base key"| CHORD
+  CHORD -->|"decode & map"| ACT
 ```
 
 ## Setup
@@ -45,8 +47,8 @@ config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
 build.yaml      Build targets (assimilator-bt × imprint_left / imprint_right)
 boards/ zephyr/  ZMK board-root (board/shield come from the Cyboard module; empty is normal)
 keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
-host/skhd/      macOS skhd bridge (render.sh, skhdrc.tmpl)
-scripts/        build-zmk.sh / render-skhd.sh (entrypoints), gen-eiji-drawer-map.py, hooks/
+host/chord/     macOS chord bridge (render.sh, config.tmpl, render-vars.sh)
+scripts/        build-zmk.sh / render-chord.sh (entrypoints), gen-eiji-drawer-map.py, hooks/
 docs/           commit convention, etc.
 .github/        CI (build / draw / verify-eiji-sync / commit-lint / shellcheck / release)
 ```
@@ -89,17 +91,19 @@ commits; it creates a `vX.Y.Z` tag and a GitHub Release (git-cliff-generated
 notes + `imprint_*.uf2`) ([docs/commit-convention.md](docs/commit-convention.md)).
 CHANGELOG is not auto-pushed to `main` (branch protection is respected).
 
-## skhd
+## chord
 
 ```sh
-./scripts/render-skhd.sh   # generate → validate → deploy to ~/.config/skhd/skhdrc & reload
+./scripts/render-chord.sh   # generate → validate → deploy to ~/.config/chord/config.toml & reload
 ```
 
-Location-independent. A config that fails validation is not deployed, so the
-running `skhdrc` is never broken.
+Location-independent. Only a config that passes `chord --validate` is deployed,
+so the running `config.toml` is never broken (when `chord` is not installed
+yet, validation is skipped but the file is still deployed — install first, then
+chord auto-reloads via its vnode watcher).
 
 Shortcut reference, modifier sets and update steps:
-[host/skhd/README.md](host/skhd/README.md).
+[host/chord/README.md](host/chord/README.md).
 
 ## keymap
 

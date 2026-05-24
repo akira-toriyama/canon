@@ -8,7 +8,9 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は�
 入力デバイス設定の monorepo。
 
 - **ZMK ファーム**: ルートが ZMK user-config（[Cyboard Imprint](https://cyboard.digital/products/imprint)）
-- **skhd ホストブリッジ**: [host/skhd/](host/skhd/) — ZMK の chord を macOS 側で受ける
+- **chord ホストブリッジ**: [host/chord/](host/chord/) — ZMK のチョードを macOS 側で受ける
+  ([akira-toriyama/chord](https://github.com/akira-toriyama/chord)。CGEventTap・TOML 設定。
+  旧 skhd.zig から移行: F13–F24 / マウス / スクロール対応のため)
 
 設計思想は **低依存**（Python は stdlib のみ、他は shell）。重量級ツールチェーン
 （Node ランタイム依存の常駐ツール等）をリポジトリに持ち込まない。git-cliff は
@@ -48,7 +50,7 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   （ZMK reusable build と west の前提）。
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
-- `host/<tool>/` はツール単位の階層（現状 skhd のみ。将来別ツールも同形で追加）。
+- `host/<tool>/` はツール単位の階層（現状 chord のみ。将来別ツールも同形で追加）。
   `host/` 直下に平坦化しない。
 - `scripts/`（+`scripts/hooks/`）は現規模に適切。これ以上分割しない。
 

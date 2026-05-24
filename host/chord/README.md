@@ -1,0 +1,78 @@
+# host/chord/
+
+ZMK ファームから届くチョードを macOS 側で捕まえてアクションを発火する
+ホスト側ブリッジ。デーモンは [akira-toriyama/chord](https://github.com/akira-toriyama/chord)
+（CGEventTap、Swift 6、TOML 設定）。
+
+## ファイル
+
+- [config.tmpl](./config.tmpl): TOML テンプレート（唯一のソース）。`${UTRA_LL}` 等の
+  修飾子セットは [render-vars.sh](./render-vars.sh) で定義され envsubst で展開。
+- [render.sh](./render.sh): 生成 → `chord --validate` → `~/.config/chord/config.toml`
+  へデプロイ → `chord --reload`。chord 未インストール時は validate/reload を skip
+  しつつデプロイは実行（インストール後に手動 reload）。
+- [render-vars.sh](./render-vars.sh): 修飾子セット定義のみ（ULTRA_LL/MIRACLE_LM/
+  MEGA_RM/WONDER_RR）。
+
+## 使い方
+
+```sh
+./scripts/render-chord.sh        # 生成 + 検証 + デプロイ + reload
+```
+
+config.tmpl を編集したらこれを実行するだけで反映される。`chord` は vnode 監視で
+自動 reload もする。
+
+## chord 側のセットアップ（参考）
+
+chord は pre-1.0 で Homebrew 未配布。初回は自前ビルドと Accessibility 許可が要る:
+
+```sh
+git clone https://github.com/akira-toriyama/chord
+cd chord
+swift build -c release
+./scripts/install-cli.sh        # ~/.local/bin/chord にシンボリックリンク
+```
+
+常駐 daemon が必要なら `./package.sh` で `Chord.app` を作って `open` する。初回起動で
+**System Settings → Privacy & Security → Accessibility** の許可ダイアログが出る。
+
+## ショートカット一覧
+
+CI `verify-chord-doc` が同期を検証する（手動編集しない）。bindings の追加・変更は
+config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen-chord-doc.py`
+で再生成。
+
+<!-- AUTO-GENERATED (scripts/gen-chord-doc.py from host/chord/config.tmpl) — do not edit -->
+
+| Chord | Action | Apps |
+|---|---|---|
+| `ULTRA_LL + C` | タブを左へ（Chrome: Ctrl+Shift+Tab） | com.google.Chrome |
+| `ULTRA_LL + C` | タブを左へ（VS Code: Cmd+Shift+[） | com.microsoft.VSCode |
+| `ULTRA_LL + V` | タブを右へ（Chrome: Ctrl+Tab） | com.google.Chrome |
+| `ULTRA_LL + V` | タブを右へ（VS Code: Cmd+Shift+]） | com.microsoft.VSCode |
+| `ULTRA_LL + D` | 前のウィンドウへ（rift フォーカス） | * |
+| `ULTRA_LL + F` | 次のウィンドウへ（rift フォーカス） | * |
+| `ULTRA_LL + A` | AltTab 起動（全スペース。旧 cmd+ctrl+tab） | * |
+| `ULTRA_LL + S` | AltTab 起動（現スペース。旧 alt+tab） | * |
+| `kp_1` | Mission Control（全ワークスペースをグリッド表示） | * |
+| `Ctrl + B` | ← Left | * |
+| `Ctrl + F` | → Right | * |
+| `Ctrl + P` | ↑ Up | * |
+| `Ctrl + N` | ↓ Down | * |
+| `Ctrl + H` | Backspace | * |
+| `Ctrl + D` | 前方削除（Forward Delete） | * |
+| `Ctrl + J` | Return | * |
+
+<!-- END AUTO-GENERATED -->
+
+## chord 文法の制約メモ
+
+- **L/R 修飾子は区別されない**: chord は `rctrl/ralt/rshift/rcmd` トークンを受理せず、
+  全て `ctrl/opt/alt/shift/cmd/fn/hyper` に丸める。よって ZMK の右側修飾子チョード
+  ("ULTRA_LL" 等) は「左 modifier 3 個＋同キー」も同じイベントとして拾う。実用上は
+  左 modifier 3 個同時押しが偶発する確率は低いが、設計意図は厳密には保たれない。
+- **同一 input + 別 apps** の per-app 振り分けは「document 順で最初に match した
+  binding が発火」。config.tmpl のタブ移動はこの規則で Chrome / VS Code を切替えている。
+- **F13–F24・マウス side1/side2・スクロール wheel** は chord でバインド可能（skhd.zig
+  では取れなかった領域）。
