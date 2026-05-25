@@ -69,7 +69,6 @@ def parse_apps(apps_raw: str) -> list[str]:
 def build_block() -> str:
     rows: list[tuple[str, str, str]] = []
     pending_doc: str | None = None
-    pending_ln = 0
     current_input: str | None = None
     current_apps: list[str] = []
     in_binding = False
@@ -84,7 +83,7 @@ def build_block() -> str:
         current_input = None
         current_apps = []
 
-    for ln, raw in enumerate(lines, 1):
+    for raw in lines:
         line = raw.strip()
         if line.startswith("#"):
             m = DOC_RE.match(line)
@@ -92,7 +91,6 @@ def build_block() -> str:
                 if pending_doc is not None and in_binding:
                     flush()
                 pending_doc = m.group(1)
-                pending_ln = ln
                 in_binding = False
             continue
         if BIND_RE.match(line):
