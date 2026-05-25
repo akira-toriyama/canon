@@ -9,13 +9,11 @@
 # render.sh の VARS 列に対応して全件渡される。
 
 # ---- ZMKで定義したmodifier セット ----
-# chord v0.2.0 で side-specific 修飾子トークン (`rctrl/ralt/rshift/rcmd`/
-# `lctrl/...`) が解禁された（PR1 `feat(core)!: side-specific modifier tokens`、
-# ed1c032）。これにより ZMK 右側修飾子チョード専用の厳格マッチを表現できる。
-# 移行ベースライン (PR #26) では device-independent な `ctrl/alt/shift/cmd` で
-# 妥協していたが、本 PR で **設計意図 = 右側 modifier 限定** を復活させる。
-# 効果: 通常のタイピングで `ctrl + alt + shift + X` を左側で偶発しても発火しない
-# （ZMK ファームから届く右側 modifier セットだけが match）。
+# 右側修飾子トークン (`rctrl/ralt/rshift/rcmd`) で固定し、ZMK ファームから
+# 届く右側修飾子チョードだけを厳格に match させる。通常タイピングで左 modifier
+# 3 個＋同キーを偶発しても発火しない (= "ZMK 専用チョード" の設計意図)。
+# chord v0.2.0 の PR1 (`ed1c032 feat(core)!: side-specific modifier tokens`)
+# で side-specific トークンが解禁されたので利用可能。
 export ULTRA_LL="rctrl + ralt + rshift"      # ULTRA_LL: RALT+RSHIFT+RCTRL (RCMD なし)
 export MIRACLE_LM="rctrl + rcmd + rshift"    # MIRACLE_LM: RCMD+RSHIFT+RCTRL (RALT なし)
 export MEGA_RM="rctrl + rcmd + ralt"         # MEGA_RM: RCMD+RALT+RCTRL  (RSHIFT なし)

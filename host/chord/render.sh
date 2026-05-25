@@ -29,8 +29,9 @@ tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
 envsubst "$VARS" < config.tmpl > "$tmp"
 
-# chord が未インストールでも生成・配備は通す（chord は user の自家製ツール
-# でビルド/インストールがあとから入る可能性が高い）。検証は available 時のみ。
+# chord 未インストールでも生成・配備は通す（fresh machine の bootstrap 想定）。
+# 通常運用では brew tap (akira-toriyama/tap/chord) で入れる前提。検証は
+# chord available 時のみ走り、失敗時は exit 1 で稼働中 config を上書きしない。
 if command -v chord >/dev/null 2>&1; then
     vout=$(mktemp)
     trap 'rm -f "$tmp" "$vout"' EXIT

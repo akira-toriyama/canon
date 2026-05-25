@@ -8,11 +8,14 @@ ZMK ファームから届くチョードを macOS 側で捕まえてアクショ
 
 - [config.tmpl](./config.tmpl): TOML テンプレート（唯一のソース）。`${ULTRA_LL}` 等の
   修飾子セットは [render-vars.sh](./render-vars.sh) で定義され envsubst で展開。
+  `[[bindings]]`（実バインド）と `[[fallbacks]]`（未定義キー効果音）を含む。
 - [render.sh](./render.sh): 生成 → `chord --validate` → `~/.config/chord/config.toml`
-  へデプロイ → `chord --reload`。chord 未インストール時は validate/reload を skip
-  しつつデプロイは実行（インストール後に手動 reload）。
-- [render-vars.sh](./render-vars.sh): 修飾子セット定義のみ（ULTRA_LL/MIRACLE_LM/
-  MEGA_RM/WONDER_RR）。
+  へデプロイ → `chord --reload`。**TEMP に生成→検証→OK 時のみ mv** の atomic deploy
+  なので壊れた config が稼働中の `config.toml` を上書きしない。chord 未インストール時は
+  validate/reload を skip しつつデプロイは実行（インストール後に手動 reload）。
+- [render-vars.sh](./render-vars.sh): envsubst 対象の変数定義。修飾子セット 4 個
+  (ULTRA_LL / MIRACLE_LM / MEGA_RM / WONDER_RR) ＋ `UNDEFINED_KEY_SOUND_PATH`
+  （未定義キー効果音アセットの配置先パス、XDG 既定 + CAPSULE_SOUND_DIR で上書き可）。
 
 ## 使い方
 
@@ -25,7 +28,15 @@ config.tmpl を編集したらこれを実行するだけで反映される。`c
 
 ## chord 側のセットアップ（参考）
 
-chord は pre-1.0 で Homebrew 未配布。初回は自前ビルドと Accessibility 許可が要る:
+```sh
+brew install akira-toriyama/tap/chord
+```
+
+これで CLI と Formula 同梱の `Chord.app` が入る。初回起動 (`open -a Chord`) で
+**System Settings → Privacy & Security → Accessibility** の許可ダイアログが出る。
+Tap: <https://github.com/akira-toriyama/homebrew-tap>。
+
+ソースから入れたい場合 (開発・先行検証):
 
 ```sh
 git clone https://github.com/akira-toriyama/chord
@@ -33,9 +44,6 @@ cd chord
 swift build -c release
 ./scripts/install-cli.sh        # ~/.local/bin/chord にシンボリックリンク
 ```
-
-常駐 daemon が必要なら `./package.sh` で `Chord.app` を作って `open` する。初回起動で
-**System Settings → Privacy & Security → Accessibility** の許可ダイアログが出る。
 
 ## ショートカット一覧
 
@@ -94,3 +102,18 @@ config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen
   XDG データディレクトリ (`$XDG_DATA_HOME/sounds/` ⇒ 既定 `~/.local/share/sounds/`)
 - 未配備でも害なし: `afplay` が静かに失敗するだけ
 - フォールバック行は `# doc:` 無し ⇒ ショートカット表 (上記の AUTO-GENERATED) に出さない
+
+## デバッグ
+
+「バインドが効かない」ときの一次切り分け:
+
+```sh
+chord --doctor                          # Accessibility 許可 / config / daemon 起動状態
+chord --validate --strict ~/.config/chord/config.toml   # drop / warning が出ていないか
+tail -f /tmp/chord.log                  # ランタイムログ（chord 既定の出力先）
+chord --debug                           # フォアグラウンドで verbose 起動（既存 daemon は --quit で先に止める）
+chord --list                            # daemon が解釈中のバインド一覧（text / --json 可）
+```
+
+config 内容そのものを覗くなら `~/.config/chord/config.toml`（render.sh のデプロイ先）。
+直前版は `.bak` に退避済（壊れた変更の手動復旧用）。
