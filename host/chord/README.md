@@ -79,3 +79,18 @@ config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen
   binding が発火」。config.tmpl のタブ移動はこの規則で Chrome / VS Code を切替えている。
 - **F13–F24・マウス side1/side2・スクロール wheel** は chord でバインド可能（skhd.zig
   では取れなかった領域）。
+
+## 未定義キー効果音フォールバック
+
+4 修飾子セット (ULTRA_LL/MIRACLE_LM/MEGA_RM/WONDER_RR) で実バインド済みの
+キー以外を押すと効果音 (`undefined_key.wav`) を鳴らす。chord v0.2.0 PR5 の
+`[[fallbacks]]` + `*` ワイルドカードで実装（config.tmpl 末尾）。
+
+- `[[bindings]]` が全 miss した時だけ `[[fallbacks]]` が評価される
+  → 既存バインドの誤爆は発生しない
+- 音は 1 種共通（旧 skhd 時代の運用と同じ）
+- アセット (`undefined_key.wav`) は **dotfiles(chezmoi) 管轄**。本 repo は
+  パスを参照するだけ。配備先は `CAPSULE_SOUND_DIR` で上書き可、既定は
+  XDG データディレクトリ (`$XDG_DATA_HOME/sounds/` ⇒ 既定 `~/.local/share/sounds/`)
+- 未配備でも害なし: `afplay` が静かに失敗するだけ
+- フォールバック行は `# doc:` 無し ⇒ ショートカット表 (上記の AUTO-GENERATED) に出さない

@@ -129,3 +129,33 @@ action-keys = "forward_delete"
 name = "ctrl-j → return"
 input = "ctrl - j"
 action-keys = "return"
+
+
+# ---- 未定義キー効果音フォールバック ----
+# 4 修飾子セット (ULTRA_LL/MIRACLE_LM/MEGA_RM/WONDER_RR) で実バインド済みの
+# キー以外を押すと効果音を鳴らす。chord v0.2.0 PR5 の `[[fallbacks]]` +
+# `*` ワイルドカードで実装。[[bindings]] が全 miss した時だけ [[fallbacks]]
+# が評価されるので、既存バインドとの誤爆は発生しない。
+# 音は 1 種共通（旧 skhd 時代の運用と同じ）。アセット配備は dotfiles 管轄、
+# UNDEFINED_KEY_SOUND_PATH は render.sh の envsubst で実体パスに置換される。
+# `# doc:` は付けない（README ショートカット表に出さない＝負のバインド扱い）。
+
+[[fallbacks]]
+name = "ULTRA_LL undefined feedback"
+input = "${ULTRA_LL} - *"
+action-shell = 'afplay "${UNDEFINED_KEY_SOUND_PATH}"'
+
+[[fallbacks]]
+name = "MIRACLE_LM undefined feedback"
+input = "${MIRACLE_LM} - *"
+action-shell = 'afplay "${UNDEFINED_KEY_SOUND_PATH}"'
+
+[[fallbacks]]
+name = "MEGA_RM undefined feedback"
+input = "${MEGA_RM} - *"
+action-shell = 'afplay "${UNDEFINED_KEY_SOUND_PATH}"'
+
+[[fallbacks]]
+name = "WONDER_RR undefined feedback"
+input = "${WONDER_RR} - *"
+action-shell = 'afplay "${UNDEFINED_KEY_SOUND_PATH}"'
