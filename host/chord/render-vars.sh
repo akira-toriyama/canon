@@ -9,14 +9,14 @@
 # render.sh の VARS 列に対応して全件渡される。
 
 # ---- ZMKで定義したmodifier セット ----
-# 注: 本 PR (capsule-corp 移行ベースライン) は chord pre-v0.2.0 を前提とし、
-# L/R 区別しない device-independent な `ctrl/alt/shift/cmd` で記述する。
-# chord 側 PR1 (ed1c032 `feat(core)!: side-specific modifier tokens`) で
-# `rctrl/lcmd/...` トークンが追加されたが、未リリース。chord v0.2.0 着地後の
-# follow-up PR で `rctrl + ralt + rshift` 等へ置換し ZMK 右側修飾子チョード
-# 専用に厳格化する（"設計意図復活"）。
-# 現状の影響: 左 modifier 3 個＋同キーの偶発で発火しうるが、実用上は稀。
-export ULTRA_LL="ctrl + alt + shift"      # ULTRA_LL: ALT+SHIFT+CTRL (CMD なし)
-export MIRACLE_LM="ctrl + cmd + shift"      # MIRACLE_LM: CMD+SHIFT+CTRL (ALT なし)
-export MEGA_RM="ctrl + cmd + alt"        # MEGA_RM: CMD+ALT+CTRL  (SHIFT なし)
-export WONDER_RR="cmd + alt + shift"       # WONDER_RR: CMD+ALT+SHIFT (CTRL なし)
+# chord v0.2.0 で side-specific 修飾子トークン (`rctrl/ralt/rshift/rcmd`/
+# `lctrl/...`) が解禁された（PR1 `feat(core)!: side-specific modifier tokens`、
+# ed1c032）。これにより ZMK 右側修飾子チョード専用の厳格マッチを表現できる。
+# 移行ベースライン (PR #26) では device-independent な `ctrl/alt/shift/cmd` で
+# 妥協していたが、本 PR で **設計意図 = 右側 modifier 限定** を復活させる。
+# 効果: 通常のタイピングで `ctrl + alt + shift + X` を左側で偶発しても発火しない
+# （ZMK ファームから届く右側 modifier セットだけが match）。
+export ULTRA_LL="rctrl + ralt + rshift"      # ULTRA_LL: RALT+RSHIFT+RCTRL (RCMD なし)
+export MIRACLE_LM="rctrl + rcmd + rshift"    # MIRACLE_LM: RCMD+RSHIFT+RCTRL (RALT なし)
+export MEGA_RM="rctrl + rcmd + ralt"         # MEGA_RM: RCMD+RALT+RCTRL  (RSHIFT なし)
+export WONDER_RR="rcmd + ralt + rshift"      # WONDER_RR: RCMD+RALT+RSHIFT (RCTRL なし)

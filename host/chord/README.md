@@ -68,12 +68,13 @@ config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen
 
 ## chord 文法の制約メモ
 
-- **L/R 修飾子の扱い**: chord 側 PR1 (`ed1c032 feat(core)!: side-specific modifier
-  tokens`) で `rctrl/ralt/rshift/rcmd` 等のトークンが追加された（未リリース）。
-  本 PR (capsule-corp 移行ベースライン) は **pre-v0.2.0 を前提**としており、
-  device-independent な `ctrl/alt/shift/cmd` で記述している。chord v0.2.0
-  リリース後の follow-up PR で `rctrl + ralt + rshift` 等へ置換し ZMK 右側
-  修飾子チョード専用に厳格化する予定（"設計意図復活"）。
+- **L/R 修飾子は side-specific**: [render-vars.sh](./render-vars.sh) で
+  `rctrl + ralt + rshift` のように **右側修飾子トークンに固定**している。
+  chord v0.2.0 の PR1 (`ed1c032 feat(core)!: side-specific modifier tokens`)
+  で `rctrl/ralt/rshift/rcmd` / `lctrl/...` トークンが解禁されたため。
+  これにより ZMK ファームの右側修飾子チョードだけが match し、通常タイピングで
+  左 modifier 3 個＋同キーを偶発しても発火しない（"設計意図 = ZMK 専用チョード"
+  の復活）。
 - **同一 input + 別 apps** の per-app 振り分けは「document 順で最初に match した
   binding が発火」。config.tmpl のタブ移動はこの規則で Chrome / VS Code を切替えている。
 - **F13–F24・マウス side1/side2・スクロール wheel** は chord でバインド可能（skhd.zig
