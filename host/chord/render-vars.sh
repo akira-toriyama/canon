@@ -20,3 +20,16 @@ export ULTRA_LL="rctrl + ralt + rshift"      # ULTRA_LL: RALT+RSHIFT+RCTRL (RCMD
 export MIRACLE_LM="rctrl + rcmd + rshift"    # MIRACLE_LM: RCMD+RSHIFT+RCTRL (RALT なし)
 export MEGA_RM="rctrl + rcmd + ralt"         # MEGA_RM: RCMD+RALT+RCTRL  (RSHIFT なし)
 export WONDER_RR="rcmd + ralt + rshift"      # WONDER_RR: RCMD+RALT+RSHIFT (RCTRL なし)
+
+# ---- 未定義キー効果音アセットパス ----
+# 4 修飾子セット下で未バインドの全キーを押した時の効果音 (chord v0.2.0 PR5 の
+# `[[fallbacks]]` + `*` ワイルドカードで実装。config.tmpl 末尾参照)。
+#
+# 効果音アセットは「横断資産」: chord 以外 (rift のフォーカス通知等) からも
+# 鳴らすため capsule-corp は実体を持たない。所有・配備は dotfiles(chezmoi)
+# の責務（リポジトリ境界 = 当 repo は入力パイプライン、環境側資産は dotfiles）。
+# ここは配備先を render 時に envsubst で埋め込むだけ。CAPSULE_SOUND_DIR で
+# 上書き可、既定は XDG データディレクトリ配下。dotfiles 側で
+#   <SOUND_DIR>/undefined_key.wav
+# をイベント名規約で配置すること（未配置なら afplay 無音）。
+export UNDEFINED_KEY_SOUND_PATH="${CAPSULE_SOUND_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/sounds}/undefined_key.wav"

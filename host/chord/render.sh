@@ -22,8 +22,8 @@ cd "$(dirname "$0")"
 # (壊れた設定が稼働中の config を上書きしない)。
 OUT="$HOME/.config/chord/config.toml"
 
-# envsubst は指定変数のみ置換。修飾子セット 4 個を明示。
-VARS='${ULTRA_LL} ${MIRACLE_LM} ${MEGA_RM} ${WONDER_RR}'
+# envsubst は指定変数のみ置換。修飾子セット 4 個＋効果音パスを明示。
+VARS='${ULTRA_LL} ${MIRACLE_LM} ${MEGA_RM} ${WONDER_RR} ${UNDEFINED_KEY_SOUND_PATH}'
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
