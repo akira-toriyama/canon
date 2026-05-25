@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code 向けのプロジェクト運用メモ。人間向けの概要は（整備後の）
+Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 [README.md](README.md) を参照。本ファイルは「壊しやすい点」と「正しい手順」に絞る。
 
 ## このリポジトリ
@@ -41,6 +41,11 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   `west update` しない（重い・汚す）。後述のスクリプトはキャッシュへ複製して
   ビルドする。
 - **README は user 主体で執筆**。指示なく構成・文章を大幅に書き換えない。
+- **chord render.sh は atomic deploy**: [host/chord/render.sh](host/chord/render.sh)
+  は TEMP に envsubst 出力を作って `chord --validate` を通してから
+  `~/.config/chord/config.toml` へ `mv`。**validate 失敗時は exit 1 で稼働中
+  config を上書きしない**設計。`.bak` は直前版の置物（手動復旧用、自動 rollback
+  はしない）。新規 [[bindings]] を追加するときはこの保護に乗っかれば壊さない。
 
 ## ディレクトリ構成（再構築しない）
 
