@@ -88,7 +88,7 @@ bot 除外は **[docs/commit-convention.md](docs/commit-convention.md)** を参�
 
 - **CI で Claude（課金 API）を使わない**。PR ゲートは無料の決定的チェックのみ
   （build / commit-lint / shellcheck / draw fail_on_error / verify-eiji-sync /
-  verify-chord-doc）。
+  verify-chord-doc / verify-chord-validate）。
 - Claude レビューが必要なときは**手元でオンデマンド**起動（`/review`,
   `/ultrareview` 等）。CI に Claude 自動レビューを足さない（増分$0 を維持）。
 - public repo のため GitHub Actions 実行は無料枠。課金 API を使う workflow を

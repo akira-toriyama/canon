@@ -1,0 +1,45 @@
+name: Verify chord config (strict)
+
+# host/chord/config.tmpl + render-vars.sh から実体 config.toml を生成し、
+# chord --validate --strict で「warning / drop が 1 件でもあれば fail」する
+# 厳格 CI ゲート（chord v0.2.0 PR2-strict）。
+#
+# verify-chord-doc.yml (Python stdlib のみ・README 表の同期確認) とは分離:
+#   - 当ワークフローは macos-15 + brew install で 30s 程度のオーバーヘッド
+#   - doc-only PR (README.md / gen-chord-doc.py 変更) では brew install を
+#     走らせたくないため paths で限定
+#
+# Homebrew tap: akira-toriyama/homebrew-tap の Formula/chord.rb から install。
+# Swift 6 toolchain 必須のため runs-on は macos-15 を明示（chord 本家 CI と同じ）。
+on:
+  push:
+    paths:
+      - host/chord/config.tmpl
+      - host/chord/render-vars.sh
+      - host/chord/render.sh
+      - .github/workflows/verify-chord-validate.yml
+  pull_request:
+    paths:
+      - host/chord/config.tmpl
+      - host/chord/render-vars.sh
+      - host/chord/render.sh
+      - .github/workflows/verify-chord-validate.yml
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install chord from tap
+        run: brew install akira-toriyama/tap/chord
+
+      - name: Render config (envsubst → ~/.config/chord/config.toml)
+        run: bash host/chord/render.sh
+
+      - name: chord --validate --strict
+        # warning / drop / undefined-alias が 1 件でもあれば exit 1。
+        # render.sh 内部の `chord --validate` (non-strict) は通っていても、
+        # ここで strict を別途回して typo 系の静かな drop を確実に弾く。
+        run: chord --validate --strict "$HOME/.config/chord/config.toml"

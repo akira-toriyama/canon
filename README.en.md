@@ -50,7 +50,7 @@ keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
 host/chord/     macOS chord bridge (render.sh, config.tmpl, render-vars.sh)
 scripts/        build-zmk.sh / render-chord.sh (entrypoints), gen-eiji-drawer-map.py, hooks/
 docs/           commit convention, etc.
-.github/        CI (build / draw / verify-eiji-sync / verify-chord-doc / commit-lint / shellcheck / release)
+.github/        CI (build / draw / verify-eiji-sync / verify-chord-doc / verify-chord-validate / commit-lint / shellcheck / release)
 ```
 
 Per ZMK/upstream constraints, `config/`, `boards/`, `zephyr/module.yml` and
