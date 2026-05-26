@@ -2,19 +2,13 @@
 
 **日本語** | [English](README.en.md)
 
-入力デバイス設定の monorepo。
+ZMK ファームウェア設定（**Cyboard Imprint**、リポジトリルート = ZMK
+user-config）。分割キーボード。修飾キーの組み合わせ（chord）を ZMK が送出する。
 
-- **Cyboard Imprint** — ZMK ファームウェア設定（リポジトリルート = ZMK
-  user-config）。分割キーボード。修飾キーの組み合わせ（chord）を ZMK が送出する。
-- **chord** — macOS ホスト側ブリッジ（[`host/chord/`](host/chord/)）。ZMK が
-  送る chord を [akira-toriyama/chord](https://github.com/akira-toriyama/chord)
-  （CGEventTap / Swift 6 / TOML 設定）で受けて macOS 操作へ変換する。F13–F24・
-  マウスボタン・スクロールも扱える（旧 skhd.zig からの移行モチベ）。
-
-ZMK 側で修飾キー（modifier）＋ base key の chord を送り、host の chord が
-解釈する。修飾キーは super / hyper / meta を意識した割り当て。両者の対応は
-[`host/chord/render.sh`](host/chord/render.sh) がテンプレートから `config.toml`
-を生成・検証・反映してブリッジする。
+ZMK が送る chord を macOS 側で受けるホストブリッジ設定は dotfiles 配下:
+<https://github.com/akira-toriyama/dotfiles>
+（[docs/chord.md](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)）。
+本リポジトリは ZMK 側（キーマップ・ファームウェアビルド）のみを扱う。
 
 ```mermaid
 flowchart LR
@@ -22,10 +16,9 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK ファーム"]
   end
   subgraph MAC["macOS ホスト"]
-    CHORD["chord<br/>~/.config/chord/config.toml"]
+    CHORD["chord (dotfiles)<br/>~/.config/chord/config.toml"]
     ACT["macOS 操作"]
   end
-  TMPL["config.tmpl"] -->|"render.sh: 生成・検証・反映"| CHORD
   FW -->|"chord: 修飾キー + base key"| CHORD
   CHORD -->|"解釈してマップ"| ACT
 ```
@@ -46,10 +39,9 @@ config/         ZMK キーマップ / behaviors / combos / west.yml（ルート�
 build.yaml      ビルド対象（assimilator-bt × imprint_left / imprint_right）
 boards/ zephyr/  ZMK board-root（ボード/シールドは Cyboard モジュール由来。空で正常）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
-host/chord/     macOS chord ブリッジ（render.sh, config.tmpl, render-vars.sh）
-scripts/        build-zmk.sh / render-chord.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
+scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
-.github/        CI（build / draw / verify-eiji-sync / verify-chord-doc / verify-chord-validate / commit-lint / shellcheck / release）
+.github/        CI（build / draw / verify-eiji-sync / commit-lint / shellcheck / release）
 ```
 
 ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `build.yaml`
@@ -88,19 +80,6 @@ Actions の **Release** を手動起動 → コミットから次版を算出し
 タグ＋GitHub Release（git-cliff 生成ノート＋`imprint_*.uf2` 添付）を生成
 （[docs/commit-convention.md](docs/commit-convention.md)）。`main` 保護尊重の
 ため CHANGELOG は main へ自動 push しない。
-
-## chord
-
-```sh
-./scripts/render-chord.sh   # config.toml を生成 → 検証 → ~/.config/chord/config.toml へ反映・reload
-```
-
-clone 位置に依存しない。`chord --validate` が通った設定だけがデプロイされ、稼働中の
-`config.toml` を壊さない（chord 未インストール時は validate を skip しつつデプロイ、
-reload はインストール後に自動）。
-
-ショートカット一覧・修飾セット・更新手順は
-[host/chord/README.md](host/chord/README.md)。
 
 ## keymap
 

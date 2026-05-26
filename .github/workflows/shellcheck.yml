@@ -1,6 +1,6 @@
 name: ShellCheck
 
-# shell スクリプト（Docker ビルド・chord ブリッジ・git フック）を静的検査。
+# shell スクリプト（Docker ビルド・git フック）を静的検査。
 # shellcheck は GitHub Ubuntu runner に同梱のため追加依存なし。
 on:
   push:
