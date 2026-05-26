@@ -1,4 +1,4 @@
-# capsule-corp
+# canon
 
 **日本語** | [English](README.en.md)
 
@@ -80,7 +80,7 @@ ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `buil
 
 - 出力先: **`firmware/imprint_left.uf2`** / **`firmware/imprint_right.uf2`**
   （`.gitignore` 済）
-- 要 Docker。依存は `~/.cache/zmk-capsule-corp` に永続化（2 回目以降は高速）
+- 要 Docker。依存は `~/.cache/zmk-canon` に永続化（2 回目以降は高速）
 
 ### リリース
 

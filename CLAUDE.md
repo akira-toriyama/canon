@@ -61,7 +61,7 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 
 ## ビルド
 
-- ローカル: `./scripts/build-zmk.sh`（Docker。依存は `~/.cache/zmk-capsule-corp`
+- ローカル: `./scripts/build-zmk.sh`（Docker。依存は `~/.cache/zmk-canon`
   に永続化、冪等。`--update` / `--clean`、シールド指定可。出力 `firmware/`＝
   gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
 - CI: push で [build.yml](.github/workflows/build.yml)（ZMK 公式 reusable）。

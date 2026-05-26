@@ -15,7 +15,7 @@ ZMK ファームから届くチョードを macOS 側で捕まえてアクショ
   validate/reload を skip しつつデプロイは実行（インストール後に手動 reload）。
 - [render-vars.sh](./render-vars.sh): envsubst 対象の変数定義。修飾子セット 4 個
   (ULTRA_LL / MIRACLE_LM / MEGA_RM / WONDER_RR) ＋ `UNDEFINED_KEY_SOUND_PATH`
-  （未定義キー効果音アセットの配置先パス、XDG 既定 + CAPSULE_SOUND_DIR で上書き可）。
+  （未定義キー効果音アセットの配置先パス、XDG 既定 + CANON_SOUND_DIR で上書き可）。
 
 ## 使い方
 
@@ -98,7 +98,7 @@ config.tmpl の `# doc:` 行＋`[[bindings]]` を編集 → `python3 scripts/gen
   → 既存バインドの誤爆は発生しない
 - 音は 1 種共通（旧 skhd 時代の運用と同じ）
 - アセット (`undefined_key.wav`) は **dotfiles(chezmoi) 管轄**。本 repo は
-  パスを参照するだけ。配備先は `CAPSULE_SOUND_DIR` で上書き可、既定は
+  パスを参照するだけ。配備先は `CANON_SOUND_DIR` で上書き可、既定は
   XDG データディレクトリ (`$XDG_DATA_HOME/sounds/` ⇒ 既定 `~/.local/share/sounds/`)
 - 未配備でも害なし: `afplay` が静かに失敗するだけ
 - フォールバック行は `# doc:` 無し ⇒ ショートカット表 (上記の AUTO-GENERATED) に出さない
