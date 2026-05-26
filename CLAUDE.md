@@ -5,12 +5,12 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 
 ## このリポジトリ
 
-入力デバイス設定の monorepo。
+ZMK ファームウェア設定（[Cyboard Imprint](https://cyboard.digital/products/imprint)、
+リポジトリルート = ZMK user-config）。
 
-- **ZMK ファーム**: ルートが ZMK user-config（[Cyboard Imprint](https://cyboard.digital/products/imprint)）
-- **chord ホストブリッジ**: [host/chord/](host/chord/) — ZMK のチョードを macOS 側で受ける
-  ([akira-toriyama/chord](https://github.com/akira-toriyama/chord)。CGEventTap・TOML 設定。
-  旧 skhd.zig から移行: F13–F24 / マウス / スクロール対応のため)
+macOS 側ホストブリッジ（旧 [host/chord/](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)）は
+dotfiles へ移管済み: <https://github.com/akira-toriyama/dotfiles>。本リポジトリは
+ZMK 側（キーマップ・ファーム）のみを扱う。
 
 設計思想は **低依存**（Python は stdlib のみ、他は shell）。重量級ツールチェーン
 （Node ランタイム依存の常駐ツール等）をリポジトリに持ち込まない。git-cliff は
@@ -41,11 +41,6 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   `west update` しない（重い・汚す）。後述のスクリプトはキャッシュへ複製して
   ビルドする。
 - **README は user 主体で執筆**。指示なく構成・文章を大幅に書き換えない。
-- **chord render.sh は atomic deploy**: [host/chord/render.sh](host/chord/render.sh)
-  は TEMP に envsubst 出力を作って `chord --validate` を通してから
-  `~/.config/chord/config.toml` へ `mv`。**validate 失敗時は exit 1 で稼働中
-  config を上書きしない**設計。`.bak` は直前版の置物（手動復旧用、自動 rollback
-  はしない）。新規 [[bindings]] を追加するときはこの保護に乗っかれば壊さない。
 
 ## ディレクトリ構成（再構築しない）
 
@@ -55,8 +50,6 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   （ZMK reusable build と west の前提）。
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
-- `host/<tool>/` はツール単位の階層（現状 chord のみ。将来別ツールも同形で追加）。
-  `host/` 直下に平坦化しない。
 - `scripts/`（+`scripts/hooks/`）は現規模に適切。これ以上分割しない。
 
 ## ビルド
@@ -92,8 +85,7 @@ bot 除外は **[docs/commit-convention.md](docs/commit-convention.md)** を参�
 ## レビュー / コスト方針（課金回避）
 
 - **CI で Claude（課金 API）を使わない**。PR ゲートは無料の決定的チェックのみ
-  （build / commit-lint / shellcheck / draw fail_on_error / verify-eiji-sync /
-  verify-chord-doc / verify-chord-validate）。
+  （build / commit-lint / shellcheck / draw fail_on_error / verify-eiji-sync）。
 - Claude レビューが必要なときは**手元でオンデマンド**起動（`/review`,
   `/ultrareview` 等）。CI に Claude 自動レビューを足さない（増分$0 を維持）。
 - public repo のため GitHub Actions 実行は無料枠。課金 API を使う workflow を

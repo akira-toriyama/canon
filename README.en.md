@@ -2,20 +2,13 @@
 
 [日本語](README.md) | **English**
 
-Monorepo for input-device configuration.
+ZMK firmware config (**Cyboard Imprint**, repo root = ZMK user-config).
+A split keyboard; ZMK emits modifier-combination chords.
 
-- **Cyboard Imprint** — ZMK firmware config (repo root = ZMK user-config).
-  A split keyboard; ZMK emits modifier-combination chords.
-- **chord** — macOS host-side bridge ([`host/chord/`](host/chord/)). Chords sent
-  by ZMK are received by [akira-toriyama/chord](https://github.com/akira-toriyama/chord)
-  (CGEventTap / Swift 6 / TOML config) and translated into macOS actions. F13–F24,
-  mouse buttons and scroll wheel are bindable too (the motivation for migrating
-  off skhd.zig).
-
-ZMK sends a chord of a modifier key + a base key; chord on the host decodes it.
-The modifiers are assigned with super / hyper / meta in mind.
-[`host/chord/render.sh`](host/chord/render.sh) bridges the two by generating,
-validating and deploying `config.toml` from a template.
+The macOS host-side bridge that decodes those chords lives in dotfiles:
+<https://github.com/akira-toriyama/dotfiles>
+([docs/chord.md](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)).
+This repository covers only the ZMK side (keymap / firmware build).
 
 ```mermaid
 flowchart LR
@@ -23,10 +16,9 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK firmware"]
   end
   subgraph MAC["macOS host"]
-    CHORD["chord<br/>~/.config/chord/config.toml"]
+    CHORD["chord (dotfiles)<br/>~/.config/chord/config.toml"]
     ACT["macOS action"]
   end
-  TMPL["config.tmpl"] -->|"render.sh: generate / validate / deploy"| CHORD
   FW -->|"chord: modifier + base key"| CHORD
   CHORD -->|"decode & map"| ACT
 ```
@@ -47,10 +39,9 @@ config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
 build.yaml      Build targets (assimilator-bt × imprint_left / imprint_right)
 boards/ zephyr/  ZMK board-root (board/shield come from the Cyboard module; empty is normal)
 keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
-host/chord/     macOS chord bridge (render.sh, config.tmpl, render-vars.sh)
-scripts/        build-zmk.sh / render-chord.sh (entrypoints), gen-eiji-drawer-map.py, hooks/
+scripts/        build-zmk.sh (entrypoint), gen-eiji-drawer-map.py, hooks/
 docs/           commit convention, etc.
-.github/        CI (build / draw / verify-eiji-sync / verify-chord-doc / verify-chord-validate / commit-lint / shellcheck / release)
+.github/        CI (build / draw / verify-eiji-sync / commit-lint / shellcheck / release)
 ```
 
 Per ZMK/upstream constraints, `config/`, `boards/`, `zephyr/module.yml` and
@@ -90,20 +81,6 @@ Run the **Release** workflow manually → the next version is computed from
 commits; it creates a `vX.Y.Z` tag and a GitHub Release (git-cliff-generated
 notes + `imprint_*.uf2`) ([docs/commit-convention.md](docs/commit-convention.md)).
 CHANGELOG is not auto-pushed to `main` (branch protection is respected).
-
-## chord
-
-```sh
-./scripts/render-chord.sh   # generate → validate → deploy to ~/.config/chord/config.toml & reload
-```
-
-Location-independent. Only a config that passes `chord --validate` is deployed,
-so the running `config.toml` is never broken (when `chord` is not installed
-yet, validation is skipped but the file is still deployed — install first, then
-chord auto-reloads via its vnode watcher).
-
-Shortcut reference, modifier sets and update steps:
-[host/chord/README.md](host/chord/README.md).
 
 ## keymap
 

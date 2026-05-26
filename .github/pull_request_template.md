@@ -18,8 +18,8 @@
 - [ ] `config/eiji_macros.dtsi` を変更した → `python3 scripts/gen-eiji-drawer-map.py` を実行しコミット済（verify-eiji-sync 対策）
 - [ ] 生成・ツール管理ファイル（`keymap_drawer.config.yaml` の自動生成域 / `keymap-drawer/*` / `config/imprint.json`）を手編集していない
 - [ ] 必要なら docs / CLAUDE.md を更新
-- [ ] CI（build / commit-lint / shellcheck / draw / verify-eiji-sync / verify-chord-doc / verify-chord-validate）が緑
+- [ ] CI（build / commit-lint / shellcheck / draw / verify-eiji-sync）が緑
 
 ## 動作確認
 
-<!-- 実機フラッシュ・chord 反映など、確認した内容 -->
+<!-- 実機フラッシュなど、確認した内容 -->
