@@ -1,4 +1,4 @@
-# capsule-corp
+# canon
 
 [日本語](README.md) | **English**
 
@@ -81,7 +81,7 @@ Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 
 - Output: **`firmware/imprint_left.uf2`** / **`firmware/imprint_right.uf2`**
   (git-ignored)
-- Requires Docker. Deps persist in `~/.cache/zmk-capsule-corp` (fast after the
+- Requires Docker. Deps persist in `~/.cache/zmk-canon` (fast after the
   first run)
 
 ### Release

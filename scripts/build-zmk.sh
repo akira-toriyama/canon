@@ -9,7 +9,7 @@
 #
 # 仕組み:
 #   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
-#     実リポジトリを汚さないよう、$ZMK_WS（既定 ~/.cache/zmk-capsule-corp）に
+#     実リポジトリを汚さないよう、$ZMK_WS（既定 ~/.cache/zmk-canon）に
 #     リポジトリを複製してビルドする。依存はそこに永続化され、2 回目以降は
 #     west update を省略するため高速。
 #   - マニフェストは config/west.yml にあるため、リポジトリルートを topdir に
@@ -20,7 +20,7 @@
 # 生成物: ./firmware/<shield>.uf2（.gitignore 済み）
 #
 # 環境変数で上書き可:
-#   ZMK_WS     ワークスペース置き場       (既定: ~/.cache/zmk-capsule-corp)
+#   ZMK_WS     ワークスペース置き場       (既定: ~/.cache/zmk-canon)
 #   ZMK_IMAGE  ビルドイメージ             (既定: zmkfirmware/zmk-build-arm:stable)
 #
 set -euo pipefail
@@ -29,7 +29,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
-WS="${ZMK_WS:-$HOME/.cache/zmk-capsule-corp}"
+WS="${ZMK_WS:-$HOME/.cache/zmk-canon}"
 IMAGE="${ZMK_IMAGE:-zmkfirmware/zmk-build-arm:stable}"
 CFG="$WS/cfgrepo"          # リポジトリ複製 = west topdir
 FORCE_UPDATE=0

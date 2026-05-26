@@ -24,10 +24,10 @@ export WONDER_RR="rcmd + ralt + rshift"      # WONDER_RR: RCMD+RALT+RSHIFT (RCTR
 # `[[fallbacks]]` + `*` ワイルドカードで実装。config.tmpl 末尾参照)。
 #
 # 効果音アセットは「横断資産」: chord 以外 (rift のフォーカス通知等) からも
-# 鳴らすため capsule-corp は実体を持たない。所有・配備は dotfiles(chezmoi)
-# の責務（リポジトリ境界 = 当 repo は入力パイプライン、環境側資産は dotfiles）。
-# ここは配備先を render 時に envsubst で埋め込むだけ。CAPSULE_SOUND_DIR で
+# 鳴らすため当 repo は実体を持たない。所有・配備は dotfiles(chezmoi) の責務
+# （リポジトリ境界 = 当 repo は入力パイプライン、環境側資産は dotfiles）。
+# ここは配備先を render 時に envsubst で埋め込むだけ。CANON_SOUND_DIR で
 # 上書き可、既定は XDG データディレクトリ配下。dotfiles 側で
 #   <SOUND_DIR>/undefined_key.wav
 # をイベント名規約で配置すること（未配置なら afplay 無音）。
-export UNDEFINED_KEY_SOUND_PATH="${CAPSULE_SOUND_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/sounds}/undefined_key.wav"
+export UNDEFINED_KEY_SOUND_PATH="${CANON_SOUND_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/sounds}/undefined_key.wav"
