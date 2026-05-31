@@ -8,6 +8,15 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 ZMK ファームウェア設定（[Cyboard Imprint](https://cyboard.digital/products/imprint)、
 リポジトリルート = ZMK user-config）。
 
+## 用語
+
+UI / 設定 / コード上の呼び名は [`docs/glossary.md`](docs/glossary.md) に従う
+— 正規名（`keymap`, `layer`, `behavior`, `combo`, `macro`, `board`,
+`shield`, `build target`, `host bridge`, …）のみを使い、`Don't call it:`
+側の同義語は使わない。用語の追加・改名はコード変更と **同一 PR で**
+このファイルへ反映する。
+
+
 macOS 側ホストブリッジ（旧 [host/chord/](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)）は
 dotfiles へ移管済み: <https://github.com/akira-toriyama/dotfiles>。本リポジトリは
 ZMK 側（キーマップ・ファーム）のみを扱う。
