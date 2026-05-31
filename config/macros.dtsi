@@ -43,4 +43,10 @@
     CHORD_KP(rm_kp,            RGUI, RALT,  RCTRL)    // T_RM (RSHIFT なし)
     CHORD_KP(rr_kp,            RGUI, RALT,  RSHIFT)   // T_RR (RCTRL なし)
 
+    // ==== EIJI 切替 → 数字 / 記号キー専用 behavior 群 ====
+    // 機能的には上の eiji_macro と同一（EIJI tap → key press/release）だが、
+    // keymap-drawer が個別の名前付き behavior に raw_binding_map で表示文字を
+    // 紐付けるため、en_0 / en_under など 0-cell の独立 behavior として展開
+    // する必要があり、`EN_MACRO` という別マクロで実装している。統一すると
+    // 描画名空間が失われるので分離は意図的。
     #include "eiji_macros.dtsi"
