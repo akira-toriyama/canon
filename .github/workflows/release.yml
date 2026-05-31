@@ -73,17 +73,23 @@ jobs:
         if: steps.ver.outputs.release == 'true'
         run: |
           set -euo pipefail
-          docker run --rm -v "$PWD:/w" -w /w -e ZEPHYR_BASE=/w/zephyr \
+          # build.yaml を唯一のソースにして board/shield を派生（二重管理回避）。
+          # CI 通常ビルド (.github/workflows/build.yml) は ZMK reusable が
+          # 同 build.yaml を読むため、ここで揃えればリリースとビルドが齟齬らない。
+          pairs="$(awk '/^[[:space:]]*-?[[:space:]]*board:[[:space:]]/{b=$NF} /^[[:space:]]*shield:[[:space:]]/{printf "%s/%s ", b, $NF}' build.yaml)"
+          echo "Build targets (board/shield): $pairs"
+          docker run --rm -v "$PWD:/w" -w /w -e ZEPHYR_BASE=/w/zephyr -e PAIRS="$pairs" \
             zmkfirmware/zmk-build-arm:stable bash -ceu '
               git config --global --add safe.directory "*"
               west init -l config
               west update
               west zephyr-export
               mkdir -p artifacts
-              for SH in imprint_left imprint_right; do
-                west build -p -s zmk/app -d "build/$SH" -b assimilator-bt -- \
-                  -DSHIELD="$SH" -DZMK_CONFIG=/w/config
-                cp "build/$SH/zephyr/zmk.uf2" "artifacts/$SH.uf2"
+              for pair in $PAIRS; do
+                board="${pair%/*}"; shield="${pair#*/}"
+                west build -p -s zmk/app -d "build/$shield" -b "$board" -- \
+                  -DSHIELD="$shield" -DZMK_CONFIG=/w/config
+                cp "build/$shield/zephyr/zmk.uf2" "artifacts/$shield.uf2"
               done
             '
 
@@ -95,8 +101,7 @@ jobs:
         with:
           name: release-preview-${{ steps.ver.outputs.version }}
           path: |
-            artifacts/imprint_left.uf2
-            artifacts/imprint_right.uf2
+            artifacts/*.uf2
             RELEASE_NOTES.md
 
       - name: Dry-run summary
@@ -124,7 +129,9 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          assets="artifacts/imprint_left.uf2 artifacts/imprint_right.uf2"
+          # build.yaml と齟齬しないよう成果物は glob で拾う（Build step が
+          # build.yaml から派生して artifacts/<shield>.uf2 を生成済み）。
+          assets="artifacts/*.uf2"
 
           # 既存の「自動ドラフト」（未公開・semver タグ）を列挙。
           # 公開済み（isDraft=false）は対象外＝絶対に触れない。
