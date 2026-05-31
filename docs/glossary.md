@@ -1,3 +1,10 @@
+---
+title: canon 用語集
+tags: [glossary, zmk, firmware, keyboard]
+repo: canon
+aliases: []
+---
+
 # 用語集 — canon のユビキタス言語
 
 canon を構成する各パーツの **正規の呼び名** をまとめた規範ドキュメント。
@@ -68,7 +75,7 @@ canon の入力レイアウト全体を記述する DeviceTree 文書。
 - **Don't call it:** layout, keyboard config, profile, レイアウト, 設定
 
 ### layer
-keymap の中の 1 レイヤー（例: `DEFAULT_LAYER` / `NUMBER_LAYER` /
+[[keymap]] の中の 1 レイヤー（例: `DEFAULT_LAYER` / `NUMBER_LAYER` /
 `SYMBOL1_LAYER` / `SYMBOL2_LAYER` / `FUNCTION_LAYER` / `LEFT_ARROW_LAYER`
 など）。`display-name` で人間可読名を持ち、ZMK のレイヤースタックで
 on/off される。
@@ -77,7 +84,7 @@ on/off される。
 - **Don't call it:** mode, page, view, モード, ページ
 
 ### behavior
-1 キーの動作を抽象化した ZMK の構成要素。`&mt`（mod-tap）、`&lt`（layer-tap）、
+1 キーの動作を抽象化した ZMK の構成要素。`&mt`（mod-tap）、`&lt`（[[layer]]-tap）、
 `&ime_kana` などの **アンパサンド始まり**の識別子で参照される。
 - 定義: [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi),
   [`config/arrow_behaviors.dtsi`](../config/arrow_behaviors.dtsi)
@@ -175,7 +182,7 @@ host bridge は本リポジトリには **存在せず**、
 `keymap-drawer/imprint.svg` を自動生成する外部ツール
 （[caksoylar/keymap-drawer](https://github.com/caksoylar/keymap-drawer)）。
 `keymap_drawer.config.yaml`（リポジトリルート）が設定、`keymap-drawer/`
-配下が出力。**draw-keymap の bot が生成・コミットするので手編集しない**。
+配下が出力。**draw-[[keymap]] の bot が生成・コミットするので手編集しない**。
 - **Don't call it:** keymap visualizer, layout renderer, ビジュアライザ
 
 ---
