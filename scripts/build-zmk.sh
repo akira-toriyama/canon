@@ -149,7 +149,8 @@ for t in $TARGETS; do
   BOARD="${t%%:*}"; SH="${t##*:}"
   echo "=== BUILD $BOARD / $SH ==="
   west build -p -s zmk/app -d "build/$SH" -b "$BOARD" -- \
-    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config
+    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config \
+    -DBOARD_ROOT=/workspace -DDTS_ROOT=/workspace
   cp "build/$SH/zephyr/zmk.uf2" "/workspace/output/$SH.uf2"
   echo "=== DONE $SH ==="
 done
