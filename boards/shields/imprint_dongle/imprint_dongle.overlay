@@ -11,7 +11,7 @@
 / {
     chosen {
         zmk,kscan = &kscan_dongle;
-        zmk,matrix_transform = &imprint_letters_only_full_bottom_row;
+        zmk,matrix-transform = &imprint_letters_only_full_bottom_row;
     };
 
     kscan_dongle: kscan_dongle {
