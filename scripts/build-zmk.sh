@@ -164,6 +164,25 @@ if [ "$NEED_UPDATE" -eq 1 ]; then
   [ -d .west ] || west init -l config
   west update
 fi
+# ZMK の out-of-tree パッチを適用する(冪等)。
+# `patches/zmk/*.patch` を /workspace/zmk に当てる。west update で
+# 巻き戻されても再適用されるよう毎ビルド実行する。順序は LC_COLLATE 依存
+# にしたくないので C ロケールでソート。
+if compgen -G "/workspace/patches/zmk/*.patch" > /dev/null; then
+  for p in $(LC_ALL=C ls /workspace/patches/zmk/*.patch); do
+    name=$(basename "$p")
+    if git -C /workspace/zmk apply --reverse --check "$p" >/dev/null 2>&1; then
+      echo "=== PATCH zmk: $name (既適用)"
+    elif git -C /workspace/zmk apply --check "$p" >/dev/null 2>&1; then
+      git -C /workspace/zmk apply "$p"
+      echo "=== PATCH zmk: $name (適用)"
+    else
+      echo "❌ パッチが当たりません: $name" >&2
+      echo "   ZMK main の該当箇所が変わった可能性。手動で更新するか upstream 取り込み状況を確認。" >&2
+      exit 1
+    fi
+  done
+fi
 west zephyr-export
 mkdir -p /workspace/output
 for t in $TARGETS; do
