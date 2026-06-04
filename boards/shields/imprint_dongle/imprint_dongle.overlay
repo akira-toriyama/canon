@@ -1,9 +1,17 @@
+// Dongle 用最小 overlay。
+// 物理キーは持たないため kscan は mock。matrix_transform / トラックボール
+// listener ラベルは upstream imprint shield (Cyboard-DigitalTailor/zmk-keyboards)
+// の imprint.dtsi から、user keymap (config/imprint.keymap) が参照する最低限
+// のみコピーしている。upstream の imprint.dtsi 変更には追従が必要。
+
 #include <dt-bindings/zmk/matrix_transform.h>
+#include <input/processors.dtsi>
+#include <dt-bindings/zmk/input_transform.h>
 
 / {
     chosen {
         zmk,kscan = &kscan_dongle;
-        zmk,matrix_transform = &dongle_transform;
+        zmk,matrix_transform = &imprint_letters_only_full_bottom_row;
     };
 
     kscan_dongle: kscan_dongle {
@@ -13,10 +21,22 @@
         events = <0>;
     };
 
-    dongle_transform: dongle_transform {
+    imprint_letters_only_full_bottom_row: keymap_transform_8 {
         compatible = "zmk,matrix-transform";
-        rows = <1>;
-        columns = <1>;
-        map = <RC(0,0)>;
+        columns = <8>;
+        rows = <14>;
+        map = <
+RC(4,5) RC(4,4) RC(4,3) RC(4,2) RC(4,1) RC(4,0)                           RC(11,0) RC(11,1) RC(11,2) RC(11,3) RC(11,4) RC(11,5)
+RC(3,5) RC(3,4) RC(3,3) RC(3,2) RC(3,1) RC(3,0)                           RC(10,0) RC(10,1) RC(10,2) RC(10,3) RC(10,4) RC(10,5)
+RC(2,5) RC(2,4) RC(2,3) RC(2,2) RC(2,1) RC(2,0)                           RC(9,0)  RC(9,1)  RC(9,2)  RC(9,3)  RC(9,4)  RC(9,5)
+RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                            RC(8,1)  RC(8,2)  RC(8,3)  RC(8,4)  RC(8,5)
+                                    RC(0,3) RC(0,2) RC(0,1)   RC(7,1) RC(7,2) RC(7,3)
+                                    RC(0,7) RC(0,6) RC(0,5)   RC(7,5) RC(7,6) RC(7,7)
+        >;
+    };
+
+    trackball_central_listener: trackball_central_listener {
+        compatible = "zmk,input-listener";
+        status = "disabled";
     };
 };
