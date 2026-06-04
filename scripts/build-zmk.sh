@@ -65,12 +65,28 @@ if [ ${#SHIELDS[@]} -eq 0 ]; then
     ' build.yaml
   )
 else
-  # 引数はシールド名のみ。board は build.yaml の最初の board を使う。
-  # コメント行（テンプレ冒頭の `# board: [ ... ]` 例を含む）は無視する。
-  # これを怠ると BOARD が `[ "nice_nano_v2" ]` 等になり -DBOARD=[ で失敗する。
-  BOARD="$(awk '/^[[:space:]]*#/{next} /board:[[:space:]]/{sub(/.*board:[[:space:]]*/,"");print;exit}' build.yaml)"
+  # 引数は board:shield または shield のみ。shield のみの場合は
+  # build.yaml から該当ペアの board を引く（最初の board 固定ではない、
+  # 異種ボード混在 build.yaml で正しい組み合わせを得るため）。
   _s=("${SHIELDS[@]}"); SHIELDS=()
-  for s in "${_s[@]}"; do SHIELDS+=("$BOARD	$s"); done
+  for arg in "${_s[@]}"; do
+    if [[ "$arg" == *:* ]]; then
+      SHIELDS+=("${arg%%:*}	${arg##*:}")
+      continue
+    fi
+    BOARD="$(awk -v want="$arg" '
+      /^[[:space:]]*#/ { next }
+      /^[[:space:]]*-[[:space:]]/ { if (b != "" && s == want) { print b; exit } b=""; s="" }
+      /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
+      /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
+      END { if (b != "" && s == want) print b }
+    ' build.yaml)"
+    if [ -z "$BOARD" ]; then
+      echo "shield '$arg' が build.yaml に見つかりません（board:shield 形式で渡すことも可）" >&2
+      exit 1
+    fi
+    SHIELDS+=("$BOARD	$arg")
+  done
 fi
 
 if [ ${#SHIELDS[@]} -eq 0 ]; then
