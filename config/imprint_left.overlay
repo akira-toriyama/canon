@@ -1,12 +1,19 @@
-// Phase 4b: 左半分を peripheral 化(dongle 経由構成)。
-// トラックボール対応は Phase 5 で別途実装。ここでは関連ノードを止め、
-// キー入力のみ peripheral として動作させる。
+// Phase 5b: 左半分のトラックボール forward を dongle へ。
+//
+// upstream imprint shield は SHIELD_IMPRINT_LEFT 用に
+// trackball_central / trackball_central_listener (左の物理 PMW3610)
+// を定義しているが、dongle 構成では左は peripheral 役で listener は
+// dongle 側にある。upstream に左用の input-split ノードは無いので
+// ここで新規追加する(右用 trackball_peripheral_split (reg=0) と
+// 衝突しないよう reg=1)。
 
-&trackball_central {
+// 左 peripheral では central 側 listener は使わない(dongle で listen)
+&trackball_central_listener {
     status = "disabled";
 };
 
-&trackball_central_listener {
+// 右用 split / listener は左には無関係
+&trackball_peripheral_split {
     status = "disabled";
 };
 
@@ -14,6 +21,15 @@
     status = "disabled";
 };
 
-&trackball_peripheral_split {
-    status = "disabled";
+// 左トラックボールの input-split 送信ノード(新規)。dongle 側で
+// 同じ reg=1 の proxy が受信する。upstream imprint.dtsi の
+// split_inputs はラベル無しなのでパス参照(/split_inputs)で extend する。
+/ {
+    split_inputs {
+        trackball_central_split: trackball_central_split@1 {
+            compatible = "zmk,input-split";
+            reg = <1>;
+            device = <&trackball_central>;
+        };
+    };
 };

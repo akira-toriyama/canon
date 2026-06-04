@@ -35,10 +35,10 @@ RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                         
         >;
     };
 
-    // 右半分のトラックボール forward 受け口(Phase 5a)。
-    // peripheral 側(右)が trackball_peripheral_split に device を設定して
-    // 入力を BLE 経由で送ってくる。dongle(central) 側ではこのノードは
-    // proxy 役で device 不要(ZMK input_split.c の central パス)。
+    // 左右半分のトラックボール forward 受け口。peripheral 側が
+    // device を設定して入力を BLE 経由で送ってくる。dongle(central)
+    // 側ではこれらは proxy 役で device 不要(ZMK input_split.c の
+    // central パス)。reg は peripheral 側と一致させる(右=0, 左=1)。
     split_inputs {
         #address-cells = <1>;
         #size-cells = <0>;
@@ -47,17 +47,24 @@ RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                         
             compatible = "zmk,input-split";
             reg = <0>;
         };
+
+        trackball_central_split: trackball_central_split@1 {
+            compatible = "zmk,input-split";
+            reg = <1>;
+        };
     };
 
+    // 右トラックボール → 標準マウス
     trackball_peripheral_listener: trackball_peripheral_listener {
         compatible = "zmk,input-listener";
         device = <&trackball_peripheral_split>;
     };
 
-    // 左半分のトラックボール forward は Phase 5b。ラベル stub のみ
-    // (user keymap が trackball_central_listener を参照しているため)
+    // 左トラックボール → user keymap で TRACKBALL_SCROLL_PROCESSORS が
+    // 適用される(常時スクロール化)。listener 自体はここで enable し
+    // device を split proxy に向けるだけで、processors は keymap 側。
     trackball_central_listener: trackball_central_listener {
         compatible = "zmk,input-listener";
-        status = "disabled";
+        device = <&trackball_central_split>;
     };
 };
