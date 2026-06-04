@@ -18,11 +18,13 @@ Cyboard Imprint を **dongle 中継構成**(USB ドングル = central / 左右�
 | 3b | 右半分の peripheral 化(設定リセット運用) | ✅ merged (#35) |
 | 4 | user keymap を dongle に適用 | ✅ merged (#35) |
 | 4b | 左半分の peripheral 化 | ✅ merged (#35) |
-| 5 | 左右トラックボールの dongle 経由 forward | ⬜ 未着手 |
+| 5a | 右トラックボールの dongle 経由 forward (マウス) | ✅ merged (#37) |
+| 5b | 左トラックボールの dongle 経由 forward (スクロール) | ✅ merged (#38) |
 | 6 | RGB underglow の再有効化 | ⬜ 未着手 |
 
-実機検収済み: dongle (XIAO BLE) を PC に挿し、左右両半分のキー入力が
-USB HID として届く。bond は NVS 永続化されて切断→再接続でも復帰する。
+実機検収済み: dongle (XIAO BLE) を PC に挿し、左右両半分のキー入力 +
+右トラックボール(マウス) + 左トラックボール(スクロール)が USB HID
+として届く。bond は NVS 永続化されて切断→再接続でも復帰する。
 
 ## 残タスク(upstream 別)
 
@@ -30,12 +32,10 @@ USB HID として届く。bond は NVS 永続化されて切断→再接続で�
 
 - **ZMK パッチ管理**: 後述「ZMK source patch (out-of-tree)」参照。
   west update で消えないよう何らかの形で repo 管理化する。
-- **Phase 5: トラックボール**: 左右の PMW3610 を peripheral から
-  `zmk,input-split` で central(dongle) に forward。Phase 4b の
-  `imprint_{left,right}.{conf,overlay}` で off にしている各ノードを
-  再有効化し、dongle 側に listener を置く。
 - **Phase 6: RGB**: `config/imprint_dongle.conf` の `ZMK_RGB_UNDERGLOW=n`
   を見直し。dongle に LED 無しなので peripheral 側のみ復活が現実的。
+  ユーザー個人は RGB を常時 off で運用しており実機検証手段が無いため
+  優先度低。
 - **dongle 通常版(log なし)の運用切替**: 検証中は `imprint_dongle_log.uf2`
   を使ったが、通常運用は `imprint_dongle.uf2` に切り替える。
 
@@ -49,10 +49,16 @@ USB HID として届く。bond は NVS 永続化されて切断→再接続で�
     するかは Cyboard maintainer と相談。
   - shield に取り込みたい設定の典型: `Kconfig.defconfig` の dongle 向け
     Kconfig 群、`imprint_dongle.overlay` のマトリクス transform 引用部、
-    mock kscan。
+    mock kscan、左右トラックボール用 input-split listener 群。
 - **upstream `imprint.dtsi` の chosen タイポ修正**: `zmk,matrix_transform`
   (underscore) で書かれていて user keymap の hyphen 上書きが効かない。
   ついでに直す価値あり。
+- **左トラックボール用 input-split ノードの上流化**: Phase 5b で canon
+  に追加した `trackball_central_split` (reg=1) を upstream `imprint.dtsi`
+  に取り込んでもらう。これで canon の `imprint_left.overlay` から
+  split_inputs extend を削除できる。
+  - 命名: `trackball_central_split` 以外の方が分かりやすいかもしれない
+    (例: `trackball_left_split`)。Cyboard maintainer と要相談。
 
 ### zmkfirmware/zmk に PR
 
