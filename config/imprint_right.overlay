@@ -1,0 +1,17 @@
+// Phase 4b: 右半分の dongle 経由構成。トラックボールは Phase 5。
+
+&trackball_peripheral {
+    status = "disabled";
+};
+
+&trackball_peripheral_listener {
+    status = "disabled";
+};
+
+&trackball_peripheral_split {
+    status = "disabled";
+};
+
+&trackball_central_listener {
+    status = "disabled";
+};
