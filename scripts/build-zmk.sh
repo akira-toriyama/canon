@@ -76,10 +76,10 @@ else
     fi
     BOARD="$(awk -v want="$arg" '
       /^[[:space:]]*#/ { next }
-      /^[[:space:]]*-[[:space:]]/ { if (b != "" && s == want) { print b; exit } b=""; s="" }
+      /^[[:space:]]*-[[:space:]]/ { if (b != "" && s == want && !found) { print b; found=1 } b=""; s="" }
       /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
       /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
-      END { if (b != "" && s == want) print b }
+      END { if (b != "" && s == want && !found) print b }
     ' build.yaml)"
     if [ -z "$BOARD" ]; then
       echo "shield '$arg' が build.yaml に見つかりません（board:shield 形式で渡すことも可）" >&2
