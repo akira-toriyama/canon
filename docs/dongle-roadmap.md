@@ -28,10 +28,15 @@ Cyboard Imprint を **dongle 中継構成**(USB ドングル = central / 左右�
 
 ## 残タスク(upstream 別)
 
+**最終目標: 関連リポジトリへ PR を出してマージしてもらうこと**。
+canon 内の作業は「PR マージまでの中継」として運用する。
+
 ### canon 内で完結
 
-- **ZMK パッチ管理**: 後述「ZMK source patch (out-of-tree)」参照。
-  west update で消えないよう何らかの形で repo 管理化する。
+- ✅ **ZMK パッチ管理(B案)**: `patches/zmk/security-changed-auto-unpair.patch`
+  を repo 管理化、`scripts/build-zmk.sh` がビルド時に冪等適用する。
+  詳細は [`patches/zmk/README.md`](../patches/zmk/README.md)。
+  upstream(C案)がマージされたら本 patch ディレクトリごと畳む。
 - **Phase 6: RGB**: `config/imprint_dongle.conf` の `ZMK_RGB_UNDERGLOW=n`
   を見直し。dongle に LED 無しなので peripheral 側のみ復活が現実的。
   ユーザー個人は RGB を常時 off で運用しており実機検証手段が無いため
@@ -76,36 +81,28 @@ Cyboard Imprint を **dongle 中継構成**(USB ドングル = central / 左右�
 
 ## ZMK source patch (out-of-tree)
 
-現状 `~/.cache/zmk-canon/cfgrepo/zmk/app/src/ble.c` に以下を手動で当てて
-ビルドした dongle が「stale bond 自動回復」を提供している。**このパッチは
-canon repo に入っていない**ため、`west update` や clean cache で消える。
+**B案 完了**: `patches/zmk/security-changed-auto-unpair.patch` を repo 管理
+化し、`scripts/build-zmk.sh` の docker bash 内で `west update` の後に
+冪等に `git apply` する。詳細・追加時の手順は
+[`patches/zmk/README.md`](../patches/zmk/README.md)。
 
-```c
-// in security_changed(...)
-if (!err) {
-    LOG_DBG("Security changed: %s level %u", addr, level);
-} else {
-    LOG_ERR("Security failed: %s level %u err %d", addr, level, err);
-    if (err == BT_SECURITY_ERR_PIN_OR_KEY_MISSING) {
-        LOG_WRN("Stale bond detected, clearing and disconnecting");
-        bt_unpair(BT_ID_DEFAULT, bt_conn_get_dst(conn));
-        bt_conn_disconnect(conn, BT_HCI_ERR_AUTH_FAIL);
-    }
-}
-```
+**次は C案(upstream PR)**: 上記 patch を `zmkfirmware/zmk` に PR して
+merge してもらう。merge されたら本 patch ディレクトリ + build-zmk.sh の
+apply フックをまとめて畳む。
 
-対応案(どれかを選ぶ):
+PR を投げる際の論点:
+- maintainer から「Kconfig flag で gate しろ」要求が出る想定。
+  e.g. `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISMATCH`。
+- 既存 issue / discussion に同種の話題が無いか先に確認。
+
+### 検討した代替案(参考)
 
 - **A. ZMK を fork**: `config/west.yml` の zmk projects を fork に差し替え、
-  fork に上記パッチを適用したブランチを置く。Cyboard が main 追従必須
-  なのと同じ理由で、追随コストは継続的に発生する。
-- **B. in-repo patch**: `patches/zmk/security-changed-auto-unpair.patch` を
-  置き、`scripts/build-zmk.sh` に `west update` 後の `git apply` を追加。
-  CI もこのスクリプトを使えば共通。
-- **C. upstream PR 先行**: 先に zmkfirmware/zmk に PR を投げて merge 待ち。
-  merge までは canon 側の運用が dongle 不安定のままになる。
-
-現実的には **B → C** の二段で進めるのが筋。B で時間を稼ぎながら C を進める。
+  fork にパッチを当てたブランチを置く。Cyboard が main 追従必須なのと
+  同じ理由で、追随コストが継続発生するため不採用。
+- **C 先行**: B を飛ばして PR 直行は merge 待ちで canon 運用が
+  dongle 不安定のままなので不採用。
+- 採用: **B → C** の二段(B で運用安定、並行で C を進める)。
 
 ## 学んだ詰まりどころ(忘れないよう)
 
