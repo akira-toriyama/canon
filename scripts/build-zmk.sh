@@ -107,7 +107,12 @@ fi
 # rsync の管理対象から完全に外す。編集対象（config/ boards/ build.yaml 等）
 # のみを上書き同期する。
 mkdir -p "$CFG"
-rsync -a \
+# --delete を有効化。REPO で削除したファイル(例: 不要になった
+# config/imprint_*.conf overlay) を CFG にも反映させる。これが無いと
+# cmake cache に古い KEYMAP_FILE が残るなどして挙動がおかしくなる。
+# 除外パスは west モジュール群と build 出力。これらは CFG 固有なので
+# --delete でも触らない。
+rsync -a --delete \
   --exclude '/.git/' --exclude '/.west/' --exclude '/output/' \
   --exclude '/zmk/' --exclude '/zmk-keyboards/' --exclude '/zmk-pmw3610-driver/' \
   --exclude '/modules/' --exclude '/optional/' --exclude '/zephyr/' \

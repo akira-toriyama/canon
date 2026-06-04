@@ -35,6 +35,27 @@ RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                         
         >;
     };
 
+    // 右半分のトラックボール forward 受け口(Phase 5a)。
+    // peripheral 側(右)が trackball_peripheral_split に device を設定して
+    // 入力を BLE 経由で送ってくる。dongle(central) 側ではこのノードは
+    // proxy 役で device 不要(ZMK input_split.c の central パス)。
+    split_inputs {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        trackball_peripheral_split: trackball_peripheral_split@0 {
+            compatible = "zmk,input-split";
+            reg = <0>;
+        };
+    };
+
+    trackball_peripheral_listener: trackball_peripheral_listener {
+        compatible = "zmk,input-listener";
+        device = <&trackball_peripheral_split>;
+    };
+
+    // 左半分のトラックボール forward は Phase 5b。ラベル stub のみ
+    // (user keymap が trackball_central_listener を参照しているため)
     trackball_central_listener: trackball_central_listener {
         compatible = "zmk,input-listener";
         status = "disabled";
