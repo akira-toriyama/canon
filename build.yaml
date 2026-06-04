@@ -9,3 +9,5 @@ include:
     shield: imprint_left
   - board: assimilator-bt
     shield: imprint_right
+  - board: xiao_ble
+    shield: imprint_dongle

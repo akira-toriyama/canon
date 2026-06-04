@@ -1,0 +1,22 @@
+#include <dt-bindings/zmk/matrix_transform.h>
+
+/ {
+    chosen {
+        zmk,kscan = &kscan_dongle;
+        zmk,matrix_transform = &dongle_transform;
+    };
+
+    kscan_dongle: kscan_dongle {
+        compatible = "zmk,kscan-mock";
+        rows = <0>;
+        columns = <0>;
+        events = <0>;
+    };
+
+    dongle_transform: dongle_transform {
+        compatible = "zmk,matrix-transform";
+        rows = <1>;
+        columns = <1>;
+        map = <RC(0,0)>;
+    };
+};
