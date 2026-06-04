@@ -1,0 +1,19 @@
+// Phase 4b: 左半分を peripheral 化(dongle 経由構成)。
+// トラックボール対応は Phase 5 で別途実装。ここでは関連ノードを止め、
+// キー入力のみ peripheral として動作させる。
+
+&trackball_central {
+    status = "disabled";
+};
+
+&trackball_central_listener {
+    status = "disabled";
+};
+
+&trackball_peripheral_listener {
+    status = "disabled";
+};
+
+&trackball_peripheral_split {
+    status = "disabled";
+};
