@@ -6,7 +6,7 @@
 # Exit when all three are flashed.
 
 set -u
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 LEFT_DONE=0
 RIGHT_DONE=0
@@ -28,6 +28,7 @@ while true; do
     info=$(cat "$current/INFO_UF2.TXT" 2>/dev/null)
     name=$(basename "$current")
     echo "[$(ts)] DETECT mount=$name"
+    # shellcheck disable=SC2001  # 行頭インデント追加は sed が読みやすい
     echo "$info" | sed 's/^/         /'
 
     target=""
