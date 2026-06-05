@@ -5,10 +5,10 @@
 ZMK firmware config (**Cyboard Imprint**, repo root = ZMK user-config).
 A split keyboard; ZMK emits modifier-combination chords.
 
-The macOS host-side bridge that decodes those chords lives in dotfiles:
-<https://github.com/akira-toriyama/dotfiles>
-([docs/chord.md](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)).
-This repository covers only the ZMK side (keymap / firmware build).
+The macOS host-side bridge that decodes those chords is a standalone
+repo, [`chord`](https://github.com/akira-toriyama/chord) — a Swift 6
+CGEventTap daemon driven by `~/.config/chord/config.toml`. This
+repository covers only the ZMK side (keymap / firmware build).
 
 ```mermaid
 flowchart LR
@@ -16,7 +16,7 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK firmware"]
   end
   subgraph MAC["macOS host"]
-    CHORD["chord (dotfiles)<br/>~/.config/chord/config.toml"]
+    CHORD["chord daemon<br/>~/.config/chord/config.toml"]
     ACT["macOS action"]
   end
   FW -->|"chord: modifier + base key"| CHORD

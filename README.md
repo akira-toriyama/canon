@@ -5,10 +5,10 @@
 ZMK ファームウェア設定（**Cyboard Imprint**、リポジトリルート = ZMK
 user-config）。分割キーボード。修飾キーの組み合わせ（chord）を ZMK が送出する。
 
-ZMK が送る chord を macOS 側で受けるホストブリッジ設定は dotfiles 配下:
-<https://github.com/akira-toriyama/dotfiles>
-（[docs/chord.md](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)）。
-本リポジトリは ZMK 側（キーマップ・ファームウェアビルド）のみを扱う。
+ZMK が送る chord を macOS 側で受けるホストブリッジは独立リポジトリ
+[`chord`](https://github.com/akira-toriyama/chord)（Swift 6 / CGEventTap
+デーモン、`~/.config/chord/config.toml` 駆動）。本リポジトリは ZMK 側
+（キーマップ・ファームウェアビルド）のみを扱う。
 
 ```mermaid
 flowchart LR
@@ -16,7 +16,7 @@ flowchart LR
     FW["imprint_left / imprint_right<br/>ZMK ファーム"]
   end
   subgraph MAC["macOS ホスト"]
-    CHORD["chord (dotfiles)<br/>~/.config/chord/config.toml"]
+    CHORD["chord daemon<br/>~/.config/chord/config.toml"]
     ACT["macOS 操作"]
   end
   FW -->|"chord: 修飾キー + base key"| CHORD

@@ -17,9 +17,10 @@ UI / 設定 / コード上の呼び名は [`docs/glossary.md`](docs/glossary.md)
 このファイルへ反映する。
 
 
-macOS 側ホストブリッジ（旧 [host/chord/](https://github.com/akira-toriyama/dotfiles/blob/rebuild/docs/chord.md)）は
-dotfiles へ移管済み: <https://github.com/akira-toriyama/dotfiles>。本リポジトリは
-ZMK 側（キーマップ・ファーム）のみを扱う。
+macOS 側ホストブリッジは独立リポジトリ
+[`chord`](https://github.com/akira-toriyama/chord)（Swift 6 / CGEventTap
+デーモン、`~/.config/chord/config.toml` 駆動）。本リポジトリは ZMK 側
+（キーマップ・ファーム）のみを扱う。
 
 設計思想は **低依存**（Python は stdlib のみ、他は shell）。重量級ツールチェーン
 （Node ランタイム依存の常駐ツール等）をリポジトリに持ち込まない。git-cliff は
