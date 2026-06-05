@@ -50,7 +50,7 @@ flowchart TB
     UF2["imprint_{left,right}.uf2"]
   end
   subgraph HOST["macOS host bridge"]
-    CHORD["chord (dotfiles 配下)"]
+    CHORD["chord (独立リポジトリ)"]
   end
   BOARD --- SHIELD
   SHIELD --> KEYMAP
@@ -171,11 +171,11 @@ DeviceTree Source Include。`#include` 経由で `keymap` に取り込まれる
 
 ### host bridge
 ZMK が送出するキーシーケンスを macOS 側で受けて変換する側。canon の
-host bridge は本リポジトリには **存在せず**、
-[dotfiles リポジトリ](https://github.com/akira-toriyama/dotfiles)
-配下の `chord` 設定が担当する。canon は ZMK 側（キーマップ / ファーム）
-のみを扱う。
-- 参照: [chord ドキュメント](https://github.com/akira-toriyama/dotfiles/blob/main/docs/chord.md)
+host bridge は本リポジトリには **存在せず**、独立リポジトリ
+[`chord`](https://github.com/akira-toriyama/chord)（Swift 6 / CGEventTap
+デーモン、`~/.config/chord/config.toml` 駆動）が担当する。canon は ZMK 側
+（キーマップ / ファーム）のみを扱う。
+- 参照: [chord リポジトリ](https://github.com/akira-toriyama/chord)
 - **Don't call it:** receiver, host side, ホスト側スクリプト
 
 ### keymap-drawer
@@ -195,5 +195,5 @@ host bridge は本リポジトリには **存在せず**、
   `DEFAULT_LAYER`）はその表記を維持する。
 - 定義は **1〜2 文** に収める。動作の詳細は設定セクションやソース
   ファイルへリンクし、ここで説明し直さない。
-- 用語が他リポジトリ（dotfiles / chord）と接続する場合は接続点に必ず
-  リンクを張る。
+- 用語が他リポジトリ（[chord](https://github.com/akira-toriyama/chord)
+  など）と接続する場合は接続点に必ずリンクを張る。
