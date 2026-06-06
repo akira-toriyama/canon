@@ -1,0 +1,91 @@
+diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
+index 9adc7db8..94dc053f 100644
+--- a/app/src/usb_hid.c
++++ b/app/src/usb_hid.c
+@@ -23,6 +23,7 @@
+ #endif // IS_ENABLED(CONFIG_ZMK_HID_INDICATORS)
+ 
+ #include <zmk/event_manager.h>
++#include <zmk/events/usb_conn_state_changed.h>
+ 
+ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+ 
+@@ -184,9 +185,78 @@ static const struct hid_ops ops = {
+     .set_report = set_report_cb,
+ };
+ 
++// Queue HID reports that arrived while the USB endpoint was not ready,
++// then flush them shortly after USB transitions back to a ready state.
++// Without queueing, USB_DC_SUSPEND drops every report (returns
++// usb_wakeup_request) and the host HID stack additionally drops the first
++// report from a freshly bound interface as a binding-race quirk. Symptom
++// is "first key after dongle replug / sleep resume is ignored; long-idle
++// resume needs several presses before any register". The 100ms flush
++// delay covers the host-side binding race by letting the host attach
++// before we resend.
++#define PENDING_QUEUE_DEPTH 8
++#define PENDING_REPORT_MAX_LEN 16
++
++struct pending_report {
++    uint8_t data[PENDING_REPORT_MAX_LEN];
++    uint8_t len;
++};
++
++static struct pending_report pending_queue[PENDING_QUEUE_DEPTH];
++static uint8_t pending_head;
++static uint8_t pending_tail;
++static K_MUTEX_DEFINE(pending_mutex);
++
++static void enqueue_pending_report(const uint8_t *report, size_t len) {
++    if (len > PENDING_REPORT_MAX_LEN) {
++        LOG_WRN("HID report too large to queue (%zu B), dropped", len);
++        return;
++    }
++    k_mutex_lock(&pending_mutex, K_FOREVER);
++    uint8_t next = (pending_tail + 1) % PENDING_QUEUE_DEPTH;
++    if (next == pending_head) {
++        // queue full: advance head to drop oldest
++        pending_head = (pending_head + 1) % PENDING_QUEUE_DEPTH;
++    }
++    memcpy(pending_queue[pending_tail].data, report, len);
++    pending_queue[pending_tail].len = (uint8_t)len;
++    pending_tail = next;
++    k_mutex_unlock(&pending_mutex);
++}
++
++static void flush_pending_reports(struct k_work *_work) {
++    k_mutex_lock(&pending_mutex, K_FOREVER);
++    while (pending_head != pending_tail) {
++        struct pending_report *slot = &pending_queue[pending_head];
++        if (k_sem_take(&hid_sem, K_MSEC(50)) != 0) {
++            break;
++        }
++        int err = hid_int_ep_write(hid_dev, slot->data, slot->len, NULL);
++        if (err) {
++            k_sem_give(&hid_sem);
++            break;
++        }
++        pending_head = (pending_head + 1) % PENDING_QUEUE_DEPTH;
++    }
++    k_mutex_unlock(&pending_mutex);
++}
++K_WORK_DELAYABLE_DEFINE(pending_flush_dwork, flush_pending_reports);
++
++static int usb_hid_conn_state_listener(const zmk_event_t *eh) {
++    const struct zmk_usb_conn_state_changed *ev = as_zmk_usb_conn_state_changed(eh);
++    if (ev && ev->conn_state == ZMK_USB_CONN_HID && zmk_usb_is_hid_ready()) {
++        k_work_schedule(&pending_flush_dwork, K_MSEC(100));
++    }
++    return 0;
++}
++
++ZMK_LISTENER(usb_hid_conn_state_listener, usb_hid_conn_state_listener);
++ZMK_SUBSCRIPTION(usb_hid_conn_state_listener, zmk_usb_conn_state_changed);
++
+ static int zmk_usb_hid_send_report(const uint8_t *report, size_t len) {
+     switch (zmk_usb_get_status()) {
+     case USB_DC_SUSPEND:
++        enqueue_pending_report(report, len);
+         return usb_wakeup_request();
+     case USB_DC_ERROR:
+     case USB_DC_RESET:

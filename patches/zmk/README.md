@@ -23,6 +23,33 @@ peripheral(左右半分) の bond が片側だけ失われたときの自動復�
 upstream PR の際は `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISMATCH` 等の
 Kconfig flag で gate する想定。
 
+### `usb-hid-prime-on-ready.patch`
+
+`app/src/usb_hid.c` に **pending report queue** を追加し、USB が
+`USB_DC_SUSPEND` で破棄していた HID report を貯めて、`USB_DC_CONFIGURED`
+/ `USB_DC_RESUME` 復帰の 100ms 後に flush する。
+
+カバーする 3 症状 (いずれも「USB ready 直後の HID drop」共通機構):
+
+- dongle 物理つけ外し直後の 1 打目消失
+- PC スリープ復帰直後の 1 打目消失
+- 長時間無操作 (macOS USB selective suspend) 復帰時、数打必要
+
+ZMK 現実装 [`zmk_usb_hid_send_report`](https://github.com/zmkfirmware/zmk/blob/main/app/src/usb_hid.c#L187)
+は `USB_DC_SUSPEND` で `usb_wakeup_request()` だけ返して report を
+完全破棄、`USB_DC_DISCONNECTED` / `RESET` / `UNKNOWN` でも `-ENODEV`
+で破棄。queue 化することで「破棄されていた打鍵」を resume 後に
+取り戻せる。100ms の flush delay は host (macOS) HID interface binding
+race も吸収する。
+
+queue は ring buffer (深さ 8、1 entry 16B)。peripheral 側は
+`CONFIG_ZMK_USB=n` で `app/src/usb_hid.c` 自体が compile されない
+ため無影響。FLASH 数百B / RAM ~200B (dongle build) のオーバーヘッド。
+
+upstream PR の際は `CONFIG_ZMK_USB_HID_REPLAY_ON_READY` 等の Kconfig
+flag で gate しつつ queue depth / flush delay を Kconfig 化する想定。
+関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
+
 ## パッチを追加するとき
 
 1. `~/.cache/zmk-canon/cfgrepo/zmk/` で対象ファイルを編集
