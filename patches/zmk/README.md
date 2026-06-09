@@ -20,8 +20,9 @@ peripheral(左右半分) の bond が片側だけ失われたときの自動復�
 このパッチが無いと、再接続時に PIN_OR_KEY_MISSING でハンドシェイクが
 ループしてユーザー操作では復帰できない。
 
-upstream PR の際は `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISMATCH` 等の
-Kconfig flag で gate する想定。
+**upstream PR**: [zmkfirmware/zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385)
+(`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`、default n の Kconfig gate
+付き)。merge され次第本 patch を畳む。
 
 ### `usb-hid-prime-on-ready.patch`
 
@@ -46,8 +47,9 @@ queue は ring buffer (深さ 8、1 entry 16B)。peripheral 側は
 `CONFIG_ZMK_USB=n` で `app/src/usb_hid.c` 自体が compile されない
 ため無影響。FLASH 数百B / RAM ~200B (dongle build) のオーバーヘッド。
 
-upstream PR の際は `CONFIG_ZMK_USB_HID_REPLAY_ON_READY` 等の Kconfig
-flag で gate しつつ queue depth / flush delay を Kconfig 化する想定。
+**upstream PR**: [zmkfirmware/zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)
+(`CONFIG_ZMK_USB_HID_REPLAY_ON_READY` の Kconfig gate + queue depth /
+flush delay の Kconfig 化、default n)。merge され次第本 patch を畳む。
 関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
 
 ## パッチを追加するとき

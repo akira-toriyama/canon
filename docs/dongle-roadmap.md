@@ -67,12 +67,15 @@ canon 内の作業は「PR マージまでの中継」として運用する。
 
 ### zmkfirmware/zmk に PR
 
-- **stale bond 自動回復**: `app/src/ble.c` の `security_changed` で
-  `BT_SECURITY_ERR_PIN_OR_KEY_MISSING` を受けたら `bt_unpair` して
-  切断し、次の advert で fresh pair させる。
-  - そのまま PR すると maintainer が「Kconfig flag で gate しろ」と
-    言う可能性が高い。e.g. `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISMATCH`。
-  - 既存 issue / discussion を先に確認する。
+- ✅ **stale bond 自動回復**: [zmkfirmware/zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385)
+  で `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING` (default n) 付きで上流提案中。
+  対応 patch: [`patches/zmk/security-changed-auto-unpair.patch`](../patches/zmk/security-changed-auto-unpair.patch)。
+- ✅ **USB-HID resume の 1 打目消失 / 数打必要問題**:
+  [zmkfirmware/zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384) で
+  `CONFIG_ZMK_USB_HID_REPLAY_ON_READY` (default n) + queue depth /
+  flush delay の Kconfig 化付きで上流提案中。対応 patch:
+  [`patches/zmk/usb-hid-prime-on-ready.patch`](../patches/zmk/usb-hid-prime-on-ready.patch)。
+  関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
 - **(オプション) xiao_ble の MPU_ALLOW_FLASH_WRITE 警告**: xiao_ble の
   defconfig が NVS 必須設定を含んでおらず、user-config 側で個別に
   揃える必要がある。これは Zephyr 側の問題寄りなので、ZMK で
@@ -81,19 +84,17 @@ canon 内の作業は「PR マージまでの中継」として運用する。
 
 ## ZMK source patch (out-of-tree)
 
-**B案 完了**: `patches/zmk/security-changed-auto-unpair.patch` を repo 管理
-化し、`scripts/build-zmk.sh` の docker bash 内で `west update` の後に
-冪等に `git apply` する。詳細・追加時の手順は
-[`patches/zmk/README.md`](../patches/zmk/README.md)。
+**B案 完了**: `patches/zmk/*.patch` を repo 管理化し、
+`scripts/build-zmk.sh` の docker bash 内で `west update` の後に冪等に
+`git apply` する。詳細・追加時の手順は [`patches/zmk/README.md`](../patches/zmk/README.md)。
+現状 2 patch: `security-changed-auto-unpair.patch` / `usb-hid-prime-on-ready.patch`。
 
-**次は C案(upstream PR)**: 上記 patch を `zmkfirmware/zmk` に PR して
-merge してもらう。merge されたら本 patch ディレクトリ + build-zmk.sh の
-apply フックをまとめて畳む。
-
-PR を投げる際の論点:
-- maintainer から「Kconfig flag で gate しろ」要求が出る想定。
-  e.g. `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISMATCH`。
-- 既存 issue / discussion に同種の話題が無いか先に確認。
+**C案(upstream PR) 着手済**: 上記 2 patch を `zmkfirmware/zmk` に
+[#3384](https://github.com/zmkfirmware/zmk/pull/3384) / [#3385](https://github.com/zmkfirmware/zmk/pull/3385)
+で提案中。各 PR は maintainer の要望を先回りして Kconfig gate
+(default n) 付きで作成済。merge されたら対応する patch を畳む
+(build-zmk.sh の apply フックは patch ディレクトリが空になっても
+無害なので最後に畳む)。
 
 ### 検討した代替案(参考)
 
