@@ -1,5 +1,5 @@
 diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
-index 9adc7db8..94dc053f 100644
+index 9adc7db8..0c0ac8d6 100644
 --- a/app/src/usb_hid.c
 +++ b/app/src/usb_hid.c
 @@ -23,6 +23,7 @@
@@ -10,7 +10,7 @@ index 9adc7db8..94dc053f 100644
  
  LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
  
-@@ -184,9 +185,78 @@ static const struct hid_ops ops = {
+@@ -184,14 +185,84 @@ static const struct hid_ops ops = {
      .set_report = set_report_cb,
  };
  
@@ -89,3 +89,9 @@ index 9adc7db8..94dc053f 100644
          return usb_wakeup_request();
      case USB_DC_ERROR:
      case USB_DC_RESET:
+     case USB_DC_DISCONNECTED:
+     case USB_DC_UNKNOWN:
++        enqueue_pending_report(report, len);
+         return -ENODEV;
+     default:
+         k_sem_take(&hid_sem, K_MSEC(30));
