@@ -1,5 +1,5 @@
 diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
-index 9adc7db8..0c0ac8d6 100644
+index 9adc7db8..9d293064 100644
 --- a/app/src/usb_hid.c
 +++ b/app/src/usb_hid.c
 @@ -23,6 +23,7 @@
@@ -10,7 +10,7 @@ index 9adc7db8..0c0ac8d6 100644
  
  LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
  
-@@ -184,14 +185,84 @@ static const struct hid_ops ops = {
+@@ -184,16 +185,150 @@ static const struct hid_ops ops = {
      .set_report = set_report_cb,
  };
  
@@ -53,28 +53,81 @@ index 9adc7db8..0c0ac8d6 100644
 +    k_mutex_unlock(&pending_mutex);
 +}
 +
++static void flush_pending_reports(struct k_work *_work);
++K_WORK_DELAYABLE_DEFINE(pending_flush_dwork, flush_pending_reports);
++
 +static void flush_pending_reports(struct k_work *_work) {
++    bool retry = false;
 +    k_mutex_lock(&pending_mutex, K_FOREVER);
 +    while (pending_head != pending_tail) {
 +        struct pending_report *slot = &pending_queue[pending_head];
-+        if (k_sem_take(&hid_sem, K_MSEC(50)) != 0) {
-+            break;
-+        }
++        // Advisory take, mirroring the normal send path (which ignores the
++        // take result). A bus reset aborts an armed IN transfer without
++        // raising the write-complete callback (usb_dc_nrfx EP_ABORTED is
++        // log-only), stranding the semaphore at 0; blocking on it here
++        // would abandon the queue for the whole wake cycle. Proceeding
++        // lets the next completed write re-give the semaphore.
++        int took = k_sem_take(&hid_sem, K_MSEC(50));
 +        int err = hid_int_ep_write(hid_dev, slot->data, slot->len, NULL);
 +        if (err) {
-+            k_sem_give(&hid_sem);
++            if (took == 0) {
++                k_sem_give(&hid_sem);
++            }
++            retry = true;
 +            break;
 +        }
 +        pending_head = (pending_head + 1) % PENDING_QUEUE_DEPTH;
 +    }
 +    k_mutex_unlock(&pending_mutex);
++
++    // -EAGAIN here usually means mid-enumeration (reset seen, not yet
++    // configured) or a transfer still armed. Retry on a short timer while
++    // the bus is active instead of waiting for a status change that may
++    // never come; during suspend the next wake reschedules us anyway.
++    if (retry) {
++        switch (zmk_usb_get_status()) {
++        case USB_DC_CONFIGURED:
++        case USB_DC_RESUME:
++        case USB_DC_CLEAR_HALT:
++            k_work_reschedule(&pending_flush_dwork, K_MSEC(100));
++            break;
++        default:
++            break;
++        }
++    }
 +}
-+K_WORK_DELAYABLE_DEFINE(pending_flush_dwork, flush_pending_reports);
 +
 +static int usb_hid_conn_state_listener(const zmk_event_t *eh) {
 +    const struct zmk_usb_conn_state_changed *ev = as_zmk_usb_conn_state_changed(eh);
-+    if (ev && ev->conn_state == ZMK_USB_CONN_HID && zmk_usb_is_hid_ready()) {
-+        k_work_schedule(&pending_flush_dwork, K_MSEC(100));
++    if (!ev) {
++        return 0;
++    }
++    switch (zmk_usb_get_status()) {
++    case USB_DC_CONFIGURED:
++    case USB_DC_RESUME:
++        // reschedule (not schedule): k_work_schedule on an already-pending
++        // work keeps the OLD deadline, so a RESUME -> RESET -> CONFIGURED
++        // cluster would fire the flush ~0ms after CONFIGURED — inside the
++        // host's HID binding race the delay exists to avoid. Restart the
++        // grace window from the last transition instead.
++        if (zmk_usb_is_hid_ready()) {
++            k_work_reschedule(&pending_flush_dwork, K_MSEC(100));
++        }
++        break;
++    case USB_DC_DISCONNECTED:
++        // Physically unplugged: drop pending reports. Replaying hours-old
++        // keystrokes on replug is phantom input, not recovery. (RESET /
++        // CONNECTED keep the queue — they are transient on the wake path.)
++        k_work_cancel_delayable(&pending_flush_dwork);
++        k_mutex_lock(&pending_mutex, K_FOREVER);
++        pending_head = pending_tail;
++        k_mutex_unlock(&pending_mutex);
++        break;
++    default:
++        // USB_DC_SUSPEND still maps to ZMK_USB_CONN_HID with is_configured
++        // true; scheduling a flush on suspend entry is useless and feeds
++        // the deadline-collapse above.
++        break;
 +    }
 +    return 0;
 +}
@@ -91,7 +144,20 @@ index 9adc7db8..0c0ac8d6 100644
      case USB_DC_RESET:
      case USB_DC_DISCONNECTED:
      case USB_DC_UNKNOWN:
++    case USB_DC_CONNECTED:
 +        enqueue_pending_report(report, len);
          return -ENODEV;
      default:
++        // Don't overtake reports still queued from a not-ready window: a
++        // live release racing past its queued press would leave that key
++        // logically held on the host. Append and let the flush deliver
++        // both in order (k_work_schedule keeps an already-pending grace
++        // deadline; schedules immediately when none is pending).
++        if (pending_head != pending_tail) {
++            enqueue_pending_report(report, len);
++            k_work_schedule(&pending_flush_dwork, K_NO_WAIT);
++            return 0;
++        }
          k_sem_take(&hid_sem, K_MSEC(30));
+         int err = hid_int_ep_write(hid_dev, report, len, NULL);
+ 
