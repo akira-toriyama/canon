@@ -95,6 +95,14 @@ Actions の **Release** を手動起動 → コミットから次版を算出し
 [`config/eiji_macros.dtsi`](config/eiji_macros.dtsi) を単一ソースとして
 `scripts/gen-eiji-drawer-map.py` が生成し、CI で同期を検証する。
 
+サム 4 層 + X_1 は **vendor-HID v-key**（`&vkey <id>`）で送出する。既存の
+どのキー入力とも衝突しない専用 HID usage page を使い、macOS 側
+[`chord`](https://github.com/akira-toriyama/chord) が受けて action にマップする。
+id→論理名の対応表 [`config/vkey-aliases.toml`](config/vkey-aliases.toml) は
+キーマップの `&vkey <id>` を単一ソースに `scripts/gen-vkey-aliases.py` が生成し、
+CI（[verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml)）で照合する
+（詳細は [CLAUDE.md](CLAUDE.md)）。
+
 ## 開発・ライセンス
 
 - コミット規約: **gitmoji + Conventional Commits**（[docs/commit-convention.md](docs/commit-convention.md)）
