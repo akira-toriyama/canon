@@ -39,7 +39,7 @@
       display-name = "Base";
       bindings = <
         &none       &al_q               &al_w              &al_e              &al_r             &al_t                    &al_y  &al_u     &al_i     &al_o      &al_p       &none
-        &kp SPACE   &al_a               &al_s              &al_d              &al_f             &al_g                    &al_h  &al_j     &al_k     &al_l      &kp X_1     &kp BACKSPACE
+        &kp SPACE   &al_a               &al_s              &al_d              &al_f             &al_g                    &al_h  &al_j     &al_k     &al_l      &vkey 0x01     &kp BACKSPACE
         &kp ESCAPE  &al_z               &al_x              &al_c              &al_v             &al_b                    &al_n  &al_m     &ar_up    &kp TAB    &kp DELETE  &kp RETURN
         &none       MO_LAYER(FUNCTION)  MO_LAYER(SYMBOL2)  MO_LAYER(SYMBOL1)  MO_LAYER(NUMBER)                                  &ar_left  &ar_down  &ar_right  &none       &none
                                                                TU_LL  TU_LM  &none                    &none  TU_RM  TU_RR
@@ -129,36 +129,36 @@
     T_LL_LAYER {
       display-name = "LL";
       bindings = <
-        &none  &ll_kp Q  &ll_kp W  &ll_kp E  &ll_kp R  &ll_kp T                    &ll_kp Y  &ll_kp U  &ll_kp I    &ll_kp O    &ll_kp P    &none
-        &none  &ll_kp A  &ll_kp S  &ll_kp D  &ll_kp F  &ll_kp G                    &ll_kp H  &ll_kp J  &ll_kp K    &ll_kp L    &ll_kp X_1  &none
-        &none  &ll_kp Z  &ll_kp X  &ll_kp C  &ll_kp V  &ll_kp B                    &ll_kp N  &ll_kp M  &ll_kp X_2  &ll_kp X_3  &ll_kp X_4  &none
+        &none  &vkey 0x10  &vkey 0x11  &vkey 0x12  &vkey 0x13  &vkey 0x14                    &vkey 0x15  &vkey 0x16  &vkey 0x17    &vkey 0x18    &vkey 0x19    &none
+        &none  &vkey 0x1A  &vkey 0x1B  &vkey 0x1C  &vkey 0x1D  &vkey 0x1E                    &vkey 0x1F  &vkey 0x20  &vkey 0x21    &vkey 0x22    &vkey 0x23  &none
+        &none  &vkey 0x24  &vkey 0x25  &vkey 0x26  &vkey 0x27  &vkey 0x28                    &vkey 0x29  &vkey 0x2A  &vkey 0x2B  &vkey 0x2C  &vkey 0x2D  &none
         FOOTER_NONE
       >;
     };
     T_LM_LAYER {
       display-name = "LM";
       bindings = <
-        &none  &lm_kp Q  &lm_kp W  &lm_kp E  &lm_kp R  &lm_kp T                    &lm_kp Y  &lm_kp U  &lm_kp I    &lm_kp O    &lm_kp P    &none
-        &none  &lm_kp A  &lm_kp S  &lm_kp D  &lm_kp F  &lm_kp G                    &lm_kp H  &lm_kp J  &lm_kp K    &lm_kp L    &lm_kp X_1  &none
-        &none  &lm_kp Z  &lm_kp X  &lm_kp C  &lm_kp V  &lm_kp B                    &lm_kp N  &lm_kp M  &lm_kp X_2  &lm_kp X_3  &lm_kp X_4  &none
+        &none  &vkey 0x30  &vkey 0x31  &vkey 0x32  &vkey 0x33  &vkey 0x34                    &vkey 0x35  &vkey 0x36  &vkey 0x37    &vkey 0x38    &vkey 0x39    &none
+        &none  &vkey 0x3A  &vkey 0x3B  &vkey 0x3C  &vkey 0x3D  &vkey 0x3E                    &vkey 0x3F  &vkey 0x40  &vkey 0x41    &vkey 0x42    &vkey 0x43  &none
+        &none  &vkey 0x44  &vkey 0x45  &vkey 0x46  &vkey 0x47  &vkey 0x48                    &vkey 0x49  &vkey 0x4A  &vkey 0x4B  &vkey 0x4C  &vkey 0x4D  &none
         FOOTER_NONE
       >;
     };
     T_RM_LAYER {
       display-name = "RM";
       bindings = <
-        &none  &rm_kp Q  &rm_kp W  &rm_kp E  &rm_kp R  &rm_kp T                    &rm_kp Y  &rm_kp U  &rm_kp I    &rm_kp O    &rm_kp P    &none
-        &none  &rm_kp A  &rm_kp S  &rm_kp D  &rm_kp F  &rm_kp G                    &rm_kp H  &rm_kp J  &rm_kp K    &rm_kp L    &rm_kp X_1  &none
-        &none  &rm_kp Z  &rm_kp X  &rm_kp C  &rm_kp V  &rm_kp B                    &rm_kp N  &rm_kp M  &rm_kp X_2  &rm_kp X_3  &rm_kp X_4  &none
+        &none  &vkey 0x50  &vkey 0x51  &vkey 0x52  &vkey 0x53  &vkey 0x54                    &vkey 0x55  &vkey 0x56  &vkey 0x57    &vkey 0x58    &vkey 0x59    &none
+        &none  &vkey 0x5A  &vkey 0x5B  &vkey 0x5C  &vkey 0x5D  &vkey 0x5E                    &vkey 0x5F  &vkey 0x60  &vkey 0x61    &vkey 0x62    &vkey 0x63  &none
+        &none  &vkey 0x64  &vkey 0x65  &vkey 0x66  &vkey 0x67  &vkey 0x68                    &vkey 0x69  &vkey 0x6A  &vkey 0x6B  &vkey 0x6C  &vkey 0x6D  &none
         FOOTER_NONE
       >;
     };
     T_RR_LAYER {
       display-name = "RR";
       bindings = <
-        &none  &rr_kp Q  &rr_kp W  &rr_kp E  &rr_kp R  &rr_kp T                    &rr_kp Y  &rr_kp U  &rr_kp I    &rr_kp O    &rr_kp P    &none
-        &none  &rr_kp A  &rr_kp S  &rr_kp D  &rr_kp F  &rr_kp G                    &rr_kp H  &rr_kp J  &rr_kp K    &rr_kp L    &rr_kp X_1  &none
-        &none  &rr_kp Z  &rr_kp X  &rr_kp C  &rr_kp V  &rr_kp B                    &rr_kp N  &rr_kp M  &rr_kp X_2  &rr_kp X_3  &rr_kp X_4  &none
+        &none  &vkey 0x70  &vkey 0x71  &vkey 0x72  &vkey 0x73  &vkey 0x74                    &vkey 0x75  &vkey 0x76  &vkey 0x77    &vkey 0x78    &vkey 0x79    &none
+        &none  &vkey 0x7A  &vkey 0x7B  &vkey 0x7C  &vkey 0x7D  &vkey 0x7E                    &vkey 0x7F  &vkey 0x80  &vkey 0x81    &vkey 0x82    &vkey 0x83  &none
+        &none  &vkey 0x84  &vkey 0x85  &vkey 0x86  &vkey 0x87  &vkey 0x88                    &vkey 0x89  &vkey 0x8A  &vkey 0x8B  &vkey 0x8C  &vkey 0x8D  &none
         FOOTER_NONE
       >;
     };
