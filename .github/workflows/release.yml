@@ -104,6 +104,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      # この job は checkout しない（成果物 DL のみ）。gh は通常 git remote から
+      # repo を特定するが .git が無いと "not a git repository" で落ちるため、
+      # GH_REPO で明示する（gh release / gh api 全コマンドがこれで動く）。
+      GH_REPO: ${{ github.repository }}
       VERSION: ${{ needs.version.outputs.version }}
       SHA: ${{ github.sha }}
     steps:
