@@ -1,44 +1,13 @@
 name: Commit lint
 
-# PR の各コミットが gitmoji + Conventional Commits 形式かを検証する。
-# 規約: docs/commit-convention.md ／ ローカルは scripts/hooks/commit-msg。
-# 低依存（shell のみ）。bot 自動コミットは検証対象外。
+# Thin caller — コミットメッセージ検証を共有 reusable workflow へ委譲する。
+# ロジックは akira-toriyama/.github/.github/workflows/commit-lint.yml に集約
+# （chord ほか family リポジトリと単一ソース）。規約: docs/commit-convention.md
+# ／ ローカルは scripts/hooks/commit-msg。
+# 注: 失敗時の CI メッセージは共有 reusable の文言（英語）になる。許容済。
 on:
   pull_request:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Validate commit messages
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          types='feat|fix|perf|refactor|docs|test|build|ci|chore|style|revert'
-          pattern="^:[a-z0-9][a-z0-9_+-]*: (${types})(\([^()]+\))?!?: .+"
-          fail=0
-          # %H<TAB>%an<TAB>%s （件名のみ検査）
-          while IFS="$(printf '\t')" read -r sha author subject; do
-            case "$author" in
-              *"[bot]"|"github-actions"*) continue ;;
-            esac
-            case "$subject" in
-              "Merge "*|"Revert "*|"fixup! "*|"squash! "*) continue ;;
-            esac
-            if ! printf '%s' "$subject" | grep -qE "$pattern"; then
-              echo "::error::規約違反 ${sha}: ${subject}"
-              fail=1
-            fi
-          done < <(git log --no-merges --format='%H%x09%an%x09%s' "${BASE}..${HEAD}")
-
-          if [ "$fail" -ne 0 ]; then
-            echo "形式: <:gitmoji:> <type>(<scope>)<!>: <subject>  詳細 docs/commit-convention.md" >&2
-            exit 1
-          fi
-          echo "全コミット OK"
+    uses: akira-toriyama/.github/.github/workflows/commit-lint.yml@main
