@@ -156,6 +156,35 @@ keymap↔config の id 二重管理を canon eiji パターン(`gen-eiji-drawer-
 (移行後 live config を dotfiles へ取込。source は旧版のまま。backup=`config.toml.pre-vkey-bak`)。
 ③ commits/PR(canon/chord/dotfiles)。④ docs(non-goals/README)。⑤ chord TOML 分割(別フェーズ)。
 
+## PR / マージ 状況 + canon CI blocker (2026-06-18)
+
+- **chord: マージ済**（PR #97 squash→main、issue #96 close）。CI は test 2 件修正
+  (ConfigSchemaShapeTests のセクション一覧に `v-key-aliases` 追加 / VKeyTests の alias 名
+  `H`/`D` が実 keycode と衝突→`VKHEX`/`VKDEC` へ)。
+- **canon: PR #51 OPEN/RED・別セッションで「案1」着手と決定**。ローカルは `feat/vkey` ブランチ
+  維持(keymap=移行済=焼いた dongle と一致。`main` に戻さない)。
+
+### canon CI blocker の正体（次セッションの起点）
+
+vkey は ZMK **コア patch** 必須(`patches/zmk/vkey-report.patch` が hid.h/hid.c/usb_hid.c/
+endpoints.c/CMakeLists/Kconfig.behaviors + behavior_vkey.c + DT binding yaml の 10 ファイル)。
+だが `build.yml` は ZMK 公式 reusable
+(`uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main`)で**素の ZMK**をビルドし
+`patches/zmk/` を当てない(patch は `build-zmk.sh`=ローカル専用)。`zephyr/module.yml` も
+`board_root: .` のみで behavior を module 提供不可(かつ behavior は patch 済みコア symbol を呼ぶ)。
+→ コミットした keymap の `&vkey`/`vkey:` が CI で DT エラー
+`binding controller /behaviors/vkey ... lacks binding` → 3 target 全滅。
+
+### 案1（次セッション実装）
+
+`build.yml` を reusable `uses:` から**自前ジョブ**へ: canon checkout → west + ZMK@main → 
+`git -C zmk apply patches/zmk/*.patch`(`LC_ALL=C` 順、`build-zmk.sh` の適用ロジックを移植)→ 
+3 target(build.yaml の matrix)ビルド → artifact upload。CI モデルが「素ビルド検証」→「patch
+済みファーム build」へ(既存 security-changed/usb-hid-prime も適用=より正確)。**併せて ZMK 上流
+drift**: 新しい ZMK(33e5c23, Zephyr 4.1)が assimilator-bt を「board variant 要」と警告
+(dongle は既に `xiao_ble/nrf52840/zmk` variant)。imprint_left/right も `/zmk` variant 化が要る
+可能性。`release.yml` も同じ patch 適用が要るか確認。参考=動いている `scripts/build-zmk.sh`。
+
 ## 実装ログ (2026-06-18)
 
 Phase 0.5〜1G を実機 flash 無し(Docker ビルド + 成果物検査)で完了:
