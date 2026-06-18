@@ -77,7 +77,10 @@ bridge) が IOHIDManager で受けて id→action にマップする想定。
 - descriptor の 16-bit usage page `0xFF31` は `HID_USAGE_PAGE()` が 1 byte に
   切り詰めるため raw long item `0x06,0x31,0xFF` でベタ書き。Input は単一の値
   フィールドなので `0x02` (Data,Variable,Absolute)。
-- **upstream PR**: 未提出 (canon 固有機能。汎用化の見込みが立てば検討)。
+- **upstream PR**: [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)（提出済み・レビュー待ち。
+  `CONFIG_ZMK_HID_VKEY` default-off で汎用化）。**merge されるまで本 patch は維持する**（canon は
+  upstream に非依存。マージは難航しうる）。提出 diff・PR 本文・移行手順は
+  [`docs/vkey-upstream-pr-draft.md`](../../docs/vkey-upstream-pr-draft.md)。
 - 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
 
 ## パッチを追加するとき

@@ -616,7 +616,7 @@ canon の out-of-tree 依存（3 patch + dongle shield）は、それぞれ upst
 |---|---|---|
 | [zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385) | `security-changed-auto-unpair.patch` | 同 patch を撤去 |
 | [zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)（`CONFIG_ZMK_USB_HID_REPLAY_ON_READY`） | `usb-hid-prime-on-ready.patch` | 同 patch を撤去し Kconfig を `=y` に |
-| **zmk#（vkey, 未提出＝下記タスク）** | `vkey-report.patch`（汎用 vendor/raw-HID behavior 化） | 同 patch を撤去 |
+| [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)（`CONFIG_ZMK_HID_VKEY` default-off・**提出済み/レビュー待ち**） | `vkey-report.patch`（汎用 vendor/raw-HID behavior 化） | merge されたら同 patch を撤去（**未 merge の間は維持**） |
 | [Cyboard zmk-keyboards#7](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/7) | `imprint_dongle` shield（Cyboard は公式にドングル非対応） | canon ローカル `boards/shields/imprint_dongle/` を削除、`zmk-build.yml` の `-DBOARD_ROOT` も不要化 |
 
 **終端状態（全部 merge されたら）**: `patches/zmk/` が空になり、`build.yml`/`zmk-build.yml` を
@@ -625,11 +625,15 @@ canon の out-of-tree 依存（3 patch + dongle shield）は、それぞれ upst
 upstream 化の最終的な見返り（保守コスト 0 + canon の CI が標準形に戻る）。それまでは各 patch が
 ローカルと CI 両方で apply 失敗時に即落ちる＝drift を大声で検知する。
 
-**タスク: vkey → zmk へ PR**（3 patch 中で唯一未提出）。テンプレ＝#3384 をそのまま範に: canon
-固有のハードコード（usage page `0xFF31` / report id `0x20` / 1 byte selector）を **default-off の
-Kconfig**（例 `CONFIG_ZMK_HID_VKEY`）で gate した汎用 vendor/raw-HID behavior に一般化 → 明快な
-What/Why で `zmkfirmware/zmk` へ提出。`patches/zmk/vkey-report.patch` がほぼそのまま素材
-（兄弟 #3384/#3385 が同じ「patch→汎用化→upstream」の実例）。
+**タスク: vkey → zmk へ PR — ✅ 提出済み [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)**
+（2026-06-18, 案A=USB-only）。canon 固有のハードコード（usage page `0xFF31` / report id `0x20` /
+1 byte selector）を **default-off の Kconfig**（`CONFIG_ZMK_HID_VKEY` + `_USAGE_PAGE` + `_REPORT_ID`、
+既定値は現値に固定）で gate した汎用 vendor/raw-HID behavior に一般化し、実ビルド検証（3 target +
+記述子バイト一致）+ ZMK CI 同一 clang-format で整形して提出。詳細・PR 本文・移行手順は
+[`docs/vkey-upstream-pr-draft.md`](vkey-upstream-pr-draft.md)、提出した diff は
+[`docs/vkey-upstream-pr-draft.patch`](vkey-upstream-pr-draft.patch)。**マージは難航しうる（既知）—
+未 merge の間は `patches/zmk/vkey-report.patch` を canon に維持し、canon は upstream に依存しない**
+（fork PR は ZMK メンテナのワークフロー承認待ち＝#3384/#3385 と同状態）。merge された時のみ上表の撤去を実行。
 
 ## 学んだ詰まりどころ / 注意 (忘れないよう)
 
@@ -723,10 +727,12 @@ canon PR #60）** まで全て完了。残るは **vkey→zmk upstream PR（任�
      intro/図は不変）。
    - 検証: 出荷コードとの敵対的照合（マルチエージェント 3 レンズ）で技術クレーム 28 件**全 accurate・
      不正確 0**。swift build clean。
-2. **vkey → zmk upstream PR（任意・long-game）**: `patches/zmk/vkey-report.patch` を default-off
-   Kconfig（例 `CONFIG_ZMK_HID_VKEY`）で gate した汎用 vendor/raw-HID behavior に一般化 → 明快な
-   What/Why で `zmkfirmware/zmk` へ提出。**テンプレ = [zmk#3384]**。詳細・終端状態は「Upstream 収束
-   タスク」節（採用されたら patch 撤去 → CI を公式 reusable へ戻し案1 を巻き戻せる）。
+2. **vkey → zmk upstream PR — ✅ 提出済み [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)**
+   （2026-06-18）: default-off `CONFIG_ZMK_HID_VKEY` で gate した汎用 vendor/raw-HID behavior を、
+   build-verify（3 target + 記述子バイト一致）+ ZMK CI 同一 clang-format 整形のうえ提出（案A=USB-only、
+   BLE は PR 本文で additive follow-up と明示）。**マージは難航しうる（既知）→ 未 merge の間は
+   `patches/zmk/vkey-report.patch` を canon に維持**（canon は upstream 非依存）。merge された時のみ
+   patch 撤去 → CI を公式 reusable へ戻し案1 を巻き戻す。詳細 = [`vkey-upstream-pr-draft.md`](vkey-upstream-pr-draft.md)。
 3. **（ユーザー）chezmoi re-add**: 移行後 live `~/.config/chord/config.toml` を dotfiles
    `chezmoi/dot_config/chord/private_config.toml` へ取込 + 生成 `[v-key-aliases]` を反映。
    backup = `config.toml.pre-vkey-bak`。
