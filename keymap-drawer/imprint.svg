@@ -236,7 +236,9 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 <g transform="translate(896, 84)" class="key keypos-22">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<text x="0" y="0" class="key tap">1</text>
+<text x="0" y="0" class="key tap">
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x01</tspan>
+</text>
 </g>
 <g transform="translate(952, 84)" class="key keypos-23">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -2063,61 +2065,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 28)" class="key keypos-1">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">Q</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x10</tspan>
 </text>
 </g>
 <g transform="translate(140, 28)" class="key keypos-2">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">W</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x11</tspan>
 </text>
 </g>
 <g transform="translate(196, 28)" class="key keypos-3">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">E</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x12</tspan>
 </text>
 </g>
 <g transform="translate(252, 28)" class="key keypos-4">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">R</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x13</tspan>
 </text>
 </g>
 <g transform="translate(308, 28)" class="key keypos-5">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">T</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x14</tspan>
 </text>
 </g>
 <g transform="translate(672, 28)" class="key keypos-6">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">Y</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x15</tspan>
 </text>
 </g>
 <g transform="translate(728, 28)" class="key keypos-7">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">U</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x16</tspan>
 </text>
 </g>
 <g transform="translate(784, 28)" class="key keypos-8">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">I</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x17</tspan>
 </text>
 </g>
 <g transform="translate(840, 28)" class="key keypos-9">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">O</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x18</tspan>
 </text>
 </g>
 <g transform="translate(896, 28)" class="key keypos-10">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">P</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x19</tspan>
 </text>
 </g>
 <g transform="translate(952, 28)" class="key keypos-11">
@@ -2129,61 +2131,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 84)" class="key keypos-13">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">A</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1A</tspan>
 </text>
 </g>
 <g transform="translate(140, 84)" class="key keypos-14">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">S</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1B</tspan>
 </text>
 </g>
 <g transform="translate(196, 84)" class="key keypos-15">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">D</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1C</tspan>
 </text>
 </g>
 <g transform="translate(252, 84)" class="key keypos-16">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">F</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1D</tspan>
 </text>
 </g>
 <g transform="translate(308, 84)" class="key keypos-17">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">G</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1E</tspan>
 </text>
 </g>
 <g transform="translate(672, 84)" class="key keypos-18">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">H</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x1F</tspan>
 </text>
 </g>
 <g transform="translate(728, 84)" class="key keypos-19">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">J</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x20</tspan>
 </text>
 </g>
 <g transform="translate(784, 84)" class="key keypos-20">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">K</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x21</tspan>
 </text>
 </g>
 <g transform="translate(840, 84)" class="key keypos-21">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">L</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x22</tspan>
 </text>
 </g>
 <g transform="translate(896, 84)" class="key keypos-22">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">KP_N1</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x23</tspan>
 </text>
 </g>
 <g transform="translate(952, 84)" class="key keypos-23">
@@ -2195,61 +2197,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 140)" class="key keypos-25">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">Z</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x24</tspan>
 </text>
 </g>
 <g transform="translate(140, 140)" class="key keypos-26">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">X</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x25</tspan>
 </text>
 </g>
 <g transform="translate(196, 140)" class="key keypos-27">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">C</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x26</tspan>
 </text>
 </g>
 <g transform="translate(252, 140)" class="key keypos-28">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">V</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x27</tspan>
 </text>
 </g>
 <g transform="translate(308, 140)" class="key keypos-29">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">B</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x28</tspan>
 </text>
 </g>
 <g transform="translate(672, 140)" class="key keypos-30">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">N</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x29</tspan>
 </text>
 </g>
 <g transform="translate(728, 140)" class="key keypos-31">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">M</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x2A</tspan>
 </text>
 </g>
 <g transform="translate(784, 140)" class="key keypos-32">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">KP_N2</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x2B</tspan>
 </text>
 </g>
 <g transform="translate(840, 140)" class="key keypos-33">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">KP_N3</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x2C</tspan>
 </text>
 </g>
 <g transform="translate(896, 140)" class="key keypos-34">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;ll_kp</tspan><tspan x="0" dy="1.2em">KP_N4</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x2D</tspan>
 </text>
 </g>
 <g transform="translate(952, 140)" class="key keypos-35">
@@ -2342,61 +2344,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 28)" class="key keypos-1">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">Q</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x30</tspan>
 </text>
 </g>
 <g transform="translate(140, 28)" class="key keypos-2">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">W</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x31</tspan>
 </text>
 </g>
 <g transform="translate(196, 28)" class="key keypos-3">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">E</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x32</tspan>
 </text>
 </g>
 <g transform="translate(252, 28)" class="key keypos-4">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">R</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x33</tspan>
 </text>
 </g>
 <g transform="translate(308, 28)" class="key keypos-5">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">T</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x34</tspan>
 </text>
 </g>
 <g transform="translate(672, 28)" class="key keypos-6">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">Y</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x35</tspan>
 </text>
 </g>
 <g transform="translate(728, 28)" class="key keypos-7">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">U</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x36</tspan>
 </text>
 </g>
 <g transform="translate(784, 28)" class="key keypos-8">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">I</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x37</tspan>
 </text>
 </g>
 <g transform="translate(840, 28)" class="key keypos-9">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">O</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x38</tspan>
 </text>
 </g>
 <g transform="translate(896, 28)" class="key keypos-10">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">P</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x39</tspan>
 </text>
 </g>
 <g transform="translate(952, 28)" class="key keypos-11">
@@ -2408,61 +2410,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 84)" class="key keypos-13">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">A</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3A</tspan>
 </text>
 </g>
 <g transform="translate(140, 84)" class="key keypos-14">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">S</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3B</tspan>
 </text>
 </g>
 <g transform="translate(196, 84)" class="key keypos-15">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">D</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3C</tspan>
 </text>
 </g>
 <g transform="translate(252, 84)" class="key keypos-16">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">F</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3D</tspan>
 </text>
 </g>
 <g transform="translate(308, 84)" class="key keypos-17">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">G</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3E</tspan>
 </text>
 </g>
 <g transform="translate(672, 84)" class="key keypos-18">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">H</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x3F</tspan>
 </text>
 </g>
 <g transform="translate(728, 84)" class="key keypos-19">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">J</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x40</tspan>
 </text>
 </g>
 <g transform="translate(784, 84)" class="key keypos-20">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">K</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x41</tspan>
 </text>
 </g>
 <g transform="translate(840, 84)" class="key keypos-21">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">L</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x42</tspan>
 </text>
 </g>
 <g transform="translate(896, 84)" class="key keypos-22">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">KP_N1</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x43</tspan>
 </text>
 </g>
 <g transform="translate(952, 84)" class="key keypos-23">
@@ -2474,61 +2476,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 140)" class="key keypos-25">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">Z</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x44</tspan>
 </text>
 </g>
 <g transform="translate(140, 140)" class="key keypos-26">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">X</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x45</tspan>
 </text>
 </g>
 <g transform="translate(196, 140)" class="key keypos-27">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">C</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x46</tspan>
 </text>
 </g>
 <g transform="translate(252, 140)" class="key keypos-28">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">V</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x47</tspan>
 </text>
 </g>
 <g transform="translate(308, 140)" class="key keypos-29">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">B</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x48</tspan>
 </text>
 </g>
 <g transform="translate(672, 140)" class="key keypos-30">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">N</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x49</tspan>
 </text>
 </g>
 <g transform="translate(728, 140)" class="key keypos-31">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">M</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x4A</tspan>
 </text>
 </g>
 <g transform="translate(784, 140)" class="key keypos-32">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">KP_N2</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x4B</tspan>
 </text>
 </g>
 <g transform="translate(840, 140)" class="key keypos-33">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">KP_N3</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x4C</tspan>
 </text>
 </g>
 <g transform="translate(896, 140)" class="key keypos-34">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;lm_kp</tspan><tspan x="0" dy="1.2em">KP_N4</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x4D</tspan>
 </text>
 </g>
 <g transform="translate(952, 140)" class="key keypos-35">
@@ -2621,61 +2623,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 28)" class="key keypos-1">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">Q</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x50</tspan>
 </text>
 </g>
 <g transform="translate(140, 28)" class="key keypos-2">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">W</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x51</tspan>
 </text>
 </g>
 <g transform="translate(196, 28)" class="key keypos-3">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">E</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x52</tspan>
 </text>
 </g>
 <g transform="translate(252, 28)" class="key keypos-4">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">R</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x53</tspan>
 </text>
 </g>
 <g transform="translate(308, 28)" class="key keypos-5">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">T</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x54</tspan>
 </text>
 </g>
 <g transform="translate(672, 28)" class="key keypos-6">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">Y</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x55</tspan>
 </text>
 </g>
 <g transform="translate(728, 28)" class="key keypos-7">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">U</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x56</tspan>
 </text>
 </g>
 <g transform="translate(784, 28)" class="key keypos-8">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">I</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x57</tspan>
 </text>
 </g>
 <g transform="translate(840, 28)" class="key keypos-9">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">O</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x58</tspan>
 </text>
 </g>
 <g transform="translate(896, 28)" class="key keypos-10">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">P</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x59</tspan>
 </text>
 </g>
 <g transform="translate(952, 28)" class="key keypos-11">
@@ -2687,61 +2689,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 84)" class="key keypos-13">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">A</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5A</tspan>
 </text>
 </g>
 <g transform="translate(140, 84)" class="key keypos-14">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">S</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5B</tspan>
 </text>
 </g>
 <g transform="translate(196, 84)" class="key keypos-15">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">D</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5C</tspan>
 </text>
 </g>
 <g transform="translate(252, 84)" class="key keypos-16">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">F</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5D</tspan>
 </text>
 </g>
 <g transform="translate(308, 84)" class="key keypos-17">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">G</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5E</tspan>
 </text>
 </g>
 <g transform="translate(672, 84)" class="key keypos-18">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">H</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x5F</tspan>
 </text>
 </g>
 <g transform="translate(728, 84)" class="key keypos-19">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">J</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x60</tspan>
 </text>
 </g>
 <g transform="translate(784, 84)" class="key keypos-20">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">K</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x61</tspan>
 </text>
 </g>
 <g transform="translate(840, 84)" class="key keypos-21">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">L</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x62</tspan>
 </text>
 </g>
 <g transform="translate(896, 84)" class="key keypos-22">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">KP_N1</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x63</tspan>
 </text>
 </g>
 <g transform="translate(952, 84)" class="key keypos-23">
@@ -2753,61 +2755,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 140)" class="key keypos-25">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">Z</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x64</tspan>
 </text>
 </g>
 <g transform="translate(140, 140)" class="key keypos-26">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">X</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x65</tspan>
 </text>
 </g>
 <g transform="translate(196, 140)" class="key keypos-27">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">C</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x66</tspan>
 </text>
 </g>
 <g transform="translate(252, 140)" class="key keypos-28">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">V</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x67</tspan>
 </text>
 </g>
 <g transform="translate(308, 140)" class="key keypos-29">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">B</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x68</tspan>
 </text>
 </g>
 <g transform="translate(672, 140)" class="key keypos-30">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">N</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x69</tspan>
 </text>
 </g>
 <g transform="translate(728, 140)" class="key keypos-31">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">M</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x6A</tspan>
 </text>
 </g>
 <g transform="translate(784, 140)" class="key keypos-32">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">KP_N2</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x6B</tspan>
 </text>
 </g>
 <g transform="translate(840, 140)" class="key keypos-33">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">KP_N3</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x6C</tspan>
 </text>
 </g>
 <g transform="translate(896, 140)" class="key keypos-34">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rm_kp</tspan><tspan x="0" dy="1.2em">KP_N4</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x6D</tspan>
 </text>
 </g>
 <g transform="translate(952, 140)" class="key keypos-35">
@@ -2900,61 +2902,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 28)" class="key keypos-1">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">Q</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x70</tspan>
 </text>
 </g>
 <g transform="translate(140, 28)" class="key keypos-2">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">W</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x71</tspan>
 </text>
 </g>
 <g transform="translate(196, 28)" class="key keypos-3">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">E</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x72</tspan>
 </text>
 </g>
 <g transform="translate(252, 28)" class="key keypos-4">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">R</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x73</tspan>
 </text>
 </g>
 <g transform="translate(308, 28)" class="key keypos-5">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">T</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x74</tspan>
 </text>
 </g>
 <g transform="translate(672, 28)" class="key keypos-6">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">Y</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x75</tspan>
 </text>
 </g>
 <g transform="translate(728, 28)" class="key keypos-7">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">U</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x76</tspan>
 </text>
 </g>
 <g transform="translate(784, 28)" class="key keypos-8">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">I</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x77</tspan>
 </text>
 </g>
 <g transform="translate(840, 28)" class="key keypos-9">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">O</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x78</tspan>
 </text>
 </g>
 <g transform="translate(896, 28)" class="key keypos-10">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">P</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x79</tspan>
 </text>
 </g>
 <g transform="translate(952, 28)" class="key keypos-11">
@@ -2966,61 +2968,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 84)" class="key keypos-13">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">A</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7A</tspan>
 </text>
 </g>
 <g transform="translate(140, 84)" class="key keypos-14">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">S</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7B</tspan>
 </text>
 </g>
 <g transform="translate(196, 84)" class="key keypos-15">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">D</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7C</tspan>
 </text>
 </g>
 <g transform="translate(252, 84)" class="key keypos-16">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">F</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7D</tspan>
 </text>
 </g>
 <g transform="translate(308, 84)" class="key keypos-17">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">G</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7E</tspan>
 </text>
 </g>
 <g transform="translate(672, 84)" class="key keypos-18">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">H</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x7F</tspan>
 </text>
 </g>
 <g transform="translate(728, 84)" class="key keypos-19">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">J</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x80</tspan>
 </text>
 </g>
 <g transform="translate(784, 84)" class="key keypos-20">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">K</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x81</tspan>
 </text>
 </g>
 <g transform="translate(840, 84)" class="key keypos-21">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">L</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x82</tspan>
 </text>
 </g>
 <g transform="translate(896, 84)" class="key keypos-22">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">KP_N1</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x83</tspan>
 </text>
 </g>
 <g transform="translate(952, 84)" class="key keypos-23">
@@ -3032,61 +3034,61 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(84, 140)" class="key keypos-25">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">Z</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x84</tspan>
 </text>
 </g>
 <g transform="translate(140, 140)" class="key keypos-26">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">X</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x85</tspan>
 </text>
 </g>
 <g transform="translate(196, 140)" class="key keypos-27">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">C</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x86</tspan>
 </text>
 </g>
 <g transform="translate(252, 140)" class="key keypos-28">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">V</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x87</tspan>
 </text>
 </g>
 <g transform="translate(308, 140)" class="key keypos-29">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">B</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x88</tspan>
 </text>
 </g>
 <g transform="translate(672, 140)" class="key keypos-30">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">N</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x89</tspan>
 </text>
 </g>
 <g transform="translate(728, 140)" class="key keypos-31">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">M</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x8A</tspan>
 </text>
 </g>
 <g transform="translate(784, 140)" class="key keypos-32">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">KP_N2</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x8B</tspan>
 </text>
 </g>
 <g transform="translate(840, 140)" class="key keypos-33">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">KP_N3</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x8C</tspan>
 </text>
 </g>
 <g transform="translate(896, 140)" class="key keypos-34">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">
-<tspan x="0" dy="-0.6em">&amp;rr_kp</tspan><tspan x="0" dy="1.2em">KP_N4</tspan>
+<tspan x="0" dy="-0.6em">&amp;vkey</tspan><tspan x="0" dy="1.2em">0x8D</tspan>
 </text>
 </g>
 <g transform="translate(952, 140)" class="key keypos-35">
