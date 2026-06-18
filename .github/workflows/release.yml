@@ -11,6 +11,13 @@ name: Release
 # workflow_dispatch + dry_run=true は版算出+ノート+ビルドのみ＝ドラフトを
 # 作らず版も消費しない完全プレビュー。規約: docs/commit-convention.md
 # 設定: cliff.toml
+#
+# firmware ビルドは通常 CI と同じ reusable (.github/workflows/zmk-build.yml) に
+# 一本化している。以前は release.yml が独自に west+patch+build を持っていたが、
+# build.yml 側と重複して drift し（dongle の board 名 xiao_ble/nrf52840/zmk が
+# slash を含むための SHIELD 解析破綻 + canon ローカル shield の BOARD_ROOT 欠落）
+# release だけ壊れた。ビルド定義を 1 つに集約してこの種の drift を構造的に防ぐ。
+# job 構成: version（版算出+notes）→ build（reusable）→ draft（成果物 DL+ドラフト）。
 on:
   push:
     branches: [main]
@@ -29,8 +36,13 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # 次版算出 + リリースノート生成。firmware ビルド (build) と draft 公開は
+  # この出力 release==true のときだけ走る。
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.ver.outputs.release }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -69,69 +81,68 @@ jobs:
           git-cliff --config cliff.toml --unreleased --tag "$VERSION" --strip all > RELEASE_NOTES.md
           if [ ! -s RELEASE_NOTES.md ]; then echo "Initial release." > RELEASE_NOTES.md; fi
 
-      - name: Build firmware (ZMK / west, Docker)
+      # draft job へ渡すため artifact 化（git-cliff は version job でしか動かさない）。
+      - name: Upload release notes
         if: steps.ver.outputs.release == 'true'
-        run: |
-          set -euo pipefail
-          # build.yaml を唯一のソースにして board/shield を派生（二重管理回避）。
-          # CI 通常ビルド (.github/workflows/build.yml) は ZMK reusable が
-          # 同 build.yaml を読むため、ここで揃えればリリースとビルドが齟齬らない。
-          pairs="$(awk '/^[[:space:]]*-?[[:space:]]*board:[[:space:]]/{b=$NF} /^[[:space:]]*shield:[[:space:]]/{printf "%s/%s ", b, $NF}' build.yaml)"
-          echo "Build targets (board/shield): $pairs"
-          docker run --rm -v "$PWD:/w" -w /w -e ZEPHYR_BASE=/w/zephyr -e PAIRS="$pairs" \
-            zmkfirmware/zmk-build-arm:stable bash -ceu '
-              git config --global --add safe.directory "*"
-              west init -l config
-              west update
-              # ZMK out-of-tree patch を適用（zmk-build.yml / build-zmk.sh と同一の
-              # 冪等ロジック）。当てないと vkey 等 patch 依存 behavior が DT 解決
-              # できずリリースファームが壊れる。LC_ALL=C で glob を C 照合順に固定
-              # （依存順 security < usb-hid-prime < vkey を保証）・既適用は skip。
-              # パッチパスは絶対パス必須（git -C zmk apply は <path> を zmk/ 基準で
-              # 解決するため。/w はこのコンテナでの canon マウント先）。
-              export LC_ALL=C
-              shopt -s nullglob
-              for p in /w/patches/zmk/*.patch; do
-                name=$(basename "$p")
-                if git -C zmk apply --reverse --check "$p" >/dev/null 2>&1; then
-                  echo "PATCH $name (既適用)"
-                elif git -C zmk apply --check "$p" >/dev/null 2>&1; then
-                  git -C zmk apply "$p"; echo "PATCH $name (適用)"
-                else
-                  echo "patch 失敗: $name（ZMK main drift。patches/zmk/ 要更新）" >&2; exit 1
-                fi
-              done
-              west zephyr-export
-              mkdir -p artifacts
-              for pair in $PAIRS; do
-                board="${pair%/*}"; shield="${pair#*/}"
-                west build -p -s zmk/app -d "build/$shield" -b "$board" -- \
-                  -DSHIELD="$shield" -DZMK_CONFIG=/w/config
-                cp "build/$shield/zephyr/zmk.uf2" "artifacts/$shield.uf2"
-              done
-            '
-
-      # dry_run（workflow_dispatch のみ）: ドラフトを作らず、ビルド成果物と
-      # ノートを artifact として上げる（版を消費しない＝完全プレビュー）。
-      - name: Upload preview (dry run)
-        if: steps.ver.outputs.release == 'true' && github.event.inputs.dry_run == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: release-preview-${{ steps.ver.outputs.version }}
+          name: release-notes
+          path: RELEASE_NOTES.md
+
+  # firmware ビルドは通常 CI と同一の reusable に委譲（重複/drift 解消）。
+  # zmk-build.yml が build.yaml を唯一のソースに matrix を生成し、patch 適用・
+  # BOARD_ROOT 込みで全ターゲット (imprint_left/right/dongle) を build し
+  # <shield> 名の artifact を上げる。draft job がそれを DL してリリースへ添付する。
+  build:
+    needs: version
+    if: needs.version.outputs.release == 'true'
+    uses: ./.github/workflows/zmk-build.yml
+
+  draft:
+    needs: [version, build]
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      SHA: ${{ github.sha }}
+    steps:
+      # build (reusable) と version が上げた artifact を全部回収。
+      # download-artifact は <path>/<artifact名>/<file> 構造で展開する。
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+
+      - name: Collect firmware + notes
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # 各 <shield> artifact 下の uf2 を 1 箇所へ集約。
+          find dist -name '*.uf2' -exec cp {} out/ \;
+          cp dist/release-notes/RELEASE_NOTES.md out/RELEASE_NOTES.md
+          echo "収集した成果物:"; ls -l out
+
+      # dry_run（workflow_dispatch のみ）: ドラフトを作らず、ビルド成果物と
+      # ノートを 1 つの preview artifact にまとめて上げる（版を消費しない＝
+      # 完全プレビュー）。
+      - name: Upload preview (dry run)
+        if: github.event.inputs.dry_run == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-preview-${{ needs.version.outputs.version }}
           path: |
-            artifacts/*.uf2
-            RELEASE_NOTES.md
+            out/*.uf2
+            out/RELEASE_NOTES.md
 
       - name: Dry-run summary
-        if: steps.ver.outputs.release == 'true' && github.event.inputs.dry_run == 'true'
-        env:
-          VERSION: ${{ steps.ver.outputs.version }}
+        if: github.event.inputs.dry_run == 'true'
         run: |
           {
             echo "## Dry run: ${VERSION}（ドラフトは未作成）"
             echo
             echo '```'
-            cat RELEASE_NOTES.md
+            cat out/RELEASE_NOTES.md
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -140,16 +151,12 @@ jobs:
       # コミットへタグ生成）。同一版のドラフトは上書き、別版の自動ドラフトは
       # 破棄して常に1本に保つ。公開済み Release には一切触れない。
       - name: Create or update rolling DRAFT release
-        if: steps.ver.outputs.release == 'true' && github.event.inputs.dry_run != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.ver.outputs.version }}
-          SHA: ${{ github.sha }}
+        if: github.event.inputs.dry_run != 'true'
         run: |
           set -euo pipefail
-          # build.yaml と齟齬しないよう成果物は glob で拾う（Build step が
-          # build.yaml から派生して artifacts/<shield>.uf2 を生成済み）。
-          assets="artifacts/*.uf2"
+          # 成果物は out/ の uf2 を glob で拾う（build reusable が build.yaml から
+          # 派生して <shield>.uf2 を生成済み）。
+          assets="out/*.uf2"
 
           # 既存の「自動ドラフト」（未公開・semver タグ）を列挙。
           # 公開済み（isDraft=false）は対象外＝絶対に触れない。
@@ -164,10 +171,11 @@ jobs:
               have_current=1
             else
               # 別版の旧自動ドラフトは破棄（superseded）。
-              # 念のため旧方式で push 済みタグがあれば併せて除去。
+              # 念のため旧方式で push 済みタグがあれば併せて除去（draft job は
+              # checkout しないので git ではなく API 経由でタグ ref を削除）。
               echo "::notice::旧自動ドラフト $t を破棄（→ $VERSION に統合）"
               gh release delete "$t" --yes
-              git push origin ":refs/tags/$t" 2>/dev/null || true
+              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/$t" 2>/dev/null || true
             fi
           done
 
@@ -175,13 +183,13 @@ jobs:
             # shellcheck disable=SC2086
             gh release upload "$VERSION" $assets --clobber
             gh release edit "$VERSION" --draft \
-              --title "$VERSION" --notes-file RELEASE_NOTES.md --target "$SHA"
+              --title "$VERSION" --notes-file out/RELEASE_NOTES.md --target "$SHA"
             url="$(gh release view "$VERSION" --json url --jq .url)"
             action="更新"
           else
             # shellcheck disable=SC2086
             url="$(gh release create "$VERSION" --draft --target "$SHA" \
-              --title "$VERSION" --notes-file RELEASE_NOTES.md $assets)"
+              --title "$VERSION" --notes-file out/RELEASE_NOTES.md $assets)"
             action="作成"
           fi
 
