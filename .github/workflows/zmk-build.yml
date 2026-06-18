@@ -1,0 +1,124 @@
+name: ZMK Build
+
+# canon 専用の ZMK ビルド reusable workflow（build.yml から呼ばれる）。
+#
+# 通常 ZMK user-config は公式 reusable
+# (zmkfirmware/zmk/.github/workflows/build-user-config.yml) を使うだけだが、本
+# リポジトリは ZMK コアへの out-of-tree パッチ (patches/zmk/*.patch — vkey や
+# usb-hid-prime 等) を前提とする。公式 reusable は「素の ZMK」をビルドし
+# patches/ を当てないため、パッチ依存の behavior (&vkey 等) が devicetree で
+# 解決できず全ターゲットが落ちる。そこで scripts/build-zmk.sh と同一手順
+# (west init/update → patch 適用 → west build) を踏む自前ジョブにした。
+# CI モデルが「素 ZMK のコンパイル検証」→「patch 済みファームの build」へ変わる
+# (既存 security-changed / usb-hid-prime patch も乗る＝ローカルと等価)。
+# 将来 vkey が ZMK 上流へ採用されたら patch を撤去し公式 reusable へ戻せる。
+# 詳細・upstream 化方針: docs/vkey-roadmap.md。
+#
+# build.yml から `uses: ./.github/workflows/zmk-build.yml` で呼ぶ薄い構成に
+# しているのは、ステータスチェック名を公式 reusable 時代と同じ
+# `build / Build (<board>, <shield>)` に保ち、main 保護 ruleset の必須チェック
+# 設定を変えずに済ませるため。
+
+on:
+  workflow_call:
+
+jobs:
+  # build.yaml の include: を matrix へ変換する。board/shield の唯一のソースは
+  # build.yaml（build-zmk.sh / release.yml も同じファイルを参照）。ここで動的
+  # 生成して各 workflow へのハードコード＝二重管理を避ける。
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.gen.outputs.include }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: gen
+        name: Derive build matrix from build.yaml
+        run: |
+          set -euo pipefail
+          # build-zmk.sh と同じ awk で board<TAB>shield を抽出（board/shield の
+          # 順不同・コメント行スキップに対応）→ jq で JSON matrix へ変換。
+          include=$(awk '
+            /^[[:space:]]*#/ { next }
+            /^[[:space:]]*-[[:space:]]/ { if (b != "") print b "\t" s; b=""; s="" }
+            /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
+            /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
+            END { if (b != "") print b "\t" s }
+          ' build.yaml | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {board: .[0], shield: .[1]})')
+          echo "include=$include" >> "$GITHUB_OUTPUT"
+          echo "matrix: $include"
+
+  build:
+    needs: matrix
+    runs-on: ubuntu-latest
+    # ZMK ビルドツールチェーン（Zephyr SDK + west + arm-none-eabi）入りの公式
+    # イメージ。公式 reusable workflow が内部で使うものと同じ。
+    container:
+      image: zmkfirmware/zmk-build-arm:stable
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    # ステータスチェック名を `build / Build (<board>, <shield>)` に揃える
+    # （main 保護 ruleset の必須チェックがこの名前を参照しているため）。
+    name: Build (${{ matrix.board }}, ${{ matrix.shield }})
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: West init + update (ZMK @ main)
+        run: |
+          set -euo pipefail
+          # bind mount の uid 不一致で git が dubious ownership を出すのを抑止。
+          git config --global --add safe.directory '*'
+          # canon を west topdir にして依存 (zmk@main, zmk-keyboards@main, zephyr…)
+          # を取得。ZMK は main 追従必須（理由は config/west.yml のコメント参照）。
+          west init -l config
+          west update
+          west zephyr-export
+
+      - name: Apply ZMK out-of-tree patches
+        run: |
+          set -euo pipefail
+          # scripts/build-zmk.sh と同一の冪等適用。LC_ALL=C で glob を C 照合順に
+          # 固定し（patch 間の依存順 security < usb-hid-prime < vkey を保証）
+          # patches/zmk/*.patch を zmk/ へ当てる。既適用は reverse-check で skip、
+          # 当たらなければ即 fail（ZMK main drift を CI で大声で検知する）。
+          # パッチパスは **絶対パス必須**: `git -C zmk apply <path>` は <path> を
+          # zmk/ 基準で解決するため、相対パスだと patch ファイルを見失う
+          # （build-zmk.sh は /workspace 絶対パスなので無問題）。
+          export LC_ALL=C
+          shopt -s nullglob
+          for p in "$GITHUB_WORKSPACE"/patches/zmk/*.patch; do
+            name=$(basename "$p")
+            if git -C zmk apply --reverse --check "$p" >/dev/null 2>&1; then
+              echo "=== PATCH zmk: $name (既適用)"
+            elif git -C zmk apply --check "$p" >/dev/null 2>&1; then
+              git -C zmk apply "$p"
+              echo "=== PATCH zmk: $name (適用)"
+            else
+              echo "❌ パッチが当たりません: $name" >&2
+              echo "   ZMK main の該当箇所が変わった可能性。patches/zmk/ を更新してください。" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build firmware
+        run: |
+          set -euo pipefail
+          # scripts/build-zmk.sh と同一の west build 呼び出し。BOARD_ROOT/DTS_ROOT
+          # は canon ルート（＝topdir）＝boards/shields/imprint_dongle 等を解決。
+          west build -p -s zmk/app -b "${{ matrix.board }}" -- \
+            -DSHIELD="${{ matrix.shield }}" \
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
+            -DBOARD_ROOT="$GITHUB_WORKSPACE" \
+            -DDTS_ROOT="$GITHUB_WORKSPACE"
+          cp build/zephyr/zmk.uf2 "${{ matrix.shield }}.uf2"
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.shield }}
+          path: ${{ matrix.shield }}.uf2
