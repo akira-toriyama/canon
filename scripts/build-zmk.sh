@@ -46,7 +46,7 @@ for arg in "$@"; do
   esac
 done
 
-# 引数指定が無ければ build.yaml の include: リストから board/shield を抽出。
+# build.yaml の include: リストから "board<TAB>shield" 行を全て出力する。
 # 前提: ZMK 公式テンプレ準拠の include: リスト形式。
 #   include:
 #     - board: <b>
@@ -54,16 +54,19 @@ done
 # 非対応: トップレベル board:/shield: 配列形式（その場合は引数でシールド指定）。
 # 各 "- " 要素を境界に board/shield を順不同で拾い、境界か EOF で確定する。
 # コメント行（先頭 #、テンプレ冒頭の board: 例を含む）は無視する。
+_build_pairs() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*-[[:space:]]/ { if (b != "") print b "\t" s; b=""; s="" }
+    /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
+    /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
+    END { if (b != "") print b "\t" s }
+  ' build.yaml
+}
+
+# 引数指定が無ければ build.yaml の全 board/shield ペアを対象にする。
 if [ ${#SHIELDS[@]} -eq 0 ]; then
-  while IFS= read -r line; do SHIELDS+=("$line"); done < <(
-    awk '
-      /^[[:space:]]*#/ { next }
-      /^[[:space:]]*-[[:space:]]/ { if (b != "") print b "\t" s; b=""; s="" }
-      /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
-      /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
-      END { if (b != "") print b "\t" s }
-    ' build.yaml
-  )
+  while IFS= read -r line; do SHIELDS+=("$line"); done < <(_build_pairs)
 else
   # 引数は board:shield または shield のみ。shield のみの場合は
   # build.yaml から該当ペアの board を引く（最初の board 固定ではない、
@@ -74,13 +77,12 @@ else
       SHIELDS+=("${arg%%:*}	${arg##*:}")
       continue
     fi
-    BOARD="$(awk -v want="$arg" '
-      /^[[:space:]]*#/ { next }
-      /^[[:space:]]*-[[:space:]]/ { if (b != "" && s == want && !found) { print b; found=1 } b=""; s="" }
-      /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
-      /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
-      END { if (b != "" && s == want && !found) print b }
-    ' build.yaml)"
+    # shield のみ: _build_pairs から該当 shield のペアを探し board を引く
+    # （最初の board 固定ではなく、異種ボード混在でも正しい組み合わせを得る）。
+    BOARD=""
+    while IFS="$(printf '\t')" read -r _b _s; do
+      if [ "$_s" = "$arg" ]; then BOARD="$_b"; break; fi
+    done < <(_build_pairs)
     if [ -z "$BOARD" ]; then
       echo "shield '$arg' が build.yaml に見つかりません（board:shield 形式で渡すことも可）" >&2
       exit 1
