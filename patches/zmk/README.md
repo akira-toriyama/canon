@@ -52,6 +52,34 @@ queue は ring buffer (深さ 8、1 entry 16B)。peripheral 側は
 flush delay の Kconfig 化、default n)。merge され次第本 patch を畳む。
 関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
 
+### `vkey-report.patch`
+
+ベンダー定義 HID「オリジナルキー」(vkey) を追加する。Report ID `0x20` の
+1 byte selector レポート (`0`=解放 / `1..255`=ID) を keyboard/consumer/mouse と
+並ぶ独立 collection として `zmk_hid_report_desc[]` に足し、新 behavior
+`&vkey <id>` (press で id 送出、release で 0 送出) を実装する。chord (macOS host
+bridge) が IOHIDManager で受けて id→action にマップする想定。
+
+- 触るファイル: `app/include/zmk/hid.h` (Report ID + descriptor + report 構造体),
+  `app/src/hid.c` (state + set/clear/get), `app/src/usb_hid.c`
+  (`zmk_usb_hid_send_vkey_report` + get_report_cb の 0x20 case),
+  `app/src/endpoints.c` (`zmk_endpoint_send_vkey_report`),
+  `app/include/zmk/{usb_hid,endpoints}.h`, 新規
+  `app/src/behaviors/behavior_vkey.c` +
+  `app/dts/bindings/behaviors/zmk,behavior-vkey.yaml`,
+  `app/CMakeLists.txt` / `app/Kconfig.behaviors` (central gate 内で behavior 登録)。
+- **USB のみ**。ドングル (central) が PC へ USB HID で送る経路に対応。BLE-HOG 直結は
+  descope (`zmk_endpoint_send_vkey_report` の BLE 分岐は `LOG_WRN` + `-ENOTSUP`)。
+- vkey レポートは既存 `zmk_usb_hid_send_report` を経由するので
+  `usb-hid-prime-on-ready.patch` の resume queue を自動継承する。よって本 patch は
+  `usb-hid-prime-on-ready.patch` の **後** に適用される必要があり、build-zmk.sh の
+  `LC_ALL=C` 順 (s < u < v) で満たされる。
+- descriptor の 16-bit usage page `0xFF31` は `HID_USAGE_PAGE()` が 1 byte に
+  切り詰めるため raw long item `0x06,0x31,0xFF` でベタ書き。Input は単一の値
+  フィールドなので `0x02` (Data,Variable,Absolute)。
+- **upstream PR**: 未提出 (canon 固有機能。汎用化の見込みが立てば検討)。
+- 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
+
 ## パッチを追加するとき
 
 1. `~/.cache/zmk-canon/cfgrepo/zmk/` で対象ファイルを編集
