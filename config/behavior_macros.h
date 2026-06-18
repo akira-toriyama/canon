@@ -20,13 +20,6 @@
 #define TD_RM &mt LEFT_ALT ESCAPE
 #define TD_RR &mt LEFT_CONTROL SPACE
 
-// numpad 数字エイリアス。T_*_LAYER の chord (*_kp) と DEFAULT の &kp X_1 で使う。
-// 素のアルファベットは keymap に直接書く (恒等 alias は廃止)。
-#define X_1 KP_N1
-#define X_2 KP_N2
-#define X_3 KP_N3
-#define X_4 KP_N4
-
 // 全 modifier (LGUI / LSFT / LCTL / LALT)。mod-morph の mods / keep-mods で使う
 #define ALL_MODS (MOD_LGUI|MOD_LSFT|MOD_LCTL|MOD_LALT)
 
@@ -148,7 +141,7 @@
       bindings = <&macro_tap &kp EIJI>, <&macro_press &kp key>, <&macro_pause_for_release>, <&macro_release &kp key>; \
     };
 
-// 親指上段 chord 用 behavior 生成 (詳細は macros.dtsi の解説を参照)。
+// 親指上段 (TU) 用 behavior 生成。
 //
 // TU_MOD : LAYER 起動 + MOD を同時 hold する macro (TU_LL/TU_LM 実体)。
 //   name : 生成名 / LAYER : 潜るレイヤー / MOD : hold する修飾子
@@ -157,22 +150,4 @@
       compatible = "zmk,behavior-macro"; \
       #binding-cells = <0>; \
       bindings = <&macro_press &mo LAYER>, <&macro_press &kp MOD>, <&macro_pause_for_release>, <&macro_release &kp MOD>, <&macro_release &mo LAYER>; \
-    };
-
-// CHORD_KP : 右 3 修飾子 (M1/M2/M3) を付けて base key を送出する one-param macro。
-//   T_RM/T_RR 用 (held 左修飾子なし)。
-#define CHORD_KP(name, M1, M2, M3) \
-    name: name { \
-      compatible = "zmk,behavior-macro-one-param"; \
-      #binding-cells = <1>; \
-      bindings = <&macro_press &kp M1>, <&macro_press &kp M2>, <&macro_press &kp M3>, <&macro_param_1to1>, <&macro_press &kp MACRO_PLACEHOLDER>, <&macro_pause_for_release>, <&macro_param_1to1>, <&macro_release &kp MACRO_PLACEHOLDER>, <&macro_release &kp M1>, <&macro_release &kp M2>, <&macro_release &kp M3>; \
-    };
-
-// CHORD_KP_REL : 先に held 左修飾子 REL を release してから CHORD_KP と同様。
-//   T_LL/T_LM 用 (TU_LL/TU_LM が hold した LCtrl/LAlt を suppress)。
-#define CHORD_KP_REL(name, REL, M1, M2, M3) \
-    name: name { \
-      compatible = "zmk,behavior-macro-one-param"; \
-      #binding-cells = <1>; \
-      bindings = <&macro_release &kp REL>, <&macro_press &kp M1>, <&macro_press &kp M2>, <&macro_press &kp M3>, <&macro_param_1to1>, <&macro_press &kp MACRO_PLACEHOLDER>, <&macro_pause_for_release>, <&macro_param_1to1>, <&macro_release &kp MACRO_PLACEHOLDER>, <&macro_release &kp M1>, <&macro_release &kp M2>, <&macro_release &kp M3>; \
     };

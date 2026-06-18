@@ -23,25 +23,13 @@
       bindings = <&kp EIJI>;
     };
 
-    // ==== 親指 chord (TU_LL / TU_LM = layer + 同名修飾子を同時 hold) ====
+    // ==== 親指上段 (TU): layer 起動。LL/LM は修飾子も同時 hold ====
     //
-    // t_*_* が「layer 起動 → 修飾子 press」の順で発火するため、押下中の他キーは
-    // T_*_LAYER 経由で routed され、対応する *_kp マクロに届く。*_kp 側は
-    // base key に対し「右 4 修飾子のうち 3 つ」を付けて送出する (layer ごとに
-    // 欠ける 1 つが異なり、OS 側でレイヤーを識別できる)。
-    //   LL: RALT+RSHIFT+RCTRL  (RGUI なし)   LM: RGUI+RSHIFT+RCTRL (RALT なし)
-    //   RM: RGUI+RALT +RCTRL  (RSHIFT なし)  RR: RGUI+RALT +RSHIFT (RCTRL なし)
-
-    // TU_LL/TU_LM 実体: layer + 修飾子を同時 hold
+    // TU_LL/TU_LM は layer 起動と同時に LCtrl/LAlt を hold する実体 (t_ll_ctrl /
+    // t_lm_alt)。TU_RM/TU_RR は層起動のみ (behavior_macros.h で &mo)。各
+    // T_*_LAYER のキーは &vkey id を送出する (vendor-HID。旧・修飾子 chord 方式は廃止)。
     TU_MOD(t_ll_ctrl, T_LL_LAYER, LCTRL)
     TU_MOD(t_lm_alt,  T_LM_LAYER, LALT)
-
-    // 各 T_*_LAYER の chord: base key に「右 4 修飾子のうち 3 つ」を付けて送出。
-    // LL/LM は TU 側が hold した左修飾子を先に release して suppress する。
-    CHORD_KP_REL(ll_kp, LCTRL, RALT, RSHIFT, RCTRL)   // T_LL (RGUI なし)
-    CHORD_KP_REL(lm_kp, LALT,  RGUI, RSHIFT, RCTRL)   // T_LM (RALT なし)
-    CHORD_KP(rm_kp,            RGUI, RALT,  RCTRL)    // T_RM (RSHIFT なし)
-    CHORD_KP(rr_kp,            RGUI, RALT,  RSHIFT)   // T_RR (RCTRL なし)
 
     // ==== EIJI 切替 → 数字 / 記号キー専用 behavior 群 ====
     // 機能的には上の eiji_macro と同一（EIJI tap → key press/release）だが、
