@@ -5,6 +5,9 @@
 # scripts/gen-eiji-drawer-map.py が厳密一致で生成
 keymap_drawer.config.yaml
 
+# scripts/gen-vkey-aliases.py がキーマップから生成（chord 貼り付け用）
+config/vkey-aliases.toml
+
 # caksoylar/keymap-drawer CI が生成・コミット
 keymap-drawer/imprint.yaml
 

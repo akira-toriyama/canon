@@ -38,12 +38,20 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   タグ（例 `v0.3.0`）固定すると CI/ローカルとも `arch.cmake` で
   `Could not find ARCH=cyboard` となりビルド不能。ZMK 公式の版固定推奨より
   この依存を優先（[config/west.yml](config/west.yml) / build.yml は `@main`）。
-- **単一ソース規約**: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) が唯一の
+- **単一ソース規約（eiji）**: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) が唯一の
   ソース。`keymap_drawer.config.yaml` の AUTO-GENERATED ブロックは
   [scripts/gen-eiji-drawer-map.py](scripts/gen-eiji-drawer-map.py) が生成し、
   [verify-eiji-sync.yml](.github/workflows/verify-eiji-sync.yml) が CI で厳密一致を
   検証する。マーカー間を手編集しない。変更は dtsi を直し
   `python3 scripts/gen-eiji-drawer-map.py` を再実行（stdlib のみ）。
+- **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap) の
+  `&vkey <id>` が唯一のソース。生成物 [config/vkey-aliases.toml](config/vkey-aliases.toml)
+  （host bridge [`chord`](https://github.com/akira-toriyama/chord) の `[v-key-aliases]` へ貼る用）は
+  [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が id を復号して生成し、
+  [verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml) が CI で照合する。
+  `config/vkey-aliases.toml` を手編集しない。id を変えるときはキーマップを直し
+  `python3 scripts/gen-vkey-aliases.py` を再実行（stdlib のみ）。これでキーマップ↔chord
+  config の id 二重管理を排除する（chord 側への貼り込み＝chezmoi 運用は別管理）。
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。
@@ -95,7 +103,8 @@ bot 除外は **[docs/commit-convention.md](docs/commit-convention.md)** を参�
 ## レビュー / コスト方針（課金回避）
 
 - **CI で Claude（課金 API）を使わない**。PR ゲートは無料の決定的チェックのみ
-  （build / commit-lint / shellcheck / draw fail_on_error / verify-eiji-sync）。
+  （build / commit-lint / shellcheck / draw fail_on_error / verify-eiji-sync /
+  verify-vkey-sync）。
 - Claude レビューが必要なときは**手元でオンデマンド**起動（`/review`,
   `/ultrareview` 等）。CI に Claude 自動レビューを足さない（増分$0 を維持）。
 - public repo のため GitHub Actions 実行は無料枠。課金 API を使う workflow を

@@ -1,0 +1,30 @@
+name: Verify vkey aliases sync
+
+# config/imprint.keymap の &vkey <id> を単一ソースとし、生成物
+# config/vkey-aliases.toml（chord の [v-key-aliases] へ貼る用）がそこから
+# 生成された状態と一致するか、id が全て正しく復号できるかを検証する。
+# キーマップ↔alias の id 二重管理を排除する（eiji パターンと同型）。
+on:
+  push:
+    paths:
+      - config/imprint.keymap
+      - config/vkey-aliases.toml
+      - scripts/gen-vkey-aliases.py
+      - .github/workflows/verify-vkey-sync.yml
+  pull_request:
+    paths:
+      - config/imprint.keymap
+      - config/vkey-aliases.toml
+      - scripts/gen-vkey-aliases.py
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Check vkey aliases are in sync
+        run: python3 scripts/gen-vkey-aliases.py --check
