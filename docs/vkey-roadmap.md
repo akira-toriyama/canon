@@ -193,8 +193,10 @@ endpoints.c/CMakeLists/Kconfig.behaviors + behavior_vkey.c + DT binding yaml の
   週次)+ `jobs.build.uses: ./.github/workflows/zmk-build.yml` だけ。**呼び出し元 job を `build`
   のままにすることで**ステータスチェック名 `build / Build (<board>, <shield>)` を維持し、main 保護
   ruleset の必須チェック(`build / Build (assimilator-bt, imprint_left|right)`)を**変えずに**通す。
-- **`.github/workflows/release.yml`**: docker build ブロックの `west update` 後に同じ patch 適用
-  ステップを追加。
+- **`.github/workflows/release.yml`**: 当初は docker build ブロックに同じ patch 適用ステップを
+  追加（PR #51）。**後日 PR #53 で firmware ビルドを `zmk-build.yml`（reusable）へ一本化**し、
+  独自の west+patch+build を撤去（build 定義を単一化＝drift 根絶。dongle の board 名 slash + canon
+  ローカル shield の BOARD_ROOT 欠落で release だけ壊れていた既存バグの根本対処）。
 
 #### 検証済み
 
@@ -601,6 +603,32 @@ canon config 側(patch ではなく通常コミット):
    は別アーキ**で、コア無改変だが USB 専用（BLE 非対応）・3rd-party 依存増・wire 変更で chord 作り直し
    ＋実機再検証が要るため、検証済みの現方式を捨てる価値は薄い（採用しない方針）。判断の経緯は本書冒頭
    「アーキテクチャ判断」と Phase 0 を参照。
+
+## Upstream 収束タスク（upstream で canon が捨てられる複雑さ）
+
+canon の out-of-tree 依存（3 patch + dongle shield）は、それぞれ upstream 採用されるたびに
+ローカル複雑さを 1 つ捨てられる。方針＝「patch で今動かしつつ並行で upstream、採用されたら
+剥がす」。各 upstream PR の状況と「merge されたら canon で何ができるか」を追跡する
+（一次ソースは [`patches/zmk/README.md`](../patches/zmk/README.md)）。
+
+| upstream PR | 上流化するもの | merge されたら canon は |
+|---|---|---|
+| [zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385) | `security-changed-auto-unpair.patch` | 同 patch を撤去 |
+| [zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)（`CONFIG_ZMK_USB_HID_REPLAY_ON_READY`） | `usb-hid-prime-on-ready.patch` | 同 patch を撤去し Kconfig を `=y` に |
+| **zmk#（vkey, 未提出＝下記タスク）** | `vkey-report.patch`（汎用 vendor/raw-HID behavior 化） | 同 patch を撤去 |
+| [Cyboard zmk-keyboards#7](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/7) | `imprint_dongle` shield（Cyboard は公式にドングル非対応） | canon ローカル `boards/shields/imprint_dongle/` を削除、`zmk-build.yml` の `-DBOARD_ROOT` も不要化 |
+
+**終端状態（全部 merge されたら）**: `patches/zmk/` が空になり、`build.yml`/`zmk-build.yml` を
+**ZMK 公式 reusable**（`zmkfirmware/zmk/.github/workflows/build-user-config.yml@main`）へ戻せる →
+`release.yml` の reusable ビルドもそれに追従 → **案1 の自前 CI を丸ごと巻き戻せる**。これが
+upstream 化の最終的な見返り（保守コスト 0 + canon の CI が標準形に戻る）。それまでは各 patch が
+ローカルと CI 両方で apply 失敗時に即落ちる＝drift を大声で検知する。
+
+**タスク: vkey → zmk へ PR**（3 patch 中で唯一未提出）。テンプレ＝#3384 をそのまま範に: canon
+固有のハードコード（usage page `0xFF31` / report id `0x20` / 1 byte selector）を **default-off の
+Kconfig**（例 `CONFIG_ZMK_HID_VKEY`）で gate した汎用 vendor/raw-HID behavior に一般化 → 明快な
+What/Why で `zmkfirmware/zmk` へ提出。`patches/zmk/vkey-report.patch` がほぼそのまま素材
+（兄弟 #3384/#3385 が同じ「patch→汎用化→upstream」の実例）。
 
 ## 学んだ詰まりどころ / 注意 (忘れないよう)
 
