@@ -83,6 +83,24 @@ jobs:
               git config --global --add safe.directory "*"
               west init -l config
               west update
+              # ZMK out-of-tree patch を適用（zmk-build.yml / build-zmk.sh と同一の
+              # 冪等ロジック）。当てないと vkey 等 patch 依存 behavior が DT 解決
+              # できずリリースファームが壊れる。LC_ALL=C で glob を C 照合順に固定
+              # （依存順 security < usb-hid-prime < vkey を保証）・既適用は skip。
+              # パッチパスは絶対パス必須（git -C zmk apply は <path> を zmk/ 基準で
+              # 解決するため。/w はこのコンテナでの canon マウント先）。
+              export LC_ALL=C
+              shopt -s nullglob
+              for p in /w/patches/zmk/*.patch; do
+                name=$(basename "$p")
+                if git -C zmk apply --reverse --check "$p" >/dev/null 2>&1; then
+                  echo "PATCH $name (既適用)"
+                elif git -C zmk apply --check "$p" >/dev/null 2>&1; then
+                  git -C zmk apply "$p"; echo "PATCH $name (適用)"
+                else
+                  echo "patch 失敗: $name（ZMK main drift。patches/zmk/ 要更新）" >&2; exit 1
+                fi
+              done
               west zephyr-export
               mkdir -p artifacts
               for pair in $PAIRS; do

@@ -175,15 +175,53 @@ endpoints.c/CMakeLists/Kconfig.behaviors + behavior_vkey.c + DT binding yaml の
 → コミットした keymap の `&vkey`/`vkey:` が CI で DT エラー
 `binding controller /behaviors/vkey ... lacks binding` → 3 target 全滅。
 
-### 案1（次セッション実装）
+### 案1（実装済み 2026-06-18 — ブランチ `feat/vkey-migration`）
 
 `build.yml` を reusable `uses:` から**自前ジョブ**へ: canon checkout → west + ZMK@main → 
 `git -C zmk apply patches/zmk/*.patch`(`LC_ALL=C` 順、`build-zmk.sh` の適用ロジックを移植)→ 
 3 target(build.yaml の matrix)ビルド → artifact upload。CI モデルが「素ビルド検証」→「patch
-済みファーム build」へ(既存 security-changed/usb-hid-prime も適用=より正確)。**併せて ZMK 上流
-drift**: 新しい ZMK(33e5c23, Zephyr 4.1)が assimilator-bt を「board variant 要」と警告
-(dongle は既に `xiao_ble/nrf52840/zmk` variant)。imprint_left/right も `/zmk` variant 化が要る
-可能性。`release.yml` も同じ patch 適用が要るか確認。参考=動いている `scripts/build-zmk.sh`。
+済みファーム build」へ(既存 security-changed/usb-hid-prime も適用=より正確)。`release.yml` も
+同じ patch 適用が要る(公開リリースの firmware も patch 必須なため)。
+
+#### 実装内容
+
+- **`.github/workflows/zmk-build.yml`(新規・ローカル reusable)**: 実体。`matrix` job が
+  `build.yaml` の include を awk+jq で動的生成(単一ソース維持)→ `build` job が
+  `zmkfirmware/zmk-build-arm:stable` コンテナで west init/update → **patch 適用**(build-zmk.sh と
+  同一の冪等ロジック)→ `west build`(`BOARD_ROOT`/`DTS_ROOT`=canon root)→ uf2 を artifact 化。
+- **`.github/workflows/build.yml`(薄いラッパー化)**: トリガー(push:main / PR / dispatch /
+  週次)+ `jobs.build.uses: ./.github/workflows/zmk-build.yml` だけ。**呼び出し元 job を `build`
+  のままにすることで**ステータスチェック名 `build / Build (<board>, <shield>)` を維持し、main 保護
+  ruleset の必須チェック(`build / Build (assimilator-bt, imprint_left|right)`)を**変えずに**通す。
+- **`.github/workflows/release.yml`**: docker build ブロックの `west update` 後に同じ patch 適用
+  ステップを追加。
+
+#### 検証済み
+
+- **patch 適用**: clean な現行 ZMK main(`ff09f2d0` = `zmkfirmware/zmk` の実際の最新 main)へ
+  security-changed → usb-hid-prime → vkey を `LC_ALL=C` 順で**累積クリーン適用**できることを確認。
+  さらに clean 状態からの `scripts/build-zmk.sh`(Docker)で **3 target 全ビルド成功**。
+- **board variant drift は非問題**。`The selected board is not set up for ZMK / variant available`
+  は ZMK **公式 reusable の build 後ゲート固有**の警告で、素の `west build`(build-zmk.sh・本自前
+  ジョブ)はこのゲートを通らないため assimilator-bt は無改変でビルドできる。**build.yaml の board 名
+  を `/zmk` variant に変える必要は無い**。
+- **`actionlint`(embedded shellcheck 込み)で 3 workflow 全クリア**。matrix 動的生成(awk→jq)の
+  出力が `build.yaml` の 3 ペアと一致。**実 CI でも `lint`・`build / matrix` pass + チェック名が
+  ruleset 必須名と一致**することを確認(ブランチ保護無変更で通る)。
+
+#### ⚠️ 詰まりどころ: patch パスは絶対パス必須（初回 CI が検知）
+
+初回 push で 3 target が「パッチが当たりません: security-changed-…」で落ちた。原因は **ZMK drift
+では無く** patch ステップのパス解決バグ: `for p in patches/zmk/*.patch`（相対）+
+`git -C zmk apply "$p"` は `-C zmk` のため patch ファイルを **zmk/ 基準**で探し
+`zmk/patches/zmk/…`（不在）を見て `No such file` → `--check` 失敗を「当たらない」と誤判定していた。
+build-zmk.sh は `/workspace/patches/zmk/*.patch` の**絶対パス**なので無問題だった。修正 = workflow も
+`"$GITHUB_WORKSPACE"/patches/zmk/*.patch` / `/w/patches/zmk/*.patch` の絶対パスへ。
+**教訓**: ローカル `build-zmk.sh --update` がキャッシュの zmk を dirty（patch 既適用）のまま残すと
+west update が最新 main へ進めず stale commit で「既適用 skip」する → **ローカル成功が CI を保証
+しない**。CI（fresh checkout）が真の oracle。検証は clean な zmk から累積適用すること。
+
+参考=動いている `scripts/build-zmk.sh`。
 
 ## 実装ログ (2026-06-18)
 
@@ -549,6 +587,20 @@ canon config 側(patch ではなく通常コミット):
 5. **daemon upgrade 時の Input Monitoring grant** — **要運用手当**。既存
    daily-driver install は upgrade で新 TCC を自動取得しない。`daemon --resign` /
    署名フローで `kTCCServiceListenEvent` を確実に取得させる手順が必要。
+6. **vkey の ZMK 上流化（理想の到達点。任意・long-game）** — **未着手（doc 化のみ）**。
+   現方式は ZMK コアへの out-of-tree patch（`patches/zmk/vkey-report.patch`）必須で、その代償が
+   ① ZMK main drift で patch anchor が剥がれ得る ② CI が公式 reusable を使えず自前ジョブ（案1）に
+   なる、の保守コスト（既存 2 patch と同クラス、apply 失敗で即検知）。**理想の最終形は vkey を ZMK
+   本体へ upstream すること**: 採用されれば patch を撤去し CI を公式 reusable へ戻せ、保守コストが
+   ゼロになる。**patch（`vkey-report.patch`）は `zmk/app` に対する git diff そのもの＝ほぼそのまま
+   upstream PR の素材**。「patch か upstream か」ではなく「**patch で今動かしつつ、汎用化した同じ
+   diff を upstream に出す**」関係（patch=橋、upstream=到達点）。着手時の要件: 採用見込みを上げる
+   ため canon 固有のハードコード（usage page `0xFF31` / report id `0x20` / 1 byte selector）を
+   **設定可能な汎用 vendor/raw-HID behavior** へ一般化する設計が要る（ベンダー固定値のままでは
+   upstream 採用は薄い）。**自己完結 module（`badjeff/zmk-hid-io` 系で別 USB HID インターフェース化）
+   は別アーキ**で、コア無改変だが USB 専用（BLE 非対応）・3rd-party 依存増・wire 変更で chord 作り直し
+   ＋実機再検証が要るため、検証済みの現方式を捨てる価値は薄い（採用しない方針）。判断の経緯は本書冒頭
+   「アーキテクチャ判断」と Phase 0 を参照。
 
 ## 学んだ詰まりどころ / 注意 (忘れないよう)
 
