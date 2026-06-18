@@ -123,7 +123,7 @@ C0         ; End Collection
 | 3 | 本番 keymap への `&vkey` 配置確定 | canon | ✅ 完了(本番 migration で 4 層+X_1 全置換) |
 | 4 | chord: `[[vkey]]` config(Core のみ、IOKit 非依存) | chord | ✅ 完了 → **設計転換で `[[vkey]]` は撤去**(下記) |
 | 5 | chord: VKeyHIDSource(IOHIDManager)+ 配線 + 権限 | chord | ✅ 完了(`swift build` clean + 敵対的レビュー 4 件全修正) |
-| 6 | chord: 実機 end-to-end + docs 改訂 | chord+実機 | 🟡 e2e ✅全層成立 / docs 改訂(non-goals/README)残 |
+| 6 | chord: 実機 end-to-end + docs 改訂 | chord+実機 | ✅ 完了（e2e 全層成立 + docs 改訂マージ済み chord PR #98 / canon PR #60） |
 | 7 | **本番 migration(4 層+X_1)+ 設計転換 + 全層 e2e** | 全 | ✅ 実機成立(下記「本番 migration DONE」) |
 | A | **単一ソース生成 + CI 照合(重複管理排除)** | canon | ✅ 完了 (PR #57 — `scripts/gen-vkey-aliases.py` + `verify-vkey-sync.yml`) |
 
@@ -687,9 +687,10 @@ keymap のキー順を確定して (層,キー)→id 表を作ること。
 
 ## 引き継ぎ (次セッション開始点) — 2026-06-18 更新
 
-**ほぼ全フェーズ完了・マージ済み。** vkey 機能（canon firmware + chord）・本番 migration・実機 e2e・
-canon CI/release・「A」単一ソース生成器まで全て完了。残るは **docs（chord 中心）** と
-**vkey→zmk upstream PR（任意）** のみ。**chezmoi re-add はユーザーの領域（対象外）**。
+**docs 含め全フェーズ完了・マージ済み（2026-06-18 更新）。** vkey 機能（canon firmware + chord）・
+本番 migration・実機 e2e・canon CI/release・「A」単一ソース生成器・**docs 整合（chord PR #98 /
+canon PR #60）** まで全て完了。残るは **vkey→zmk upstream PR（任意・long-game）** のみ。
+**chezmoi re-add はユーザーの領域（対象外）**。
 
 ### 完了・マージ済み（現リポジトリ状態）
 - **vkey 機能 Phase 0–7 ✅ 実機成立**: `patches/zmk/vkey-report.patch` + `config/imprint.keymap`
@@ -707,14 +708,21 @@ canon CI/release・「A」単一ソース生成器まで全て完了。残るは
   config に貼る。CLAUDE.md に単一ソース規約あり。
 
 ### 残タスク（次セッション）
-1. **docs（主に chord repo `/Volumes/workspace/github.com/akira-toriyama/chord`）**:
-   - `docs/non-goals.md` 改訂: 現状「IOHIDManager 不使用」を USP として謳う → vkey は**意図的な
-     限定例外**（単一 vendor page `0xFF31`・自前 1 byte selector のみ読む。汎用 HID 傍受でも
-     per-device routing でも DriverKit でもない）と明記。
-   - `README`: v-key 構文（`input = "TU_LL_C"` の bare 参照 + `[v-key-aliases]`）+ Input Monitoring
-     付与手順（**chord.app は terminal と別 identity = 別 grant 必要**）+ canon の
-     `config/vkey-aliases.toml` を貼る運用フロー。
-   - canon `README`: vkey 言及は **user 主体執筆ルール**（CLAUDE.md）に従い、指示なく大幅改変しない。
+1. **docs — ✅ 完了（2026-06-18, chord PR #98 / canon PR #60）**:
+   - chord `docs/non-goals.md`: USP「IOHIDManager 不要」を「コアは AX のみ・vkey は**意図的な狭い
+     例外**（単一 vendor page `0xFF31`・自前 1 byte selector のみ読む。汎用 HID 傍受でも per-device
+     routing でも DriverKit でもない）」へ改訂。§2 per-device は「原理的不能」→「通常キーの設計選択」
+     に直し vkey と区別。「When these become Yes」表・§6 Adapter scope も整合。
+   - chord `README.md`/`README.ja.md`: Triggers に v-key、Configure に v-key 節（bare `input="TU_LL_C"`
+     + `[v-key-aliases]` + canon `vkey-aliases.toml` 導線）、Install に Input Monitoring 付与手順
+     （chord.app は terminal と別 identity = 別 grant）、AX-only 一文を qualify。
+   - 併せて chord `glossary.md`（v-key 用語群・同一 PR 規約の積み残し回収）/`architecture.md`/
+     `CLAUDE.md`/`SECURITY.md`/`config.toml`/`Package.swift`/コメント整合 + **正確性修正**（schema
+     `trigger.kind` に vkey/anyVKey/modifiersOnly、Info.plist の存在しない `[[vkey]]` 誤記）。
+   - canon `README.md`/`README.en.md`: keymap 節に v-key を最小言及（user 主体執筆ルール尊重、
+     intro/図は不変）。
+   - 検証: 出荷コードとの敵対的照合（マルチエージェント 3 レンズ）で技術クレーム 28 件**全 accurate・
+     不正確 0**。swift build clean。
 2. **vkey → zmk upstream PR（任意・long-game）**: `patches/zmk/vkey-report.patch` を default-off
    Kconfig（例 `CONFIG_ZMK_HID_VKEY`）で gate した汎用 vendor/raw-HID behavior に一般化 → 明快な
    What/Why で `zmkfirmware/zmk` へ提出。**テンプレ = [zmk#3384]**。詳細・終端状態は「Upstream 収束
