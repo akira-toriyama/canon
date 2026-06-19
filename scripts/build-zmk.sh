@@ -7,6 +7,7 @@
 #   ./scripts/build-zmk.sh ist             # 製品グループ: ist 受信ドングルのみ
 #   ./scripts/build-zmk.sh imprint_left    # 指定シールドのみビルド
 #   ./scripts/build-zmk.sh ist --logging   # USB-CDC ログ版（デバッグ）を焼く
+#   ./scripts/build-zmk.sh imprint --reset # NVS リセット版（*_RESET.uf2）を作る
 #   ./scripts/build-zmk.sh --update        # west update を強制（依存を最新化）
 #   ./scripts/build-zmk.sh --clean         # ワークスペースを破棄して終了
 #
@@ -15,6 +16,12 @@
 #   --logging は選択ターゲットを CONFIG_ZMK_USB_LOGGING=y で焼き直し（成果物は
 #   <shield>-logging.uf2）。USB-serial で BLE 接続や INPUT_BTN_x の観測に使う
 #   ローカル専用のデバッグビルド（build.yaml/CI/release は製品ターゲットのみで不変）。
+#   --reset は選択ターゲットを実シールド据置のまま CONFIG_ZMK_SETTINGS_RESET_ON_START=y
+#   で焼き直し <shield>_RESET.uf2 を出す（ZMK 標準 settings_reset シールドの本体機構＝
+#   起動時に NVS=BLE bond/設定を消す、だけを実シールドへ載せる。シールドごと差し替える
+#   方式は assimilator-bt board が spi1_default pinctrl を欠いて失敗するため不可）。
+#   ペアリングが壊れた時の復旧用で flash-reset.sh で焼く（焼いた後ふつうの firmware を
+#   焼き直す）。--logging と排他。build.yaml/CI/release は不変（ローカル専用）。
 #
 # 仕組み:
 #   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
@@ -43,6 +50,7 @@ IMAGE="${ZMK_IMAGE:-zmkfirmware/zmk-build-arm:stable}"
 CFG="$WS/cfgrepo"          # リポジトリ複製 = west topdir
 FORCE_UPDATE=0
 LOGGING=0
+RESET=0
 
 # --- 引数処理 -------------------------------------------------------------
 SHIELDS=()
@@ -51,11 +59,18 @@ for arg in "$@"; do
     --clean)   echo "ワークスペースを削除: $WS"; rm -rf "$WS"; exit 0 ;;
     --update)  FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
+    --reset)   RESET=1 ;;
     -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) echo "不明なオプション: $arg" >&2; exit 2 ;;
     *)  SHIELDS+=("$arg") ;;
   esac
 done
+
+# --logging（製品 keymap + USB ログ）と --reset（起動時 NVS 消去 config）は目的が
+# 両立しない（NVS を消すだけの復旧 firmware にログを足しても意味が無い）→ 排他。
+if [ "$LOGGING" -eq 1 ] && [ "$RESET" -eq 1 ]; then
+  echo "--logging と --reset は同時指定できません" >&2; exit 2
+fi
 
 # build.yaml の include: リストから "board<TAB>shield" 行を全て出力する。
 # 前提: ZMK 公式テンプレ準拠の include: リスト形式。
@@ -167,6 +182,7 @@ echo " ワークスペース : $CFG"
 echo " イメージ       : $IMAGE"
 echo " west update    : $([ $NEED_UPDATE -eq 1 ] && echo '実行' || echo 'スキップ（キャッシュ利用）')"
 [ "$LOGGING" -eq 1 ] && echo " logging        : 有効（CONFIG_ZMK_USB_LOGGING=y / *-logging.uf2）"
+[ "$RESET" -eq 1 ]   && echo " reset          : 有効（CONFIG_ZMK_SETTINGS_RESET_ON_START=y / *_RESET.uf2）"
 echo " ビルド対象:"
 for row in "${SHIELDS[@]}"; do
   printf '   - %s / %s\n' "${row%%	*}" "${row##*	}"
@@ -187,6 +203,7 @@ docker run --rm \
   -e NEED_UPDATE="$NEED_UPDATE" \
   -e TARGETS="$TARGETS" \
   -e LOGGING="$LOGGING" \
+  -e RESET="$RESET" \
   "$IMAGE" bash -c '
 set -e
 git config --global --add safe.directory "*"  # bind mount の uid 不一致対策(Linux)
@@ -218,10 +235,20 @@ west zephyr-export
 mkdir -p /workspace/output
 for t in $TARGETS; do
   BOARD="${t%%:*}"; SH="${t##*:}"
-  # --logging: USB-CDC ログを有効化し、別 build dir + -logging 成果物名で焼く
-  # （製品ビルドの cmake キャッシュと混ざらないよう dir を分ける）。
+  # 成果物名は常に元の shield 名ベース（flash-impl.sh が device ごとに
+  # imprint_<dev><SUFFIX>.uf2 を探すため）。別 build dir で焼いて製品ビルドの
+  # cmake キャッシュと混ざらないようにする。EXTRA は実シールド据置の追加 Kconfig。
   EXTRA=""; SUFFIX=""
+  # --logging: USB-CDC ログを有効化。成果物 -logging。
   if [ "$LOGGING" = "1" ]; then EXTRA="-DCONFIG_ZMK_USB_LOGGING=y"; SUFFIX="-logging"; fi
+  # --reset: 実シールドのまま起動時 NVS 消去を有効化（bond/設定を wipe）。ZMK 標準の
+  # settings_reset シールドの本体機構（CONFIG_ZMK_SETTINGS_RESET_ON_START → SYS_INIT で
+  # zmk_settings_erase）だけを実シールドへ載せる。シールドごと settings_reset に差し替える
+  # 方式は不可: spi1_default pinctrl は imprint シールドの per-board overlay で定義されて
+  # おり、shield を外すと定義が消えて assimilator-bt の参照が未定義になり cmake 失敗する。
+  # 成果物名は元 shield + _RESET
+  # （imprint_left / imprint_right は別シールド＝分割の左右半なので内容も異なる）。
+  if [ "$RESET" = "1" ]; then EXTRA="-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y"; SUFFIX="_RESET"; fi
   echo "=== BUILD $BOARD / $SH$SUFFIX ==="
   west build -p -s zmk/app -d "build/$SH$SUFFIX" -b "$BOARD" -- \
     -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config \
