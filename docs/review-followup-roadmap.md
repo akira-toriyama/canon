@@ -349,8 +349,13 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   （awk 抽出を `scripts/lib/parse-build-targets.sh` へ最初に切る、機会的に）。
 - ci#3: 同 awk の相互参照コメントが片方向 → build-zmk.sh 側にも逆参照コメント。
 - build#2: README が flash-watch.sh / dongle flashing 未記載（C7 解消後に最小追記）。
-- keymap#2: `ALL_MODS` dead define（behavior_macros.h:23-24）削除 +
-  keymap_drawer.config.yaml:140-142 の陳腐化コメント修正（arrow morph は Ctrl+Alt のみ）。
+- ~~keymap#2: `ALL_MODS` dead define（behavior_macros.h:23-24）削除 +
+  keymap_drawer.config.yaml:140-142 の陳腐化コメント修正（arrow morph は Ctrl+Alt のみ）。~~
+  **✅ 完了（[canon#87](https://github.com/akira-toriyama/canon/pull/87)）**: ledger の 2点に加え、
+  実調査で **`special_combinations` `Hyper+`(4mod)/`Meh+`(3mod)（keymap_drawer.config.yaml:155-156）も
+  道連れの dead**（3〜4mod を生む binding が repo に不在）と判明 → 3点まとめて削除。いずれも refactor T1
+  （`73ea43c`「vkey 移行で孤児化した修飾子 chord 機構を削除」）の掃除し残し。v-key 導入で複雑 MODS が
+  不要化した帰結。firmware build / drawer SVG ともに不変（ALL_MODS 未使用・Hyper/Meh 元々未発火）。
 - keymap#3: kana/eiji 0-cell wrapper macro の冗長 indirection（任意 de-dup、draw 再実行必須）。
 
 **検証で棄却済（false-positive・対応不要・再提起しないための記録）**:
@@ -394,3 +399,8 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   gotcha: shield 差し替え方式は assimilator-bt の `spi1_default` pinctrl 未定義で失敗 → reset config だけ実シールドへ
   載せる方式で回避。shellcheck clean / 3 機種ビルド成功 / config 反映確認。実機 NVS 消去は user 検証。
   **残は Backlog の low/nit のみ（任意）**。
+- 2026-06-19: **Backlog canon keymap#2 ✅（[canon#87](https://github.com/akira-toriyama/canon/pull/87)）**。
+  v-key 移行で孤児化した複雑 MODS 残骸 3点（`ALL_MODS` define / drawer の陳腐化コメント /
+  `special_combinations` `Hyper+`/`Meh+`）を削除。実調査で ledger 記載の 2点に加え special_combinations も
+  dead（3〜4mod binding 不在）と判明し拡張。全て refactor T1（`73ea43c`）の掃除し残し。firmware/SVG 挙動不変。
+  user が「v-key 動作確認済（キーボード）＝複雑 MODS 不要化」を確認済。
