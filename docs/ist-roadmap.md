@@ -46,7 +46,7 @@
 |----|------|------|------|------------|
 | I1 | ist firmware を canon に統合 | canon | ✅ **MERGED**（core [canon#74](https://github.com/akira-toriyama/canon/pull/74) + tail [canon#78](https://github.com/akira-toriyama/canon/pull/78)） | west module / keymap+conf / build.yaml 4 ターゲット目 / CI green / docs / build-zmk.sh group + rsync バグ修正。残 tail=`-logging`（下記 I4 と統合） |
 | I2 | ist で vkey 有効化 | canon | ✅ **MERGED**（[canon#76](https://github.com/akira-toriyama/canon/pull/76)） | 共有 `vkey_behavior.dtsi` + `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py 両 keymap 走査（ist band 0xA0..0xBF）。残=実機（user hw）+ chord 貼り込み（chezmoi=user・**後ほど**）。下記「I2 実施メモ」 |
-| I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 に ist（+ `imprint_dongle` も同じ穴）の build を必須追加。branch protection = 明示承認。**C5 と batch** |
+| I3 | ist を main 保護 ruleset の required check へ | canon | ✅ **DONE**（2026-06-19, user GO） | ruleset 16483994 の required に `build / Build (…, imprint_dongle)` と `(…, ble_hid_host_receiver)` を追加（ist + dongle の穴を両方塞ぐ）。これで全 4 製品ビルド + `lint / lint` が必須。 |
 | I4 | zmk-mouse repo を archive（移植完了後） | zmk-mouse | ☐ user GO 待ち | **移植 = 完了**（`-logging` を `build-zmk.sh --logging` で移植済＝canon が完全上位）。残=（user）実機検証 → zmk-mouse を archive。**module `zmk-ble-hid-host` は archive しない**（canon の live 依存）。下記「archive 計画」 |
 
 ### I1 詳細
