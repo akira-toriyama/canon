@@ -33,7 +33,7 @@
 |----|------|------|------|------|----|
 | C1 | 出力 wire-schema 復旧 + 検証テスト | chord | High×4 | ✅ 完了 | [chord#110](https://github.com/akira-toriyama/chord/pull/110) |
 | C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ✅ 完了 | [chord#111](https://github.com/akira-toriyama/chord/pull/111) |
-| C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ☐ TODO | – |
+| C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ▶ vkey#1 ✅ / runtime#2 残 | [chord#112](https://github.com/akira-toriyama/chord/pull/112) |
 | C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ☐ TODO | – |
 | C5 | dongle ビルドを必須チェックへ | canon | High | ✅ 完了（ist **I3** と統合） | ruleset 16483994 |
 | C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ✅ 完了（I1 #74 / I1-tail #78 + 本 reconcile PR） | – |
@@ -133,7 +133,13 @@ dry-run が**正しい非空 diff** を出す。`swift test` green。
 
 ---
 
-## C3. ホットパスのテスト空白を埋める　[High + Med]
+## C3. ホットパスのテスト空白を埋める　[High + Med] — ▶ vkey#1 ✅（chord#112）/ runtime#2 残
+
+**進捗（2026-06-19）**: **vkey#1 ✅ 完了（chord#112）**。`handleVKey` のエッジ/ラッチ算術を純粋値型
+`VKeyEdgeTracker`（ChordCore）へ抽出し、契約 10 ケース（dedup / 0=release / A→B roll / **wedge 回帰** ほか）を
+ユニットテスト化。`held` は dispatch/pause と独立に前進＝構造的に wedge 不能。挙動不変（敵対的レビュー
+3 レンズで等価性確認・correctness バグ 0）。**runtime#2 は残**: Controller の consume/pass spine 統合テストは
+`handle()` が private で `@testable` でも届かず、**テスト seam の新設が要る**（installHandler 等）→ 別 PR。
 
 **問題**: 最も安全性が重要な層に**直接テスト 0**。
 - **[High] vkey#1**: `Sources/ChordApp/Controller.swift:362-388`(handleVKey) の
@@ -314,5 +320,8 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   敵対的検証 verdict=GO（MUST_FIX 0）。1 件の既存 gap を Backlog「C2 follow-up」へ。次は C3。
 - 2026-06-19: **canon 側を ist 統合作業の中で回収して reconcile**。**C5 ✅**（ist I3 = ruleset 16483994 に
   dongle + ist build を required 追加）/ **C6 ✅**（CLAUDE.md・glossary は I1/#74・I1-tail/#78、README transport・
-  boards-shields・commit-convention の release モデルは本 reconcile PR）/ **Backlog gen#1 ✅**（I2/#76 の
-  strip_comments）。canon 残は **C7 のみ**。chord 側は **C3 着手**（次）。
+  boards-shields・commit-convention の release モデルは reconcile PR #81）/ **Backlog gen#1 ✅**（I2/#76 の
+  strip_comments）。canon 残は **C7 のみ**。
+- 2026-06-19: **C3 vkey#1 ✅（chord#112）**。`handleVKey` のエッジ/ラッチを純粋 `VKeyEdgeTracker` へ抽出 +
+  契約 10 ケースのユニットテスト（wedge 回帰含む）。挙動不変・敵対的レビューで等価性確認。**残 = runtime#2**
+  （Controller spine 統合テスト、テスト seam 新設が前提）+ C4 + C7。
