@@ -16,7 +16,8 @@
 
 ## 進め方 / 検証
 
-- **chord 先行**。順序: **C1 → C2 → C3 → C4**。canon（C5–C7）は後続セッション。
+- **chord 先行**。順序: **C1 → C2 → C3 → C4**。canon は **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と
+  統合して回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
 - 1クラスタ = 1 PR（小さく）。コミットは gitmoji + Conventional Commits。
 - 検証コマンド:
   - chord: `cd <chord> && swift build && swift test`（特定は `swift test --filter <Name>`）。
@@ -34,9 +35,9 @@
 | C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ✅ 完了 | [chord#111](https://github.com/akira-toriyama/chord/pull/111) |
 | C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ☐ TODO | – |
 | C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ☐ TODO | – |
-| C5 | dongle ビルドを必須チェックへ（**要 user 承認**） | canon | High | ☐ TODO | – |
-| C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ☐ TODO | – |
-| C7 | flash-reset.sh dead path 解消（削除 or 実装） | canon | Med | ☐ TODO | – |
+| C5 | dongle ビルドを必須チェックへ | canon | High | ✅ 完了（ist **I3** と統合） | ruleset 16483994 |
+| C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ✅ 完了（I1 #74 / I1-tail #78 + 本 reconcile PR） | – |
+| C7 | flash-reset.sh dead path 解消（削除 or 実装） | canon | Med | ☐ TODO（**削除前に user 確認**） | – |
 | BL | Backlog（low/nit 多数） | both | Low/nit | ☐ 未着手 | – |
 
 状態記号: ☐ TODO / ▶ 進行中 / ✅ 完了(PRリンク) / ⏸ 棚上げ(理由必須)。
@@ -181,18 +182,21 @@ dry-run が**正しい非空 diff** を出す。`swift test` green。
 
 # canon（後続セッション）
 
-## C5. dongle ビルドを必須チェックへ　[High・**要 user 承認**]
+## C5. dongle ビルドを必須チェックへ　[High] — ✅ 完了（ist I3 と統合, 2026-06-19）
 
-`build.yaml` の3ターゲット中 **dongle ビルドが main 保護 ruleset(id 16483994) の
-required_status_checks に無い** → dongle を壊す PR がマージ可能 → マージ後 release.yml を壊す
-（release.yml ヘッダが記録する既知の障害クラス）。
-**対応**: ruleset 16483994 の required_status_checks に
-`build / Build (xiao_ble/nrf52840/zmk, imprint_dongle)` を追加。**コード変更なし**。
-**branch protection 変更は明示的な user 承認が必要**（refactor-roadmap の方針）→ 承認後に実施。
+dongle（+ ist）ビルドが main 保護 ruleset(id 16483994) の required_status_checks に無く、
+壊す PR がマージ可能 → release.yml を壊す既知の障害クラスだった。
+**実施（ist I3, user "I3 GO"）**: ruleset 16483994 の required_status_checks に
+`build / Build (xiao_ble/nrf52840/zmk, imprint_dongle)` と `(…, ble_hid_host_receiver)` を追加
+（C5 が求めた dongle + ist の両方）。これで全 4 製品ビルド + `lint / lint` が必須。**コード変更なし**。
+詳細は [ist-roadmap.md](ist-roadmap.md) の I3。
 
-## C6. docs ドリフト一括修正　[Med・doc のみ]
+## C6. docs ドリフト一括修正　[Med・doc のみ] — ✅ 完了（I1/#74・I1-tail/#78・本 reconcile PR, 2026-06-19）
 
-現実から取り残された記述（機能影響ゼロだが CLAUDE.md は拘束力あり）:
+**回収状況**: CLAUDE.md（scope/壊しやすい点/build pipeline/release モデル/build target 数）と glossary
+（board/shield/build target/.uf2 を dongle+ist 込みへ・vkey 用語追加・mermaid・edge ラベル）は I1/I1-tail
+で完了。**残り（README transport「修飾キー chord→v-key」/ README「boards/shields 空が正常」/
+commit-convention の release モデル）は本 reconcile PR で修正**。下記は元の指摘リスト（記録用）:
 - 「boards/shields は空が正常」→ `boards/shields/imprint_dongle/`(4ファイル)が存在。
   （README×2 / `CLAUDE.md:34` / `docs/glossary.md:140`）→ 「唯一のローカル shield は dongle」と限定。
 - 「build target は2つ / shield=left|right」→ 実3つ。`glossary.md`(build target/board/shield/.uf2)
@@ -275,7 +279,9 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
 - vkey#2: A→B vkey roll で release timing が別キーに帰属（firmware 仕様）→ handleVKey doc に1文追記。
 
 **canon low/nit**:
-- gen#1: gen-vkey-aliases.py がコメントも走査（将来 `// &vkey 0xNN` で誤爆）→ 行コメント除去。
+- ~~gen#1: gen-vkey-aliases.py がコメントも走査（将来 `// &vkey 0xNN` で誤爆）→ 行コメント除去。~~
+  **✅ 完了（ist I2 #76）**: `strip_comments`（`/* */` と `//` を除去）を両 keymap 走査に追加。
+  （ist keymap 冒頭の例ノードを拾わない要件と同時に解決。）
 - gen#2: DEFAULT alias `KP_X1` が chord 予約 `kp_*` 名前空間 → `VK_X1` 等へ改名し再生成。
 - gen#3: PR テンプレに vkey 用チェック欠如（eiji にはある）→ sibling checkbox + verify-vkey-sync 追記。
 - gen#4: eiji `disp:[X]` regex が幅検証なし → 1文字 assert で fail-loud。
@@ -306,3 +312,7 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   cli#2 set・toggle-variable 描画 / cli#3 condition・hold・on-up 理由行）を修正。renderer を String 返却化し
   ReloadDiffRenderTests + WireBindingDiffCoverageTests + DiffTests を新設（CI all green）。
   敵対的検証 verdict=GO（MUST_FIX 0）。1 件の既存 gap を Backlog「C2 follow-up」へ。次は C3。
+- 2026-06-19: **canon 側を ist 統合作業の中で回収して reconcile**。**C5 ✅**（ist I3 = ruleset 16483994 に
+  dongle + ist build を required 追加）/ **C6 ✅**（CLAUDE.md・glossary は I1/#74・I1-tail/#78、README transport・
+  boards-shields・commit-convention の release モデルは本 reconcile PR）/ **Backlog gen#1 ✅**（I2/#76 の
+  strip_comments）。canon 残は **C7 のみ**。chord 側は **C3 着手**（次）。

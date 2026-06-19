@@ -3,9 +3,9 @@
 **日本語** | [English](README.en.md)
 
 ZMK ファームウェア設定（**Cyboard Imprint**、リポジトリルート = ZMK
-user-config）。分割キーボード。修飾キーの組み合わせ（chord）を ZMK が送出する。
+user-config）。分割キーボード。ZMK が専用の vendor-HID キー（v-key）を送出する。
 
-ZMK が送る chord を macOS 側で受けるホストブリッジは独立リポジトリ
+ZMK が送る v-key を macOS 側で受けるホストブリッジは独立リポジトリ
 [`chord`](https://github.com/akira-toriyama/chord)（Swift 6 / CGEventTap
 デーモン、`~/.config/chord/config.toml` 駆動）。本リポジトリは ZMK 側
 （キーマップ・ファームウェアビルド）のみを扱う。
@@ -19,7 +19,7 @@ flowchart LR
     CHORD["chord daemon<br/>~/.config/chord/config.toml"]
     ACT["macOS 操作"]
   end
-  FW -->|"chord: 修飾キー + base key"| CHORD
+  FW -->|"v-key + 通常キー"| CHORD
   CHORD -->|"解釈してマップ"| ACT
 ```
 
@@ -37,7 +37,7 @@ git config core.hooksPath scripts/hooks
 ```
 config/         ZMK キーマップ / behaviors / combos / west.yml（ルート必須）
 build.yaml      ビルド対象 4 つ（imprint_left/right/dongle + ist の ble_hid_host_receiver）
-boards/ zephyr/  ZMK board-root（ボード/シールドは Cyboard モジュール由来。空で正常）
+boards/ zephyr/  ZMK board-root（ローカル shield は imprint_dongle のみ。他は module 由来）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
 scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
