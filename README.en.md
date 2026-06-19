@@ -3,9 +3,9 @@
 [日本語](README.md) | **English**
 
 ZMK firmware config (**Cyboard Imprint**, repo root = ZMK user-config).
-A split keyboard; ZMK emits modifier-combination chords.
+A split keyboard; ZMK emits dedicated vendor-HID keys (v-keys).
 
-The macOS host-side bridge that decodes those chords is a standalone
+The macOS host-side bridge that decodes those v-keys is a standalone
 repo, [`chord`](https://github.com/akira-toriyama/chord) — a Swift 6
 CGEventTap daemon driven by `~/.config/chord/config.toml`. This
 repository covers only the ZMK side (keymap / firmware build).
@@ -19,7 +19,7 @@ flowchart LR
     CHORD["chord daemon<br/>~/.config/chord/config.toml"]
     ACT["macOS action"]
   end
-  FW -->|"chord: modifier + base key"| CHORD
+  FW -->|"v-key + normal keys"| CHORD
   CHORD -->|"decode & map"| ACT
 ```
 
@@ -37,7 +37,7 @@ git config core.hooksPath scripts/hooks
 ```
 config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
 build.yaml      4 build targets (imprint_left/right/dongle + ist's ble_hid_host_receiver)
-boards/ zephyr/  ZMK board-root (board/shield come from the Cyboard module; empty is normal)
+boards/ zephyr/  ZMK board-root (only local shield is imprint_dongle; others come from modules)
 keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
 scripts/        build-zmk.sh (entrypoint), gen-eiji-drawer-map.py, hooks/
 docs/           commit convention, etc.

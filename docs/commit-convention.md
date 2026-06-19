@@ -58,18 +58,19 @@ gitmoji 自体の公式 semver は
 上がるため、**`github-actions` 名義の bot コミットはバージョン算出と CHANGELOG
 から除外**する（[cliff.toml](../cliff.toml) の commit_parsers で skip）。
 
-## リリース手順（手動）
+## リリース手順（自動ドラフト → 手動 Publish）
 
-リリースは GitHub Actions の **`Release`（workflow_dispatch）を手動起動**。
-ファームを実機確認してから「いま切る」と決めたときに実行する。
+リリースは [release.yml](../.github/workflows/release.yml)。**push:main で自動**に
+git-cliff が次版を算出し「ローリングドラフト」Release を作成／更新する（この時点では
+**タグを作らない**）。マージするほど下書きが育つ。
 
-1. Actions → `Release` → Run workflow
-2. git-cliff が前回 tag 以降の型から次版を算出（`--bumped-version`）
-3. 「bump しない」型のみ／前回 tag と同版なら何もせず終了
-4. ZMK ファームをビルドし `imprint_left.uf2` / `imprint_right.uf2` を生成
-5. `vX.Y.Z` タグを作成・push し、git-cliff 生成ノート付きで GitHub Release
-   を作成（uf2 添付）
+1. push:main ごとに自動でドラフトを更新（次版 = 前回 tag 以降の型から git-cliff が
+   `--bumped-version` で算出。「bump しない」型のみ／前回 tag と同版なら何もしない）
+2. ファームを実機確認し「いま切る」と決めたら **GitHub の Release ドラフトを手動 Publish**
+3. Publish で初めて `vX.Y.Z` タグが作られ、build.yaml 全ターゲットの `*.uf2`
+   （`imprint_left` / `imprint_right` / `imprint_dongle` / `ble_hid_host_receiver`）が添付される
 
+`workflow_dispatch` の `dry_run=true` はドラフトを作らない完全プレビュー。
 `main` 保護を尊重するため **CHANGELOG を main へ自動 push しない**（タグ
 `refs/tags/*` は branch ルール対象外）。各版の変更履歴は GitHub Release の
 ノートを正とし、`CHANGELOG.md` は必要時にローカル/通常 PR で更新する。
