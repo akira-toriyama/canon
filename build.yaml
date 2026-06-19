@@ -1,7 +1,10 @@
-# Cyboard Imprint user-config: board=assimilator-bt + shields=imprint_left/right。
-# このファイルが board/shield 一覧の唯一のソース（CI 通常ビルド
+# canon = 自分の ZMK ファーム集約 repo。2 製品 4 ターゲット:
+#   imprint (キーボード): assimilator-bt + imprint_left / imprint_right / imprint_dongle
+#   ist     (トラックボール受信ドングル): xiao_ble/nrf52840/zmk + ble_hid_host_receiver
+# このファイルが board/shield 一覧の唯一のソース＝「all」ビルド（CI 通常ビルド
 # .github/workflows/build.yml と Release ビルド release.yml が共通参照する）。
-# 追加・改名時はここを編集するだけで両方追従する。
+# 追加・改名時はここを編集するだけで両方追従する。サブセット（imprint だけ /
+# ist だけ）はローカル build-zmk.sh の shield 指定で。詳細は docs/ist-roadmap.md。
 # west.yml の特殊事情（@main 固定不可・HWv2 依存）は CLAUDE.md を参照。
 ---
 include:
@@ -11,3 +14,8 @@ include:
     shield: imprint_right
   - board: xiao_ble/nrf52840/zmk
     shield: imprint_dongle
+  # ist 受信ドングル。shield は zmk-ble-hid-host module 提供（config/west.yml）。
+  # ※ -logging デバッグ変種（cmake-args + artifact-name）は zmk-build.yml の
+  #   matrix awk が board/shield のみ抽出のため未対応 → 当面 standard のみ。
+  - board: xiao_ble/nrf52840/zmk
+    shield: ble_hid_host_receiver
