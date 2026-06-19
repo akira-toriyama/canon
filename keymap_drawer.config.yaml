@@ -137,9 +137,7 @@ parse_config:
     # combo (ime_kana/ime_eiji の tap binding として呼ばれる)
     "&kana": かな
     "&eiji": 英数
-  # 修飾子関数の表記。arrow mod-morph (ar_*) は ALL_MODS
-  # (LGUI|LSFT|LCTL|LALT) を keep するため、keymap-drawer 上は左 4mod chain
-  # として現れる。これを Hyper+ に短縮 (Hyper = Ctrl+Alt+Cmd+Shift, macOS 慣習)。
+  # keymap-drawer 上での修飾子の表記（mod-morph hold 中の keep-mods など）。
   modifier_fn_map:
     left_ctrl: Ctl+
     right_ctrl: Ctl+
@@ -151,9 +149,6 @@ parse_config:
     right_gui: Gui+
     keycode_combiner: "{mods}{key}"
     mod_combiner: "{mod_1}{mod_2}"
-    special_combinations:
-      "left_ctrl+left_alt+left_gui+left_shift": "Hyper+"
-      "left_ctrl+left_alt+left_shift": "Meh+"
 
 draw_config:
   # 親指クラスタが横長なので、列をきつく詰めない
