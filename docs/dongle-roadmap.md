@@ -62,10 +62,20 @@ dongle = BLE central / 左右 = peripheral。bond が残った子機は「昔の
 では永遠に直らない（同じ NVS を読み直すだけ）。`flash-*.sh` は imprint 専用（XIAO を見ると
 `imprint_dongle` を焼く）＝**ist の XIAO には使わない**。
 
-### 将来の予防（任意・未実施）
-`config/imprint.keymap` に `&bt BT_CLR`（可能なら `BT_CLR_ALL`）を足せば、焼き直さず
-キー操作で stale bond をクリアできる。repo の `patches/zmk/security-changed-auto-unpair.patch`
-（`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`, default n）を有効化する手もある。
+### 自動回復（既に有効）と検討した予防策
+
+**stale bond の自動回復は既に常時有効**。`patches/zmk/security-changed-auto-unpair.patch`
+（gate 無し・`build-zmk.sh` が全ビルドに無条件適用＝下記「現状」✅）が、再接続時の
+`BT_SECURITY_ERR_PIN_OR_KEY_MISSING`（＝非対称 stale bond）を検知して当該ピアを
+`bt_unpair` → 切断 → fresh 再ペアへ自動誘導する。**よくある片側 bond 破綻は焼き直さず
+自動回復する**（`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING` は上流 #3385 の gate 案の
+名前で canon には無く、canon は常時 ON。#3385 が merge されたら gate 運用へ移行）。
+
+**`&bt BT_CLR` キーは不採用**（wedge には効かないと ZMK ソースで確認）。`&bt` は CENTRAL
+locality で dongle 上でのみ実行され、押下が peripheral→central の BLE 経路に乗って初めて
+走る。直したい局面＝BLE が wedge した状態ではキーが central に届かず無力。かつ peripheral
+側の腐った bond は central の BT_CLR では消せない。確実な手動復旧は RESET firmware
+（NVS wipe）のみ。
 
 ## 現状
 
