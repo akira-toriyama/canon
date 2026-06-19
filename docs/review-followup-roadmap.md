@@ -31,7 +31,7 @@
 | ID | 内容 | repo | 優先(検証後) | 状態 | PR |
 |----|------|------|------|------|----|
 | C1 | 出力 wire-schema 復旧 + 検証テスト | chord | High×4 | ✅ 完了 | [chord#110](https://github.com/akira-toriyama/chord/pull/110) |
-| C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ☐ TODO | – |
+| C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ✅ 完了 | [chord#111](https://github.com/akira-toriyama/chord/pull/111) |
 | C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ☐ TODO | – |
 | C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ☐ TODO | – |
 | C5 | dongle ビルドを必須チェックへ（**要 user 承認**） | canon | High | ☐ TODO | – |
@@ -246,6 +246,15 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
 - c1f#nit: schema 冒頭 `description` が forward-compat を「v2.x が…」止まりで 0.8/0.9 の追加
   （passthrough/repeat/input_source/fn_auto_arrows/toggle-variable/condition `all`）を未反映。一文追記（任意）。
 
+**chord — C2 follow-up（C2 の敵対的検証で発覚・既存挙動）**:
+- c2f#1: reload-diff の changed-loop が input 行を `input.raw` のみで gate（ReloadDiffPrinter.swift）。
+  `[input-aliases]`/`[v-key-aliases]` の**本体**変更時、それを参照する binding（raw 不変・解決後 modifier/trigger
+  だけ変化）が `~ <name>` だけになる。semanticallyEqual は full WireInput 比較で changed 検出するのに
+  理由行が出ない。※ alias バケット自体は実差分を表示するので「空 diff の嘘」ではない（C2 で導入した退行でもない）。
+  **修正案**: gate を `c.old.input != c.new.input` にし、raw 不変時は解決後 modifier-set/trigger の delta を描画
+  （describeMods を input.modifiers に流用 + trigger.name/keycode）。ReloadDiffRenderTests に
+  「[input-aliases] body だけ変えた参照 binding が非 bare 理由を出す」ケース追加。
+
 **chord low/nit**:
 - cli#5: `--help` EXIT CODES が exit1 を過少記述（doctor/watch も1）。Main.swift:670 + README:330。
 - packaging#1: Intel Mac で `/opt/homebrew` ハードコード（Resign.swift）→ `brew --prefix` 解決。
@@ -292,3 +301,8 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   fn_auto_arrows + action toggle-variable + condition oneOf）＋ lockstep テスト新設（FAIL→PASS 検証）。
   敵対的検証 verdict=GO（MUST_FIX 0）。検出した既存 gap 5件+nit を Backlog「C1 follow-up」へ記録。
   次は C2（dry-run / reload renderer 取りこぼし）。
+- 2026-06-19: **C2 ✅ 完了（chord#111）**。dry-run/reload renderer の取りこぼし 4 件
+  （cli#1 input-aliases 空 diff / cli#4 semanticallyEqual の passthrough・repeat・input-source 比較漏れ /
+  cli#2 set・toggle-variable 描画 / cli#3 condition・hold・on-up 理由行）を修正。renderer を String 返却化し
+  ReloadDiffRenderTests + WireBindingDiffCoverageTests + DiffTests を新設（CI all green）。
+  敵対的検証 verdict=GO（MUST_FIX 0）。1 件の既存 gap を Backlog「C2 follow-up」へ。次は C3。
