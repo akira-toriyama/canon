@@ -47,7 +47,7 @@
 | I1 | ist firmware を canon に統合 | canon | ✅ **MERGED**（core [canon#74](https://github.com/akira-toriyama/canon/pull/74) + tail [canon#78](https://github.com/akira-toriyama/canon/pull/78)） | west module / keymap+conf / build.yaml 4 ターゲット目 / CI green / docs / build-zmk.sh group + rsync バグ修正。残 tail=`-logging`（下記 I4 と統合） |
 | I2 | ist で vkey 有効化 | canon | ✅ **MERGED**（[canon#76](https://github.com/akira-toriyama/canon/pull/76)） | 共有 `vkey_behavior.dtsi` + `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py 両 keymap 走査（ist band 0xA0..0xBF）。残=実機（user hw）+ chord 貼り込み（chezmoi=user・**後ほど**）。下記「I2 実施メモ」 |
 | I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 に ist（+ `imprint_dongle` も同じ穴）の build を必須追加。branch protection = 明示承認。**C5 と batch** |
-| I4 | zmk-mouse repo を archive（移植完了後） | zmk-mouse | ☐ TODO | **前提**: 唯一の未移植機能 = `-logging` デバッグ変種を canon へ移植（下記「zmk-mouse archive 計画」）。**module `zmk-ble-hid-host` は archive しない**（canon の live 依存） |
+| I4 | zmk-mouse repo を archive（移植完了後） | zmk-mouse | ☐ user GO 待ち | **移植 = 完了**（`-logging` を `build-zmk.sh --logging` で移植済＝canon が完全上位）。残=（user）実機検証 → zmk-mouse を archive。**module `zmk-ble-hid-host` は archive しない**（canon の live 依存）。下記「archive 計画」 |
 
 ### I1 詳細
 1. `config/west.yml`: remote `akira-toriyama` + `zmk-ble-hid-host@main`。
@@ -165,10 +165,13 @@ shield 実体は module `zmk-ble-hid-host` 側＝zmk-mouse には無い。canon 
   canon の `zmk-build.yml` matrix awk は board/shield のみ抽出のため未対応（拡張が要る）。
 
 **archive までの段取り**:
-1. **`-logging` 変種を canon へ移植**（= canon を zmk-mouse の完全上位に）。`zmk-build.yml` の matrix を
-   cmake-args + artifact-name 対応へ拡張 + `build-zmk.sh` + `build.yaml`。← **設計選択あり**（CI に 5
-   ターゲット目として常設 vs build-zmk.sh ローカル限定 vs 移植せず archive 時に切り捨て）。user と相談。
-2. （user）実機検証（この -logging build で INPUT_BTN を確定 → vkey 発火確認）。
+1. ✅ **`-logging` 変種を canon へ移植（DONE）**。**採用案 = B（build-zmk.sh ローカル専用フラグ）**: `--logging`
+   で選択ターゲットを `CONFIG_ZMK_USB_LOGGING=y` + 別 build dir + `<shield>-logging.uf2` で焼く。
+   **build.yaml/CI/release は製品ターゲットのみで不変**＝単一ソース原則を濁さない（A=CI 常設は debug uf2 が
+   release に混入 or build.yaml に条件分岐で却下、C=切り捨ては道具喪失で却下）。検証: `build-zmk.sh ist
+   --logging` → `ble_hid_host_receiver-logging.uf2`（`CONFIG_ZMK_USB_LOGGING=y` を .config で確認）。
+   → これで canon は zmk-mouse の完全上位（user-config + デバッグ能力）。
+2. （user）実機検証（`build-zmk.sh ist --logging` で焼いて INPUT_BTN を確定 → vkey 発火確認）。
 3. **zmk-mouse を archive**（GitHub repo を archived に）。**`zmk-ble-hid-host`（module）は残す**＝canon の
    west 依存。archive = ほぼ不可逆の外向き操作なので user の最終 GO で実行。
 
