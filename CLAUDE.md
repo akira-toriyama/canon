@@ -5,8 +5,13 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 
 ## このリポジトリ
 
-ZMK ファームウェア設定（[Cyboard Imprint](https://cyboard.digital/products/imprint)、
-リポジトリルート = ZMK user-config）。
+自分の **ZMK ファーム集約 repo**（リポジトリルート = ZMK user-config）。2 製品:
+
+- **imprint**: [Cyboard Imprint](https://cyboard.digital/products/imprint) キーボード
+  （board=assimilator-bt / shield=imprint_left・imprint_right・imprint_dongle）。
+- **ist**: IST PRO トラックボール受信ドングル（board=xiao_ble/nrf52840/zmk /
+  shield=ble_hid_host_receiver。BLE-HID central → USB 中継）。詳細・I2/I3 含む計画は
+  [`docs/ist-roadmap.md`](docs/ist-roadmap.md)。
 
 ## 用語
 
@@ -29,10 +34,12 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 ## 壊しやすい点（最優先で意識する）
 
 - **west マニフェストは [config/west.yml](config/west.yml)**（リポジトリ直下では
-  ない）。topdir はリポジトリルート、`board=assimilator-bt`、
-  `shield=imprint_left|imprint_right`。ボード/シールドは外部モジュール
-  Cyboard `zmk-keyboards` 由来で、[boards/shields/](boards/shields/) が空なのは
-  正常。
+  ない）。topdir はリポジトリルート。外部モジュール 2 つを取り込む:
+  Cyboard `zmk-keyboards`（imprint の assimilator-bt board + imprint_left/right
+  shield）と自前 `zmk-ble-hid-host`（ist の ble_hid_host_receiver shield）。
+  [boards/shields/](boards/shields/) のローカル shield は **`imprint_dongle` のみ**
+  （他は module 由来）＝空ではない。board/shield の一覧（all ビルド）は
+  [build.yaml](build.yaml) が唯一のソース。
 - **ZMK は `main` 追従必須・タグ固定しない**: Cyboard `zmk-keyboards@main` の
   `assimilator-bt` は新 Zephyr ハードウェアモデル(HWv2)を要求する。ZMK を
   タグ（例 `v0.3.0`）固定すると CI/ローカルとも `arch.cmake` で
@@ -73,13 +80,19 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 ## ビルド
 
 - ローカル: `./scripts/build-zmk.sh`（Docker。依存は `~/.cache/zmk-canon`
-  に永続化、冪等。`--update` / `--clean`、シールド指定可。出力 `firmware/`＝
+  に永続化、冪等。`--update` / `--clean`、シールド指定可＝サブセット（例
+  `imprint_left` だけ / `ble_hid_host_receiver`=ist だけ）。出力 `firmware/`＝
   gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
-- CI: push で [build.yml](.github/workflows/build.yml)（ZMK 公式 reusable）。
-- リリース: [release.yml](.github/workflows/release.yml) を **手動起動**
-  （workflow_dispatch）。コミットから次版算出 → `vX.Y.Z` タグ → GitHub
-  Release（git-cliff ノート＋`imprint_*.uf2`）。main 保護尊重で CHANGELOG は
-  main へ自動 push しない。
+- CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
+  **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
+  に委譲し、`patches/zmk/*`（vkey 等）を当ててから build.yaml の全ターゲットを
+  ビルドする（公式 reusable は patch を当てず &vkey 等が解決できないため差し替えた。
+  背景は zmk-build.yml / [docs/vkey-roadmap.md](docs/vkey-roadmap.md)）。
+- リリース: [release.yml](.github/workflows/release.yml)。**push:main で自動**に
+  git-cliff で次版を算出し「ローリングドラフト」Release を作成／更新する（タグは
+  作らない）。マージするほど下書きが育ち、**手動 Publish で初めてタグ生成 +
+  `*.uf2` 添付**。`workflow_dispatch` の `dry_run=true` はドラフトを作らない
+  完全プレビュー。main 保護尊重で CHANGELOG は main へ自動 push しない。
 
 ## コミット規約（必須）
 
