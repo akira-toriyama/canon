@@ -10,11 +10,6 @@
     #include "arrow_behaviors.dtsi"
 
     // ==== vendor-defined "original key" (vkey) ====
-    // `&vkey <id>` で Report ID 0x20 のベンダーレポートを送る (press=id / release=0)。
-    // chord (macOS host bridge) が IOHIDManager で受けて id→action にマップする。
-    // 詳細: docs/vkey-roadmap.md
-    vkey: vkey {
-        compatible = "zmk,behavior-vkey";
-        #binding-cells = <1>;
-    };
+    // 共有ノード（ist の ble_hid_host_receiver.keymap も同じものを #include）。
+    #include "vkey_behavior.dtsi"
 

@@ -51,11 +51,15 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   [verify-eiji-sync.yml](.github/workflows/verify-eiji-sync.yml) が CI で厳密一致を
   検証する。マーカー間を手編集しない。変更は dtsi を直し
   `python3 scripts/gen-eiji-drawer-map.py` を再実行（stdlib のみ）。
-- **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap) の
-  `&vkey <id>` が唯一のソース。生成物 [config/vkey-aliases.toml](config/vkey-aliases.toml)
+- **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap)（imprint）と
+  [config/ble_hid_host_receiver.keymap](config/ble_hid_host_receiver.keymap)（ist）の
+  `&vkey <id>` が唯一のソース。両 keymap は `&vkey` behavior ノードを
+  [config/vkey_behavior.dtsi](config/vkey_behavior.dtsi)（共有）から `#include` する。
+  生成物 [config/vkey-aliases.toml](config/vkey-aliases.toml)
   （host bridge [`chord`](https://github.com/akira-toriyama/chord) の `[v-key-aliases]` へ貼る用）は
-  [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が id を復号して生成し、
-  [verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml) が CI で照合する。
+  [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が両 keymap を走査して id を復号し生成、
+  [verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml) が CI で照合する。id 空間は
+  imprint（`0x01`/`0x10`–`0x8D`）と ist（予約帯 `0xA0`–`0xBF`）で分離し衝突を検出する。
   `config/vkey-aliases.toml` を手編集しない。id を変えるときはキーマップを直し
   `python3 scripts/gen-vkey-aliases.py` を再実行（stdlib のみ）。これでキーマップ↔chord
   config の id 二重管理を排除する（chord 側への貼り込み＝chezmoi 運用は別管理）。

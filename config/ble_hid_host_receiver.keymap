@@ -47,11 +47,22 @@
         };
     };
 
-    /* Extra mouse buttons + horizontal tilt -> keys (Elecom IST PRO).
+    behaviors {
+        // 共有 &vkey behavior（imprint.keymap と同一の唯一ソース）。
+        #include "vkey_behavior.dtsi"
+    };
+
+    /* Extra mouse buttons + horizontal tilt -> vkey (Elecom IST PRO).
+     *
+     * Each button/tilt fires a vendor-HID "original key" (&vkey, Report ID
+     * 0x20) that the macOS host bridge (chord) maps to an action — instead of a
+     * literal keycode. id band 0xA0..0xBF is reserved for ist and kept disjoint
+     * from imprint's vkey ids; scripts/gen-vkey-aliases.py derives the chord
+     * aliases (IST_BTN5/BTN6/TILT_L/TILT_R) from the codes<->bindings pairing.
      *
      * Buttons: INPUT_BTN_5 (bit5, 0x0020) / INPUT_BTN_6 (bit6, 0x0040) are only
      * emitted when the zmk-ble-hid-host module publishes >5 buttons
-     * (BLE_HID_HOST_PUBLISH_BTNS >= 8 on main). A/B are placeholders.
+     * (BLE_HID_HOST_PUBLISH_BTNS >= 8 on main).
      *
      * Tilt: INPUT_BTN_DPAD_LEFT/RIGHT are synthetic taps the module emits per
      * horizontal-wheel (tilt) tick when CONFIG_ZMK_BLE_HID_HOST_HWHEEL_AS_KEYS
@@ -65,8 +76,8 @@
             #input-processor-cells = <0>;          /* REQUIRED */
             codes = <INPUT_BTN_5 INPUT_BTN_6
                      INPUT_BTN_DPAD_LEFT INPUT_BTN_DPAD_RIGHT>;
-            bindings = <&kp A &kp B
-                        &kp C &kp D>;              /* tilt left -> C, tilt right -> D */
+            bindings = <&vkey 0xA0 &vkey 0xA1
+                        &vkey 0xA2 &vkey 0xA3>;    /* BTN5/BTN6, tilt L/R -> chord */
         };
     };
 };
