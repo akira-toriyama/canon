@@ -4,7 +4,7 @@
 キーマップが「どの物理キー/ボタンがどの vkey id を送るか」の唯一のソース。
 
 imprint (config/imprint.keymap) — id は (層, QWERTY 位置) を完全エンコードする:
-  - 0x01                  … DEFAULT 層の単体 X_1 (alias: KP_X1)
+  - 0x01                  … DEFAULT 層の単体 X_1 (alias: VK_X1)
   - base 0x10/0x30/0x50/0x70 = LL/LM/RM/RR 層、(id - base) = QWERTY 位置 0..29
     → KEYS[位置] のキー名 → alias TU_<層>_<キー>（X_1 → X1 等、'_' は除去）
   ※ pos は 0..29 で nibble をまたぐ（例 LL の C は 0x10+22 = 0x26）ため、層は
@@ -42,7 +42,7 @@ KEYS = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
         "Z", "X", "C", "V", "B", "N", "M", "X_2", "X_3", "X_4"]
 # 層ごとの base（出力順もこの順）。各層は base..base+29 を占める。
 LAYERS = [("LL", 0x10), ("LM", 0x30), ("RM", 0x50), ("RR", 0x70)]
-KP_X1_ID = 0x01
+VK_X1_ID = 0x01
 
 # --- ist: input-processor-behaviors の code → alias --------------------------
 IST_BAND = range(0xA0, 0xC0)  # ist トラックボールボタン用に予約（imprint と分離）
@@ -84,8 +84,8 @@ def alias_name(layer: str, key: str) -> str:
 
 def decode(vid: int) -> str:
     """imprint vkey id → alias 名。不正な id は SystemExit。"""
-    if vid == KP_X1_ID:
-        return "KP_X1"
+    if vid == VK_X1_ID:
+        return "VK_X1"
     for layer, base in LAYERS:
         if base <= vid < base + len(KEYS):
             return alias_name(layer, KEYS[vid - base])
@@ -196,9 +196,9 @@ def build() -> str:
     if dup_names:
         raise SystemExit("vkey alias 名が重複: " + ", ".join(dup_names))
     out: list[str] = [HEADER, "[v-key-aliases]"]
-    if KP_X1_ID in name:
+    if VK_X1_ID in name:
         out.append("# DEFAULT 単体 X_1")
-        out.append(f"{name[KP_X1_ID]} = 0x{KP_X1_ID:02X}")
+        out.append(f"{name[VK_X1_ID]} = 0x{VK_X1_ID:02X}")
     for layer, base in LAYERS:
         grp = sorted(v for v in ids if base <= v < base + len(KEYS))
         if not grp:

@@ -140,10 +140,10 @@ C0         ; End Collection
 では不可能)。旧 flat 経路(VKeyBinding/`[[vkey]]` parse/publishVKeys 等)は**撤去**。`.anyVKey` =
 `input = "v-key"` wildcard(fallback 専用)= 共通ビープ(旧 4 本の `$PREFIX - *` を 1 本へ)。
 
-**移行内容(機械適用、採番 `LL=0x10+n/LM=0x30+n/RM=0x50+n/RR=0x70+n/KP_X1=0x01`、n=QWERTY 0..29、
+**移行内容(機械適用、採番 `LL=0x10+n/LM=0x30+n/RM=0x50+n/RR=0x70+n/VK_X1=0x01`、n=QWERTY 0..29、
 121 alias 生成):** canon keymap LL/LM/RM/RR 119 キー + DEFAULT X_1 → `&vkey <id>`(FUNCTION
 テスト 0x2A は TU_LL_M と衝突するため `&none` に戻す);live `~/.config/chord/config.toml` に
-`[v-key-aliases]` + 11 binding を `input="$ULTRA_LL - x"`→`"TU_LL_X"` + `kp_1`→`KP_X1` + ビープ
+`[v-key-aliases]` + 11 binding を `input="$ULTRA_LL - x"`→`"TU_LL_X"` + `kp_1`→`VK_X1`（旧称 `KP_X1`、gen#2 で改名） + ビープ
 4→1(`input="v-key"`)+ `[input-aliases]` 撤去。**全層 e2e 実機成立**(LL+C app 振り分け / LL+A
 AltTab / LL+J→K when-var / 未割当ビープ / X_1 mission-control)。**敵対的レビュー(4 観点)= 確定
 4 件全修正**(機能/採番整合のバグはゼロ):`[v-key-aliases]` を SchemaDescriptor 登録(新 `openIntMap`)
