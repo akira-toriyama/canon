@@ -16,8 +16,9 @@
 
 ## 進め方 / 検証
 
-- **chord 先行**。順序: **C1 → C2 → C3 → C4**。canon は **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と
-  統合して回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
+- **chord 先行**。順序: **C1 → C2 → C3 → C4**。**C1/C2/C4 ✅ 完了**、**C3 は vkey#1 ✅ /
+  runtime#2 のみ残**（Controller spine 統合テスト、テスト seam 新設が前提）。canon は
+  **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と統合して回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
 - 1クラスタ = 1 PR（小さく）。コミットは gitmoji + Conventional Commits。
 - 検証コマンド:
   - chord: `cd <chord> && swift build && swift test`（特定は `swift test --filter <Name>`）。
@@ -34,7 +35,7 @@
 | C1 | 出力 wire-schema 復旧 + 検証テスト | chord | High×4 | ✅ 完了 | [chord#110](https://github.com/akira-toriyama/chord/pull/110) |
 | C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ✅ 完了 | [chord#111](https://github.com/akira-toriyama/chord/pull/111) |
 | C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ▶ vkey#1 ✅ / runtime#2 残 | [chord#112](https://github.com/akira-toriyama/chord/pull/112) |
-| C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ☐ TODO | – |
+| C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ✅ 完了 | [chord#113](https://github.com/akira-toriyama/chord/pull/113) |
 | C5 | dongle ビルドを必須チェックへ | canon | High | ✅ 完了（ist **I3** と統合） | ruleset 16483994 |
 | C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ✅ 完了（I1 #74 / I1-tail #78 + 本 reconcile PR） | – |
 | C7 | flash-reset.sh dead path 解消（削除 or 実装） | canon | Med | ☐ TODO（**削除前に user 確認**） | – |
@@ -170,19 +171,28 @@ dry-run が**正しい非空 diff** を出す。`swift test` green。
 
 ---
 
-## C4. 個別 Medium バグ（クラスタ外）　[Med×2]
+## C4. 個別 Medium バグ（クラスタ外）　[Med×2] — ✅ 完了（chord#113, 2026-06-19）
 
-- **matcher#1 — exclude_apps バイパス**: `Sources/ChordCore/Matcher.swift:138-159`
+両方とも「設定したつもりが静かに効いていない」correctness バグ。1 PR で回収。
+
+- **matcher#1 — exclude_apps バイパス** ✅: `Sources/ChordCore/Matcher.swift`
   (modifierTransitions) が global `excludeApps` を見ない（`find()` は尊重）。
-  → globally 無効化したアプリで modifier-only binding（例: setVariable エッジ）が発火。
-  **修正**: 関数頭に `if let id = bundleID, Matcher.matchesGlobs(id, patterns: excludeApps) { return [] }`。
-  `ModifierTransitionsTests` に「除外 bundleID → エッジ無し」ケース追加。
-- **parsing#1 — typo セクションを parser が黙認**: `[[bindigs]]` 等が
+  → globally 無効化したアプリで modifier-only binding（setVariable リーダー / hold-while）が発火。
+  **修正**: 関数頭に `find()` と token-for-token 同一のガードを追加。
+  `ModifierTransitionsTests.testGlobalExcludeAppsSuppressesTransitions`（exact / glob 除外 + 非除外は entry）。
+- **parsing#1 — typo セクションを parser が黙認** ✅: `[[bindigs]]` / `[optoins]` 等が
   `--validate --strict` を 0 通過（エディタ JSON schema の方が厳しい逆転）。
-  `Sources/ChordCore/ConfigSchema/StructuralCheck.swift` は known セクション内部しか見ない。
-  **修正**: `Config.parse` で root キーを `Set(ChordConfigSchema.sections.map(\.name))`
-  （TOML.lineKey 除く）に照合し未知を warn（kind `.unknownKey`/`.unknownSection`）。
-  test: `[[bindigs]]` で warning + `--strict` トリップ。
+  **修正**: `StructuralCheck.unknownKeyWarnings` に root スキャンを追加し、root キーを
+  `Set(ChordConfigSchema.sections.map(\.name))`（TOML.lineKey 除く）に照合して未知を warn。
+  **新 Kind は足さず既存 `.unknownKey` を再利用**＝wire schema `dropped[].kind` enum drift を回避。
+  メッセージはユーザの構文を反映（`[[x]]`/`[x]`=section、bare scalar `x`=key）。
+  `ConfigTests.testUnknownTopLevelSectionWarns` + `testKnownTopLevelSectionsDoNotWarn`。
+
+**実施メモ（✅ chord#113）**:
+- 実 ChordCore を standalone driver でリンクし **修正前 5 assertion FAIL → 修正後 全 PASS** を機械検証
+  （XCTest は手元 CLT に無く CI 実行）。glossary `unknown-key` 行 + `ConfigWarning` docstring を broaden。
+- 敵対的レビュー（4レンズ: `find()` 等価 / 偽陽性・schema drift / 回帰 / 規約）= **GO・confirmed defect 0**。
+  検出 NIT 2 件を下記 Backlog「C4 follow-up」へ退避。
 
 ---
 
@@ -265,6 +275,15 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   （describeMods を input.modifiers に流用 + trigger.name/keycode）。ReloadDiffRenderTests に
   「[input-aliases] body だけ変えた参照 binding が非 bare 理由を出す」ケース追加。
 
+**chord — C4 follow-up（C4 の敵対的検証で発覚・既存挙動／TOML 仕様）**:
+- c4f#1: top-level section typo の warning が wire `dropped[].section` で `[[bindings]]` を表示
+  （`wireDropped` default ケース。`unknown-option-key` 等と同じ**既存近似**。v3 schema は `section` を
+  非権威と明記＝`kind` で分岐し `message` を表示する契約なので validation は通る）。正確化には
+  `ConfigWarning` へ section リテラルを保持させる必要 → 小さな後続 PR（emit + WireSchemaValidationTests 拡張）。
+- c4f#2: plain-table typo（`[optoins]`）の `sourceLine` は nil（`__line__` は `[[X]]` 行のみ seed の
+  TOML 仕様。`[[bindigs]]` は行付き）。graceful・message は section 名提示。ChordCore 内では修正不可
+  （upstream swift-toml-edit がテーブルヘッダに行を seed すれば解消）。記録のみ。
+
 **chord low/nit**:
 - cli#5: `--help` EXIT CODES が exit1 を過少記述（doctor/watch も1）。Main.swift:670 + README:330。
 - packaging#1: Intel Mac で `/opt/homebrew` ハードコード（Resign.swift）→ `brew --prefix` 解決。
@@ -325,3 +344,7 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
 - 2026-06-19: **C3 vkey#1 ✅（chord#112）**。`handleVKey` のエッジ/ラッチを純粋 `VKeyEdgeTracker` へ抽出 +
   契約 10 ケースのユニットテスト（wedge 回帰含む）。挙動不変・敵対的レビューで等価性確認。**残 = runtime#2**
   （Controller spine 統合テスト、テスト seam 新設が前提）+ C4 + C7。
+- 2026-06-19: **C4 ✅（chord#113）**。matcher#1（`modifierTransitions` に `find()` 等価の exclude_apps
+  ガード）+ parsing#1（top-level section typo を `.unknownKey` で警告・新 Kind 無しで wire enum drift 回避）を
+  1 PR で回収。standalone driver で FAIL→PASS 機械検証、敵対的レビュー（4レンズ）= GO・defect 0。
+  NIT 2 件を Backlog「C4 follow-up」へ。**chord 残 = C3 runtime#2 のみ**、canon 残 = C7。
