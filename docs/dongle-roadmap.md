@@ -9,6 +9,43 @@ Cyboard Imprint を **dongle 中継構成**(USB ドングル = central / 左右�
 - **Cyboard-DigitalTailor/zmk-keyboards** に `imprint_dongle` shield を上流化
 - **zmkfirmware/zmk** に stale bond 自動回復のパッチを上流化
 
+## 🔧 ペアリング復旧手順（NVS リセット後・キーボードが効かない時）
+
+> **最重要**: imprint が唯一のキーボードなら、これをやる前に**別の USB キーボードを
+> 用意**すること（リセット中〜復旧まで打てなくなる。Mac mini 等で本機しか無いと詰む）。
+> そして **リセットボタン1回・USB 挿し直しでは bond は消えない**（再起動するだけ）。
+> bond を消せるのは NVS wipe（RESET firmware）だけ。keymap に手動クリアキーは無い。
+
+### A. まず試す（PC 操作不要・物理だけ／一度はこれで復活した）
+左右がドングルと食い違っているだけなら、**繋ぎ直す順番**だけで直る:
+
+1. ドングルを USB から**抜く**
+2. 左右半分の**電源を入れて 10 秒待つ**（この間ずっと「誰でも繋いで」と広告する）
+3. ドングルを USB に**挿し直す**（空の親が子を探しにいく）
+4. **30〜60 秒、触らず待つ**（左右の両方とペアリング完了まで）
+5. 左右それぞれ 1 キーずつ確認。片方だけ効くなら B でその半分だけやり直す
+
+### B. A でダメ＝bond が非対称に壊れている → 全消去してやり直す
+（ターミナルが要る。マウス + スクリーンキーボードでも可）
+
+1. `./scripts/build-zmk.sh imprint --reset` と `./scripts/build-zmk.sh imprint`（両方ビルド）
+2. `./scripts/flash-reset.sh` → 左・右・dongle を**ダブルタップ**でブートローダにして
+   全部に RESET を焼く（NVS を**対称に**全消去）。**シングルタップは再起動だけ＝消えない**
+3. `./scripts/flash-watch.sh` → 同様に通常版を焼く（左→右の順、dongle は XIAO 自動検出）
+4. **A の手順（子機を先に広告 → 最後にドングルを挿す）で繋ぐ**。この順番が肝
+
+### なぜこうなるか
+dongle = BLE central / 左右 = peripheral。bond が残った子機は「昔の親 MAC だけ」に向けて
+**directed 広告**する＝scanning 中の新しい親から見えない。片側だけ消える/部分ペアで
+**非対称**になると沈黙する（`security failed (err 2)` / slot 予約失敗）。だから「リセット連打」
+では永遠に直らない（同じ NVS を読み直すだけ）。`flash-*.sh` は imprint 専用（XIAO を見ると
+`imprint_dongle` を焼く）＝**ist の XIAO には使わない**。
+
+### 将来の予防（任意・未実施）
+`config/imprint.keymap` に `&bt BT_CLR`（可能なら `BT_CLR_ALL`）を足せば、焼き直さず
+キー操作で stale bond をクリアできる。repo の `patches/zmk/security-changed-auto-unpair.patch`
+（`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`, default n）を有効化する手もある。
+
 ## 現状
 
 | Phase | 内容 | 状態 |
