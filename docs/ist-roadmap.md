@@ -131,11 +131,11 @@
 - ✅ `build.yaml`（4 ターゲット目）／ ✅ CI ist green
 - ✅ docs: CLAUDE.md（scope/壊しやすい点/build pipeline/release モデル）＋ glossary（board/shield/build target/.uf2）
 
-**I1 残（このPRで足すか、近接 PR で）**:
-- ☐ README / README.en に ist を最小言及（**README は user 主体**＝最小ファクトのみ）。
-- ☐ `scripts/build-zmk.sh` に group ショートカット `all|imprint|ist`（既存 shield 指定の上に薄く。任意）。
-- ☐ glossary mermaid（~L38 `shield: imprint_left / imprint_right`）/ glossary に **vkey 項目**（C6 と一括でも可）。
-- ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（別タスク）。
+**I1 残**（`chore/i1-tail-ist` で回収）:
+- ✅ README / README.en に ist を最小言及（build 対象 4 つ + group 例。**user 主体**ゆえ最小ファクトのみ、intro/図/構成は不変）。
+- ✅ `scripts/build-zmk.sh` に group ショートカット `all|imprint|ist`（build.yaml の shield 名から都度引く＝ハードコード無し）。
+- ✅ glossary mermaid（board/shield/uf2 を ist 込みへ）/ glossary に **vkey 項目**を追加。
+- ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（**別タスク・任意**、未着手）。
 
 **I2 = ist で vkey — ✅ 実装完了（ブランチ `feat/i2-ist-vkey`、ファームビルド green）**:
 詳細・成果物・GOTCHA は上記「I2 実施メモ / GOTCHA」。残は **実機検証** と **chord 貼り込み**（共に user 領域）
