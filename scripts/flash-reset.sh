@@ -13,4 +13,5 @@
 # 先に成果物を作る: `./scripts/build-zmk.sh imprint --reset`
 #   → firmware/imprint_{left,right,dongle}_RESET.uf2 を生成。
 # 共通実装は flash-impl.sh（通常版は flash-watch.sh）。
-exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "_RESET" "NVS reset firmware flashed" " (NVS wiped)"
+# --yes / -y で確認スキップ（コピペ一発復旧・Claude・CI 用）。非対話でも自動スキップ。
+exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "_RESET" "NVS reset firmware flashed" " (NVS wiped)" reset "$@"
