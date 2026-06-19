@@ -20,9 +20,6 @@
 #define TD_RM &mt LEFT_ALT ESCAPE
 #define TD_RR &mt LEFT_CONTROL SPACE
 
-// 全 modifier (LGUI / LSFT / LCTL / LALT)。mod-morph の mods / keep-mods で使う
-#define ALL_MODS (MOD_LGUI|MOD_LSFT|MOD_LCTL|MOD_LALT)
-
 // DEFAULT_LAYER 左親指列で使う momentary layer 呼出。
 // NAME : SYMBOL1 / SYMBOL2 / NUMBER / FUNCTION
 #define MO_LAYER(NAME) &mo NAME##_LAYER
