@@ -47,7 +47,13 @@ def build_block() -> str:
         if m := MACRO_RE.match(line):
             if not sections:
                 raise SystemExit("eiji_macros.dtsi: セクションコメント前に EN_MACRO が出現")
-            sections[-1][1].append((m.group(1), m.group(2)))
+            name, ch = m.group(1), m.group(2)
+            if len(ch) != 1:
+                raise SystemExit(
+                    f"eiji_macros.dtsi: EN_MACRO({name}) の disp:[{ch}] は"
+                    f"1文字でなければならない（幅={len(ch)}）"
+                )
+            sections[-1][1].append((name, ch))
 
     entries = [(f'"&{name}":', yaml_value(ch)) for _, s in sections for name, ch in s]
     if not entries:
