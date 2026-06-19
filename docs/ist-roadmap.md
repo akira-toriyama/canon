@@ -45,7 +45,7 @@
 | ID | 内容 | repo | 状態 | 前提 / メモ |
 |----|------|------|------|------------|
 | I1 | ist firmware を canon に統合 | canon | ▶ 進行中（[canon#74](https://github.com/akira-toriyama/canon/pull/74)） | core 完了・**CI で ist ビルド green**。残: docs(README ほか) + build-zmk.sh group。下記「引き継ぎ」参照 |
-| I2 | ist で vkey 有効化 | canon | ☐ TODO | **I1 後**。共有 vkey dtsi + `zip_btn_remap` bindings に `&vkey` + gen-vkey-aliases.py が ist keymap も走査 + id single-source 整理 + chord 側 alias |
+| I2 | ist で vkey 有効化 | canon | ▶ 実装完了・**ファームビルド green**（実機未検証） | 共有 `vkey_behavior.dtsi` + `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py が両 keymap 走査（ist band 0xA0..0xBF 分離）+ alias 生成。残=実機（user hw）+ chord 貼り込み（chezmoi=user）。下記「I2 実施メモ」 |
 | I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 変更。branch protection = 明示承認。**C5 と batch** |
 
 ### I1 詳細
@@ -67,10 +67,47 @@
 
 ## 詰める点 / 未確定（着手時に解消）
 
-- **vkey id single-source**: 今 gen-vkey-aliases.py は imprint.keymap のみ。ist も出すなら両 keymap 走査 + id 分離。
-- `zip_btn_remap` が `&vkey` の press/release を `&kp` 同様に駆動するか → **初回ビルド/実機で確認**。
+- ~~**vkey id single-source**: 今 gen-vkey-aliases.py は imprint.keymap のみ~~ → **✅ 解消（I2）**: 両 keymap
+  走査。ist は input-processor の codes↔bindings から alias 名を導出（code が名前の源＝二重管理なし）。
+  id は ist 予約帯 `0xA0..0xBF`（imprint と分離）+ 跨ぎ衝突検出を gen-vkey-aliases.py に追加。
+- ~~`zip_btn_remap` が `&vkey` の press/release を `&kp` 同様に駆動するか~~ → **✅ ビルドで解決（I2）**: ist
+  firmware が `&vkey 0xA0..0xA3` を DT 解決しビルド green。behavior/HID 送出 symbol も ist `.elf` に存在
+  （下記メモ）。**press/release の実 wire は実機で最終確認**（user hw、module の >5 ボタン publish は M4+ WIP）。
 - **zmk-ble-hid-host は WIP（M4+ 未）** → main 追従で結合し上流変化に追従（canon CI が早期検知）。
 - ~~module + Cyboard module + patches/zmk/* の三者同居 build が green か~~ → **✅ CI green 確認済（canon#74）**。
+
+## I2 実施メモ / GOTCHA（ブランチ `feat/i2-ist-vkey`）
+
+**実装（このPR）**:
+- ✅ **共有 `config/vkey_behavior.dtsi`**（`&vkey` behavior ノードの唯一ソース）。imprint は
+  `imprint_behaviors.dtsi` 経由、ist は `ble_hid_host_receiver.keymap` に新設した `behaviors {}` から `#include`。
+- ✅ ist `zip_btn_remap` の bindings を `<&kp A..D>` → `<&vkey 0xA0 0xA1 0xA2 0xA3>`
+  （INPUT_BTN_5/6 + tilt L/R）。
+- ✅ `scripts/gen-vkey-aliases.py` を**両 keymap 走査**へ拡張。imprint=層/位置レンジ復号（不変・出力 byte 同一）、
+  ist=codes↔bindings zip で `IST_BTN5/BTN6/TILT_L/TILT_R` を導出。**予約帯 0xA0..0xBF 検証 + 跨ぎ衝突検出 +
+  C コメント除去**（ist keymap 冒頭の例ノードを拾わない）。`config/vkey-aliases.toml` に ist 節 4 行を追記。
+- ✅ `verify-vkey-sync.yml` の paths に `config/ble_hid_host_receiver.keymap` 追加。CLAUDE.md 単一ソース規約を両
+  keymap + 共有 dtsi + band 分離へ更新。`.gitignore` に `__pycache__/`。
+- ✅ **draw 修正（I1 残のバグ回収）**: `Draw keymap` workflow は I1 で ist keymap 追加以降 **main で red**
+  だった（keymap-drawer が `config/*.keymap` を自動探索し、物理キー無しの `ble_hid_host_receiver` で
+  "physical layout could not be found"）。draw は required check ではないため I1 は red のままマージ。
+  → `draw-keymap.yml` に `keymap_patterns: config/imprint.keymap` を設定し ist を描画対象外に（受信
+  ドングルは描くものが無い）。**main の draw も green に戻る**。
+
+**ビルド検証（Docker `build-zmk.sh ble_hid_host_receiver`, green）**:
+- `ble_hid_host_receiver.uf2` 生成（FLASH 25.68%）。ist `.elf` に `behavior_vkey_driver_api` /
+  `zmk_hid_vkey_set|clear` / `zmk_endpoint_send_vkey_report` / `zmk_usb_hid_send_vkey_report` /
+  `CONFIG_ZMK_BEHAVIOR_VKEY=1`、ベンダー記述子 `06 31 FF 09 01 A1 01 85 20…` を確認。
+  → ist は **central（非 split）ゲート真**で behavior をコンパイル、USB 送出経路も在。
+- 🔴 **GOTCHA**: ローカル west キャッシュ（`~/.cache/zmk-canon`）が I1 の west.yml 変更前に作られていると
+  `zmk-ble-hid-host` module 未取得で `Invalid SHIELD: ble_hid_host_receiver`。**`build-zmk.sh --update`** で
+  module を pull すれば解決（manifest 自体は rsync 済でも `west update` 未実行だと反映されない）。
+
+**残（I2 完了に必要・user 領域）**:
+- ☐ **実機検証**: ist を焼き直し → トラックボールのボタン/チルト → chord が `vkey` を受信（press 毎 1 件 /
+  release=0）。module の >5 ボタン publish は M4+ WIP のため、ボタン実発火はモジュール側進捗依存。
+- ☐ **chord 貼り込み**: `config/vkey-aliases.toml` の ist 節（`IST_*`）を chord config の `[v-key-aliases]` へ
+  + 各 id に action を割当（chord 側 **コード変更は不要**＝imprint と同一 wire。chezmoi re-add は user 運用）。
 
 ## I1 実施メモ / GOTCHA（canon#74 で判明）
 
@@ -100,12 +137,9 @@
 - ☐ glossary mermaid（~L38 `shield: imprint_left / imprint_right`）/ glossary に **vkey 項目**（C6 と一括でも可）。
 - ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（別タスク）。
 
-**次（I2 = ist で vkey）着手の前提（すべて確認済）**:
-- `&vkey` は keymap behavior。ist keymap の `zip_btn_remap`（`compatible="zmk,input-processor-behaviors"`,
-  `bindings=<&kp …>`）の bindings を `&vkey <id>` に差し替えれば、トラックボールのボタン→0x20 vendor report→chord。
-- vkey patch は全ターゲットに適用済（zmk-build.yml）＝ ist でも vendor HID descriptor は常在。USB 出力対応済。
-- 手順は上記「I2 詳細」。**id single-source（gen-vkey-aliases.py の ist 走査 + id 衝突回避）**が要整理。
-- 実機確認: `zip_btn_remap` が `&vkey` の press/release を駆動するか（behavior driver API 実装済なので可能性大）。
+**I2 = ist で vkey — ✅ 実装完了（ブランチ `feat/i2-ist-vkey`、ファームビルド green）**:
+詳細・成果物・GOTCHA は上記「I2 実施メモ / GOTCHA」。残は **実機検証** と **chord 貼り込み**（共に user 領域）
+で、同メモ末尾「残」に集約。id single-source（両 keymap 走査 + band 分離 + 衝突検出）も同 PR で解消済。
 
 **I3 = ist を required check へ**: ruleset 16483994 に
 `build / Build (xiao_ble/nrf52840/zmk, ble_hid_host_receiver)` を追加（**branch protection = user 承認**、C5 と batch）。
@@ -118,3 +152,8 @@
   build.yaml 4 ターゲット目）完了、**CI で ist ビルド green**（三者同居 OK）。GOTCHA = Cyboard の
   stray `RGB_UNDERGLOW default y` を `CONFIG_ZMK_RGB_UNDERGLOW=n` で上書き。docs は CLAUDE.md +
   glossary 済。残（README / build-zmk.sh group / vkey glossary）と I2/I3 は上記「引き継ぎ」に集約。
+- 2026-06-19: **I2 実装（ブランチ `feat/i2-ist-vkey`）→ ▶ ファームビルド green**。共有 `vkey_behavior.dtsi` +
+  ist `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py 両 keymap 走査（ist band 0xA0..0xBF 分離・
+  跨ぎ衝突検出）+ vkey-aliases.toml / verify-vkey-sync paths / CLAUDE.md 更新。`build-zmk.sh --update
+  ble_hid_host_receiver` で ist firmware + vkey symbol/記述子を確認。残=実機検証 + chord 貼り込み（user 領域）。
+  詳細は「I2 実施メモ / GOTCHA」。

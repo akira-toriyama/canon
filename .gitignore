@@ -4,3 +4,7 @@
 
 # scripts/build-zmk.sh のローカルビルド生成物
 /firmware/
+
+# Python
+__pycache__/
+*.pyc
