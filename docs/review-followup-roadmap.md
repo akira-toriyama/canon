@@ -9,6 +9,10 @@
 >
 > cross-repo 運用は [refactor-roadmap.md](refactor-roadmap.md) と同じ:
 > **chord のコード変更は chord repo の独立 PR**、**本ファイルの更新は canon repo**。
+>
+> **別系統の進行 workstream**: [ist-roadmap.md](ist-roadmap.md)（zmk-mouse=IST トラックボール
+> 受信ドングルを canon へ統合 + ist で vkey）。**C6(docs ドリフト) は ist I1 と同じ canon docs を
+> 触るので協調／一括**、**C5(dongle required check) は ist I3 と同じ ruleset 変更なので batch** が効く。
 
 ## 進め方 / 検証
 
