@@ -4,6 +4,10 @@ manifest:
       url-base: https://github.com/zmkfirmware
     - name: Cyboard-DigitalTailor
       url-base: https://github.com/Cyboard-DigitalTailor
+    # akira-toriyama: 自前モジュール（ist トラックボール受信ドングル用の
+    # zmk-ble-hid-host）の取得元。詳細は docs/ist-roadmap.md。
+    - name: akira-toriyama
+      url-base: https://github.com/akira-toriyama
     # Additional modules containing boards/shields/custom code can be listed here as well
     # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
   projects:
@@ -20,5 +24,12 @@ manifest:
       remote: Cyboard-DigitalTailor
       revision: main
       import: config/west.yml
+    # zmk-ble-hid-host (自前モジュール): ist 受信ドングルの BLE-central ロジック +
+    # ble_hid_host_receiver shield を提供（boards/shields は module 同梱なので
+    # canon ローカルへのコピー不要）。import 無し＝Cyboard module と manifest 非衝突。
+    # WIP のため main 追従（imprint と同じ運用）。詳細は docs/ist-roadmap.md。
+    - name: zmk-ble-hid-host
+      remote: akira-toriyama
+      revision: main
   self:
     path: config

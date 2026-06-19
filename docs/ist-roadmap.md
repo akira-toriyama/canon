@@ -44,7 +44,7 @@
 
 | ID | 内容 | repo | 状態 | 前提 / メモ |
 |----|------|------|------|------------|
-| I1 | ist firmware を canon に統合 | canon | ☐ TODO（**要 GO**） | west(module) + ist keymap/conf + build.yaml に ist target + build-zmk.sh group(all/imprint/ist) + docs。**C6 と協調**（同じ canon docs を触る） |
+| I1 | ist firmware を canon に統合 | canon | ▶ 進行中（[canon#74](https://github.com/akira-toriyama/canon/pull/74)） | core 完了・**CI で ist ビルド green**。残: docs(README ほか) + build-zmk.sh group。下記「引き継ぎ」参照 |
 | I2 | ist で vkey 有効化 | canon | ☐ TODO | **I1 後**。共有 vkey dtsi + `zip_btn_remap` bindings に `&vkey` + gen-vkey-aliases.py が ist keymap も走査 + id single-source 整理 + chord 側 alias |
 | I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 変更。branch protection = 明示承認。**C5 と batch** |
 
@@ -70,9 +70,51 @@
 - **vkey id single-source**: 今 gen-vkey-aliases.py は imprint.keymap のみ。ist も出すなら両 keymap 走査 + id 分離。
 - `zip_btn_remap` が `&vkey` の press/release を `&kp` 同様に駆動するか → **初回ビルド/実機で確認**。
 - **zmk-ble-hid-host は WIP（M4+ 未）** → main 追従で結合し上流変化に追従（canon CI が早期検知）。
-- module + Cyboard module + patches/zmk/* の三者同居 build が green か → CI で確認。
+- ~~module + Cyboard module + patches/zmk/* の三者同居 build が green か~~ → **✅ CI green 確認済（canon#74）**。
+
+## I1 実施メモ / GOTCHA（canon#74 で判明）
+
+- **三者同居 build は green**（patches: security/usb-hid-prime/vkey 全て「適用」OK、ist `ble_hid_host_receiver.uf2`
+  + imprint 全ターゲット pass）。CI matrix も build.yaml の 4 ターゲット目を自動認識。
+- **🔴 GOTCHA（重要）**: Cyboard `zmk-keyboards` の imprint shield `Kconfig.defconfig` が
+  `config ZMK_RGB_UNDERGLOW default y` を **SHIELD ガード外**で宣言しており、canon の
+  west workspace 全体（＝ ist ビルドにも）波及する。ist は `CONFIG_INPUT/POINTING` を引くため
+  LED 依存が満たされ RGB が y になるが underglow ノードが無く `rgb_underglow.c` の `#error
+  "A zmk,underglow chosen node must be declared"` で落ちた（imprint_dongle は INPUT 無しで
+  依存未充足のため偶然回避）。**対処**: `config/ble_hid_host_receiver.conf` に
+  `CONFIG_ZMK_RGB_UNDERGLOW=n` を明示（Cyboard 由来の stray default を上書き）。
+  → **今後 imprint 以外の非 RGB ターゲットを足す時も同じ罠**。zmk-mouse 単体（Cyboard 無し）には無い問題。
+- `-logging` 変種は canon の `zmk-build.yml` matrix awk が board/shield のみ抽出のため未対応（standard のみ採用）。
+
+## 引き継ぎ（セッションまたぎ・I1 残 → I2 → I3）
+
+**I1 で完了済（canon#74、ブランチ `feat/i1-ist-integration`）**:
+- ✅ `config/west.yml`（remote akira-toriyama + module zmk-ble-hid-host@main）
+- ✅ `config/ble_hid_host_receiver.{keymap,conf}`（zmk-mouse から byte-exact ＋ RGB=n 上書き）
+- ✅ `build.yaml`（4 ターゲット目）／ ✅ CI ist green
+- ✅ docs: CLAUDE.md（scope/壊しやすい点/build pipeline/release モデル）＋ glossary（board/shield/build target/.uf2）
+
+**I1 残（このPRで足すか、近接 PR で）**:
+- ☐ README / README.en に ist を最小言及（**README は user 主体**＝最小ファクトのみ）。
+- ☐ `scripts/build-zmk.sh` に group ショートカット `all|imprint|ist`（既存 shield 指定の上に薄く。任意）。
+- ☐ glossary mermaid（~L38 `shield: imprint_left / imprint_right`）/ glossary に **vkey 項目**（C6 と一括でも可）。
+- ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（別タスク）。
+
+**次（I2 = ist で vkey）着手の前提（すべて確認済）**:
+- `&vkey` は keymap behavior。ist keymap の `zip_btn_remap`（`compatible="zmk,input-processor-behaviors"`,
+  `bindings=<&kp …>`）の bindings を `&vkey <id>` に差し替えれば、トラックボールのボタン→0x20 vendor report→chord。
+- vkey patch は全ターゲットに適用済（zmk-build.yml）＝ ist でも vendor HID descriptor は常在。USB 出力対応済。
+- 手順は上記「I2 詳細」。**id single-source（gen-vkey-aliases.py の ist 走査 + id 衝突回避）**が要整理。
+- 実機確認: `zip_btn_remap` が `&vkey` の press/release を駆動するか（behavior driver API 実装済なので可能性大）。
+
+**I3 = ist を required check へ**: ruleset 16483994 に
+`build / Build (xiao_ble/nrf52840/zmk, ble_hid_host_receiver)` を追加（**branch protection = user 承認**、C5 と batch）。
 
 ## 更新ログ
 
 - 2026-06-19: 設計確定（canon 同居 / 3 profile セレクタ / ist で vkey 可）。feasibility 調査を転記し
   本 roadmap 作成。全タスク TODO・**I1 は user GO 待ち**。
+- 2026-06-19: **I1 着手（GO 済）→ ▶ 進行中（canon#74）**。core 統合（west module / keymap+conf /
+  build.yaml 4 ターゲット目）完了、**CI で ist ビルド green**（三者同居 OK）。GOTCHA = Cyboard の
+  stray `RGB_UNDERGLOW default y` を `CONFIG_ZMK_RGB_UNDERGLOW=n` で上書き。docs は CLAUDE.md +
+  glossary 済。残（README / build-zmk.sh group / vkey glossary）と I2/I3 は上記「引き継ぎ」に集約。
