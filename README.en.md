@@ -36,7 +36,7 @@ git config core.hooksPath scripts/hooks
 
 ```
 config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
-build.yaml      Build targets (assimilator-bt × imprint_left / imprint_right)
+build.yaml      4 build targets (imprint_left/right/dongle + ist's ble_hid_host_receiver)
 boards/ zephyr/  ZMK board-root (board/shield come from the Cyboard module; empty is normal)
 keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
 scripts/        build-zmk.sh (entrypoint), gen-eiji-drawer-map.py, hooks/
@@ -50,8 +50,9 @@ Per ZMK/upstream constraints, `config/`, `boards/`, `zephyr/module.yml` and
 ## ZMK firmware build
 
 After editing `config/imprint.keymap` etc., get the `.uf2` via one of the
-following. Build targets are in [build.yaml](build.yaml) (`assimilator-bt` ×
-`imprint_left` / `imprint_right`). ZMK itself tracks `main` (required by the
+following. Build targets are in [build.yaml](build.yaml) (imprint's `imprint_left` /
+`imprint_right` / `imprint_dongle` + ist's `ble_hid_host_receiver` receiver dongle —
+4 in total). ZMK itself tracks `main` (required by the
 Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 
 ### GitHub Actions (no local setup)
@@ -64,7 +65,8 @@ Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 ### Local (Docker)
 
 ```sh
-./scripts/build-zmk.sh                 # all targets in build.yaml
+./scripts/build-zmk.sh                 # all targets in build.yaml (=all)
+./scripts/build-zmk.sh imprint         # product group (imprint only / ist only)
 ./scripts/build-zmk.sh imprint_left    # a specific shield
 ./scripts/build-zmk.sh --update        # refresh deps (west update)
 ./scripts/build-zmk.sh --clean         # drop the cached workspace

@@ -99,9 +99,11 @@
   `zmk_hid_vkey_set|clear` / `zmk_endpoint_send_vkey_report` / `zmk_usb_hid_send_vkey_report` /
   `CONFIG_ZMK_BEHAVIOR_VKEY=1`、ベンダー記述子 `06 31 FF 09 01 A1 01 85 20…` を確認。
   → ist は **central（非 split）ゲート真**で behavior をコンパイル、USB 送出経路も在。
-- 🔴 **GOTCHA**: ローカル west キャッシュ（`~/.cache/zmk-canon`）が I1 の west.yml 変更前に作られていると
-  `zmk-ble-hid-host` module 未取得で `Invalid SHIELD: ble_hid_host_receiver`。**`build-zmk.sh --update`** で
-  module を pull すれば解決（manifest 自体は rsync 済でも `west update` 未実行だと反映されない）。
+- 🔴 **GOTCHA（当初の暫定対処。真因は I1-tail で別途修正）**: `Invalid SHIELD: ble_hid_host_receiver` が出て
+  当時は **`build-zmk.sh --update`** で回避した。真因は「cache が古い」ではなく **build-zmk.sh の rsync
+  `--delete` が `zmk-ble-hid-host` module の clone path を除外し忘れ、非 `--update` ビルドの度に module を
+  削除していた**こと（I1-tail で `--exclude '/zmk-ble-hid-host/'` を追加して恒久修正）。修正後は `--update`
+  無しでも ist がビルド可。
 
 **残（I2 完了に必要・user 領域）**:
 - ☐ **実機検証**: ist を焼き直し → トラックボールのボタン/チルト → chord が `vkey` を受信（press 毎 1 件 /
@@ -131,11 +133,16 @@
 - ✅ `build.yaml`（4 ターゲット目）／ ✅ CI ist green
 - ✅ docs: CLAUDE.md（scope/壊しやすい点/build pipeline/release モデル）＋ glossary（board/shield/build target/.uf2）
 
-**I1 残（このPRで足すか、近接 PR で）**:
-- ☐ README / README.en に ist を最小言及（**README は user 主体**＝最小ファクトのみ）。
-- ☐ `scripts/build-zmk.sh` に group ショートカット `all|imprint|ist`（既存 shield 指定の上に薄く。任意）。
-- ☐ glossary mermaid（~L38 `shield: imprint_left / imprint_right`）/ glossary に **vkey 項目**（C6 と一括でも可）。
-- ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（別タスク）。
+**I1 残**（`chore/i1-tail-ist` で回収）:
+- ✅ README / README.en に ist を最小言及（build 対象 4 つ + group 例。**user 主体**ゆえ最小ファクトのみ、intro/図/構成は不変）。
+- ✅ `scripts/build-zmk.sh` に group ショートカット `all|imprint|ist`（build.yaml の shield 名から都度引く＝ハードコード無し）。
+- ✅ glossary mermaid（board/shield/uf2 を ist 込みへ）/ glossary に **vkey 項目**を追加。
+- ✅ **🔴 build-zmk.sh rsync バグ修正（I1 で混入）**: `zmk-ble-hid-host` module は west が `cfgrepo/zmk-ble-hid-host/`
+  へ clone するが、build-zmk.sh の `rsync --delete` 除外リストが**この path を漏らしていた** → 非 `--update`
+  ビルドの度に module が消え `Invalid SHIELD: ble_hid_host_receiver`。I1 で west.yml/build.yaml に module を
+  足した時に除外を追従し忘れたのが根因（＝下の「I2 GOTCHA で --update が要った」本当の理由）。
+  → `--exclude '/zmk-ble-hid-host/'` を追加。以後 ist も cache 再利用で普通にビルド可。
+- ☐ `-logging` 変種を入れるなら zmk-build.yml matrix awk を cmake-args/artifact-name 対応に拡張（**別タスク・任意**、未着手）。
 
 **I2 = ist で vkey — ✅ 実装完了（ブランチ `feat/i2-ist-vkey`、ファームビルド green）**:
 詳細・成果物・GOTCHA は上記「I2 実施メモ / GOTCHA」。残は **実機検証** と **chord 貼り込み**（共に user 領域）

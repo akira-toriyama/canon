@@ -36,7 +36,7 @@ git config core.hooksPath scripts/hooks
 
 ```
 config/         ZMK キーマップ / behaviors / combos / west.yml（ルート必須）
-build.yaml      ビルド対象（assimilator-bt × imprint_left / imprint_right）
+build.yaml      ビルド対象 4 つ（imprint_left/right/dongle + ist の ble_hid_host_receiver）
 boards/ zephyr/  ZMK board-root（ボード/シールドは Cyboard モジュール由来。空で正常）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
 scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
@@ -50,8 +50,9 @@ ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `buil
 ## ZMK ファーム ビルド
 
 `config/imprint.keymap` 等を変更したら、以下のいずれかで `.uf2` を得る。
-ビルド対象は [build.yaml](build.yaml)（`assimilator-bt` × `imprint_left` /
-`imprint_right`）。ZMK 本体は `main` 追従（Cyboard モジュールが要求。タグ固定
+ビルド対象は [build.yaml](build.yaml)（imprint の `imprint_left` / `imprint_right` /
+`imprint_dongle` + ist 受信ドングル `ble_hid_host_receiver` の 4 つ）。ZMK 本体は
+`main` 追従（Cyboard モジュールが要求。タグ固定
 不可。詳細 [CLAUDE.md](CLAUDE.md)）。
 
 ### GitHub Actions（環境構築不要）
@@ -64,7 +65,8 @@ ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `buil
 ### ローカル（Docker）
 
 ```sh
-./scripts/build-zmk.sh                 # build.yaml の全ターゲット
+./scripts/build-zmk.sh                 # build.yaml の全ターゲット（=all）
+./scripts/build-zmk.sh imprint         # 製品グループ（imprint だけ / ist だけ）
 ./scripts/build-zmk.sh imprint_left    # シールド指定
 ./scripts/build-zmk.sh --update        # 依存を最新化（west update）
 ./scripts/build-zmk.sh --clean         # キャッシュ破棄

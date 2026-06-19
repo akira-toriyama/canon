@@ -34,20 +34,20 @@ canon を構成する各パーツの **正規の呼び名** をまとめた規�
 ```mermaid
 flowchart TB
   subgraph HW["ハードウェア層"]
-    BOARD["board: assimilator-bt"]
-    SHIELD["shield: imprint_left / imprint_right"]
+    BOARD["board: assimilator-bt / xiao_ble"]
+    SHIELD["shield: imprint_* / ble_hid_host_receiver"]
   end
   subgraph FW["ZMK firmware 層"]
     KEYMAP["keymap (config/imprint.keymap)"]
     LAYER["layer (DEFAULT / NUMBER / SYMBOL1 ... )"]
-    BEHAVIOR["behavior (&mt / &lt / &ime_kana ...)"]
+    BEHAVIOR["behavior (&mt / &lt / &vkey ...)"]
     COMBO["combo (KEY_POSITION_LL + LM ...)"]
     MACRO["macro (&al_q / &en_at ...)"]
   end
   subgraph BUILD["ビルド層"]
     WEST["west.yml (workspace manifest)"]
     BUILDYAML["build.yaml (build matrix)"]
-    UF2["imprint_{left,right}.uf2"]
+    UF2["imprint_*.uf2 / ble_hid_host_receiver.uf2"]
   end
   subgraph HOST["macOS host bridge"]
     CHORD["chord (独立リポジトリ)"]
@@ -61,7 +61,7 @@ flowchart TB
   WEST --> BUILDYAML
   BUILDYAML --> UF2
   UF2 -.flash.-> SHIELD
-  BEHAVIOR -.HID 送出.-> CHORD
+  BEHAVIOR -.HID / vkey 送出.-> CHORD
 ```
 
 ---
@@ -118,6 +118,21 @@ AUTO-GENERATED ブロックを生成、`verify-eiji-sync.yml` が CI で厳密�
 `hold-while-undecided` を有効化済み
 （[ZMK PR #1811](https://github.com/zmkfirmware/zmk/pull/1811)）。
 - **Don't call it:** dual function, dual-role, タップホールド
+
+### vkey
+既存のどのキー入力とも衝突しない **オリジナルキー**（連番 id）をベンダー定義 HID
+（usage page `0xFF31` / Report ID `0x20`）で送る [[behavior]]。`&vkey <id>` を press で
+id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受けて action に
+マップする。imprint と ist（[[build target]]）の両 [[keymap]] が共有ノード
+[`config/vkey_behavior.dtsi`](../config/vkey_behavior.dtsi) を `#include` する。
+- 単一ソース: `&vkey <id>`（[`config/imprint.keymap`](../config/imprint.keymap) /
+  [`config/ble_hid_host_receiver.keymap`](../config/ble_hid_host_receiver.keymap)）から
+  [`scripts/gen-vkey-aliases.py`](../scripts/gen-vkey-aliases.py) が
+  [`config/vkey-aliases.toml`](../config/vkey-aliases.toml) を生成（id 帯 imprint=`0x01`/
+  `0x10`–`0x8D`・ist=`0xA0`–`0xBF`）、`verify-vkey-sync.yml` が CI で照合。
+- 実体: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch)。詳細は
+  [docs/vkey-roadmap.md](vkey-roadmap.md) / [docs/ist-roadmap.md](ist-roadmap.md)
+- **Don't call it:** custom keycode, vendor key, raw HID key, オリジナルキー（説明文中の比喩を除く）
 
 ---
 
