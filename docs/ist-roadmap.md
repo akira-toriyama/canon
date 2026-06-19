@@ -88,6 +88,11 @@
   C コメント除去**（ist keymap 冒頭の例ノードを拾わない）。`config/vkey-aliases.toml` に ist 節 4 行を追記。
 - ✅ `verify-vkey-sync.yml` の paths に `config/ble_hid_host_receiver.keymap` 追加。CLAUDE.md 単一ソース規約を両
   keymap + 共有 dtsi + band 分離へ更新。`.gitignore` に `__pycache__/`。
+- ✅ **draw 修正（I1 残のバグ回収）**: `Draw keymap` workflow は I1 で ist keymap 追加以降 **main で red**
+  だった（keymap-drawer が `config/*.keymap` を自動探索し、物理キー無しの `ble_hid_host_receiver` で
+  "physical layout could not be found"）。draw は required check ではないため I1 は red のままマージ。
+  → `draw-keymap.yml` に `keymap_patterns: config/imprint.keymap` を設定し ist を描画対象外に（受信
+  ドングルは描くものが無い）。**main の draw も green に戻る**。
 
 **ビルド検証（Docker `build-zmk.sh ble_hid_host_receiver`, green）**:
 - `ble_hid_host_receiver.uf2` 生成（FLASH 25.68%）。ist `.elf` に `behavior_vkey_driver_api` /

@@ -18,6 +18,10 @@ jobs:
     # タグ固定（Dependabot github-actions が更新を追従）。
     uses: caksoylar/keymap-drawer/.github/workflows/draw-zmk.yml@v0.23.0
     with:
+      # imprint のみ描画。ist の ble_hid_host_receiver は受信ドングル＝物理キー無し
+      # （physical layout が無い）ので keymap-drawer の対象外（既定 config/*.keymap
+      # だと "physical layout could not be found" で落ちる）。
+      keymap_patterns: config/imprint.keymap
       commit_message: ":bento: ci(keymap-drawer): SVG を更新"
       amend_commit: false
       # keymap のパース/描画でエラーが出たら CI を落とす（壊れた keymap の早期検知）。
