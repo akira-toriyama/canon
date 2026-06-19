@@ -17,8 +17,9 @@
 ## 進め方 / 検証
 
 - **chord 先行**。順序: **C1 → C2 → C3 → C4**。**chord は C1–C4 すべて ✅ 完了**
-  （C3 = vkey#1 + runtime#2 とも完了）。canon は **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と統合して
-  回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
+  （C3 = vkey#1 + runtime#2 とも完了）。canon は **C5/C6/C7 ✅ 完了**（C5/C6 は ist 統合作業 I1/I3 と
+  統合して回収、C7 は build-zmk.sh --reset 実装）。**= 0ベース review follow-up 本体は全完了**
+  （残は Backlog の low/nit のみ・任意）。
 - 1クラスタ = 1 PR（小さく）。コミットは gitmoji + Conventional Commits。
 - 検証コマンド:
   - chord: `cd <chord> && swift build && swift test`（特定は `swift test --filter <Name>`）。
@@ -38,7 +39,7 @@
 | C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ✅ 完了 | [chord#113](https://github.com/akira-toriyama/chord/pull/113) |
 | C5 | dongle ビルドを必須チェックへ | canon | High | ✅ 完了（ist **I3** と統合） | ruleset 16483994 |
 | C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ✅ 完了（I1 #74 / I1-tail #78 + 本 reconcile PR） | – |
-| C7 | flash-reset.sh dead path 解消（削除 or 実装） | canon | Med | ☐ TODO（**削除前に user 確認**） | – |
+| C7 | flash-reset.sh dead path 解消（削除 or 実装） | canon | Med | ✅ 完了（実装・user GO） | feat/c7-reset-build |
 | BL | Backlog（low/nit 多数） | both | Low/nit | ☐ 未着手 | – |
 
 状態記号: ☐ TODO / ▶ 進行中 / ✅ 完了(PRリンク) / ⏸ 棚上げ(理由必須)。
@@ -245,13 +246,27 @@ commit-convention の release モデル）は本 reconcile PR で修正**。下�
 
 README は user 主体 → 最小ファクト訂正のみ、構成変更しない。
 
-## C7. flash-reset.sh dead path 解消　[Med]
+## C7. flash-reset.sh dead path 解消　[Med] — ✅ 完了（実装・user GO, 2026-06-19）
 
-`scripts/flash-reset.sh` → `flash-impl.sh:55` が `firmware/imprint_*_RESET.uf2` を参照するが
-**それを生成する build target が存在しない**（必ず ERROR で死ぬ）。
-**選択肢**: (a) flash-reset.sh と `_RESET` 配管を削除、(b) settings-reset ビルド経路
-（ZMK `--snippet settings-reset`）を実装して文書化。
-※ refactor-roadmap T2 が NVS-destructive 文言を意図的に残した経緯あり → **削除前に user 確認**。
+`scripts/flash-reset.sh` → `flash-impl.sh` が `firmware/imprint_*_RESET.uf2` を参照するが
+**それを生成する build target が存在せず必ず ERROR**だった。選択肢 (a) 削除 / (b) 実装のうち、
+**user GO で (b) 実装**（refactor T2 が NVS-destructive 文言を意図的に残した＝機能を欲する意思）。
+
+**実装（option B・I4 の `--logging` と同じローカル flag 方式）**:
+- `build-zmk.sh --reset` を新設。選択ターゲットを**実シールド据置**のまま
+  `CONFIG_ZMK_SETTINGS_RESET_ON_START=y`（ZMK 標準 settings_reset の本体機構＝SYS_INIT で
+  `zmk_settings_erase`）で焼き直し `<shield>_RESET.uf2` を出す。`--logging` と排他。
+  **build.yaml/CI/release は不変**（ローカル専用）。
+- **gotcha**: シールドごと `settings_reset` に差し替える素朴な方式は不可。assimilator-bt の
+  board dts が **imprint シールド由来の `spi1_default` pinctrl を参照**しており、shield 差し替えで
+  未定義 → `cmake` が `undefined node label 'spi1_default'` で失敗する。実シールド据置 + reset config
+  だけ載せる方式で回避（board-defined keyboard 一般に効く）。
+- `flash-reset.sh` ヘッダを実態へ更新（先に `build-zmk.sh imprint --reset` で生成 → flash →
+  通常 firmware を焼き直す。reset firmware は**起動毎に**NVS を消す＝working keyboard だが要再 flash）。
+
+**検証**: `shellcheck` clean、`build-zmk.sh imprint --reset` で **3 機種すべて成功**（assimilator-bt 含む）、
+`imprint_left_RESET` の `.config` に `CONFIG_ZMK_SETTINGS_RESET_ON_START=y` 在・通常版と差分あり（config 反映確認）。
+実機での NVS 消去検証は user（HW 必要）。`--logging`/`--reset` 排他・`--help` 反映済。
 
 ---
 
@@ -373,3 +388,9 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   production 追加のみ・挙動不変。standalone driver で全 PASS、敵対的レビュー（3レンズ）= GO。confirmed SHOULD_FIX 1 件
   （autorepeat の ignore/fire-each 判別）を同 PR で解消。out-of-scope（extendTimer 順序 ほか）を Backlog「C3 follow-up」へ。
   **canon 残は C7 のみ**（flash-reset dead path・削除前 user 確認）。
+- 2026-06-19: **C7 ✅（feat/c7-reset-build・user GO で実装）= 0ベース review follow-up 本体 全完了**。
+  `build-zmk.sh --reset`（実シールド据置 + `CONFIG_ZMK_SETTINGS_RESET_ON_START=y`、`--logging` と同じ
+  ローカル flag 方式・build.yaml/CI/release 不変）で `*_RESET.uf2` を生成し flash-reset.sh の dead path を解消。
+  gotcha: shield 差し替え方式は assimilator-bt の `spi1_default` pinctrl 未定義で失敗 → reset config だけ実シールドへ
+  載せる方式で回避。shellcheck clean / 3 機種ビルド成功 / config 反映確認。実機 NVS 消去は user 検証。
+  **残は Backlog の low/nit のみ（任意）**。
