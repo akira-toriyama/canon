@@ -44,9 +44,10 @@
 
 | ID | 内容 | repo | 状態 | 前提 / メモ |
 |----|------|------|------|------------|
-| I1 | ist firmware を canon に統合 | canon | ▶ 進行中（[canon#74](https://github.com/akira-toriyama/canon/pull/74)） | core 完了・**CI で ist ビルド green**。残: docs(README ほか) + build-zmk.sh group。下記「引き継ぎ」参照 |
-| I2 | ist で vkey 有効化 | canon | ▶ 実装完了・**ファームビルド green**（実機未検証） | 共有 `vkey_behavior.dtsi` + `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py が両 keymap 走査（ist band 0xA0..0xBF 分離）+ alias 生成。残=実機（user hw）+ chord 貼り込み（chezmoi=user）。下記「I2 実施メモ」 |
-| I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 変更。branch protection = 明示承認。**C5 と batch** |
+| I1 | ist firmware を canon に統合 | canon | ✅ **MERGED**（core [canon#74](https://github.com/akira-toriyama/canon/pull/74) + tail [canon#78](https://github.com/akira-toriyama/canon/pull/78)） | west module / keymap+conf / build.yaml 4 ターゲット目 / CI green / docs / build-zmk.sh group + rsync バグ修正。残 tail=`-logging`（下記 I4 と統合） |
+| I2 | ist で vkey 有効化 | canon | ✅ **MERGED**（[canon#76](https://github.com/akira-toriyama/canon/pull/76)） | 共有 `vkey_behavior.dtsi` + `zip_btn_remap` を `&vkey 0xA0..0xA3` + gen-vkey-aliases.py 両 keymap 走査（ist band 0xA0..0xBF）。残=実機（user hw）+ chord 貼り込み（chezmoi=user・**後ほど**）。下記「I2 実施メモ」 |
+| I3 | ist を main 保護 ruleset の required check へ | canon | ☐ TODO（**要 user 承認**） | ruleset 16483994 に ist（+ `imprint_dongle` も同じ穴）の build を必須追加。branch protection = 明示承認。**C5 と batch** |
+| I4 | zmk-mouse repo を archive（移植完了後） | zmk-mouse | ☐ user GO 待ち | **移植 = 完了**（`-logging` を `build-zmk.sh --logging` で移植済＝canon が完全上位）。残=（user）実機検証 → zmk-mouse を archive。**module `zmk-ble-hid-host` は archive しない**（canon の live 依存）。下記「archive 計画」 |
 
 ### I1 詳細
 1. `config/west.yml`: remote `akira-toriyama` + `zmk-ble-hid-host@main`。
@@ -150,6 +151,32 @@
 
 **I3 = ist を required check へ**: ruleset 16483994 に
 `build / Build (xiao_ble/nrf52840/zmk, ble_hid_host_receiver)` を追加（**branch protection = user 承認**、C5 と batch）。
+
+## zmk-mouse archive 計画（I4）— user 方針: 「移植終わったら mouse の設定は archive」
+
+**監査結果（2026-06-19, zmk-mouse ローカル clone と比較）**: zmk-mouse は薄い user-config repo
+（`config/{keymap,conf,west.yml}` + `build.yaml` + `.github/workflows/build.yml` + README）。
+shield 実体は module `zmk-ble-hid-host` 側＝zmk-mouse には無い。canon への移植状況:
+- ✅ keymap / conf → canon（vkey で機能強化済）。standard build target → canon `build.yaml`。
+  module 参照 → canon `config/west.yml`。CI → canon が自前で持つ（zmk-mouse の build.yml は不要）。
+- ⚠️ **唯一の未移植 = `-logging` デバッグ変種**（`cmake-args: -DCONFIG_ZMK_USB_LOGGING=y` /
+  `artifact-name: ble_hid_host_receiver-logging`）。USB-CDC serial で BLE connect/bond/discover/decode と
+  **どの物理ボタンが INPUT_BTN_x を出すか**を観測する道具＝**ist vkey の実機検証で要るやつ**。
+  canon の `zmk-build.yml` matrix awk は board/shield のみ抽出のため未対応（拡張が要る）。
+
+**archive までの段取り**:
+1. ✅ **`-logging` 変種を canon へ移植（DONE）**。**採用案 = B（build-zmk.sh ローカル専用フラグ）**: `--logging`
+   で選択ターゲットを `CONFIG_ZMK_USB_LOGGING=y` + 別 build dir + `<shield>-logging.uf2` で焼く。
+   **build.yaml/CI/release は製品ターゲットのみで不変**＝単一ソース原則を濁さない（A=CI 常設は debug uf2 が
+   release に混入 or build.yaml に条件分岐で却下、C=切り捨ては道具喪失で却下）。検証: `build-zmk.sh ist
+   --logging` → `ble_hid_host_receiver-logging.uf2`（`CONFIG_ZMK_USB_LOGGING=y` を .config で確認）。
+   → これで canon は zmk-mouse の完全上位（user-config + デバッグ能力）。
+2. （user）実機検証（`build-zmk.sh ist --logging` で焼いて INPUT_BTN を確定 → vkey 発火確認）。
+3. **zmk-mouse を archive**（GitHub repo を archived に）。**`zmk-ble-hid-host`（module）は残す**＝canon の
+   west 依存。archive = ほぼ不可逆の外向き操作なので user の最終 GO で実行。
+
+**dotfiles 系（chezmoi / chord への `[v-key-aliases]` 貼り込み）は user が後ほど**（私は触らない・暗黙に
+落とさないようここに保持）。
 
 ## 更新ログ
 

@@ -6,11 +6,15 @@
 #   ./scripts/build-zmk.sh imprint         # 製品グループ: imprint の全シールド
 #   ./scripts/build-zmk.sh ist             # 製品グループ: ist 受信ドングルのみ
 #   ./scripts/build-zmk.sh imprint_left    # 指定シールドのみビルド
+#   ./scripts/build-zmk.sh ist --logging   # USB-CDC ログ版（デバッグ）を焼く
 #   ./scripts/build-zmk.sh --update        # west update を強制（依存を最新化）
 #   ./scripts/build-zmk.sh --clean         # ワークスペースを破棄して終了
 #
 #   グループ all|imprint|ist は build.yaml の shield 名から都度引く（ハードコード無し。
 #   imprint=imprint_* / ist=ble_hid_host_receiver / all=全ターゲット）。
+#   --logging は選択ターゲットを CONFIG_ZMK_USB_LOGGING=y で焼き直し（成果物は
+#   <shield>-logging.uf2）。USB-serial で BLE 接続や INPUT_BTN_x の観測に使う
+#   ローカル専用のデバッグビルド（build.yaml/CI/release は製品ターゲットのみで不変）。
 #
 # 仕組み:
 #   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
@@ -38,13 +42,15 @@ WS="${ZMK_WS:-$HOME/.cache/zmk-canon}"
 IMAGE="${ZMK_IMAGE:-zmkfirmware/zmk-build-arm:stable}"
 CFG="$WS/cfgrepo"          # リポジトリ複製 = west topdir
 FORCE_UPDATE=0
+LOGGING=0
 
 # --- 引数処理 -------------------------------------------------------------
 SHIELDS=()
 for arg in "$@"; do
   case "$arg" in
-    --clean)  echo "ワークスペースを削除: $WS"; rm -rf "$WS"; exit 0 ;;
-    --update) FORCE_UPDATE=1 ;;
+    --clean)   echo "ワークスペースを削除: $WS"; rm -rf "$WS"; exit 0 ;;
+    --update)  FORCE_UPDATE=1 ;;
+    --logging) LOGGING=1 ;;
     -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) echo "不明なオプション: $arg" >&2; exit 2 ;;
     *)  SHIELDS+=("$arg") ;;
@@ -160,6 +166,7 @@ echo "=========================================="
 echo " ワークスペース : $CFG"
 echo " イメージ       : $IMAGE"
 echo " west update    : $([ $NEED_UPDATE -eq 1 ] && echo '実行' || echo 'スキップ（キャッシュ利用）')"
+[ "$LOGGING" -eq 1 ] && echo " logging        : 有効（CONFIG_ZMK_USB_LOGGING=y / *-logging.uf2）"
 echo " ビルド対象:"
 for row in "${SHIELDS[@]}"; do
   printf '   - %s / %s\n' "${row%%	*}" "${row##*	}"
@@ -179,6 +186,7 @@ docker run --rm \
   -e ZEPHYR_BASE=/workspace/zephyr \
   -e NEED_UPDATE="$NEED_UPDATE" \
   -e TARGETS="$TARGETS" \
+  -e LOGGING="$LOGGING" \
   "$IMAGE" bash -c '
 set -e
 git config --global --add safe.directory "*"  # bind mount の uid 不一致対策(Linux)
@@ -210,12 +218,16 @@ west zephyr-export
 mkdir -p /workspace/output
 for t in $TARGETS; do
   BOARD="${t%%:*}"; SH="${t##*:}"
-  echo "=== BUILD $BOARD / $SH ==="
-  west build -p -s zmk/app -d "build/$SH" -b "$BOARD" -- \
+  # --logging: USB-CDC ログを有効化し、別 build dir + -logging 成果物名で焼く
+  # （製品ビルドの cmake キャッシュと混ざらないよう dir を分ける）。
+  EXTRA=""; SUFFIX=""
+  if [ "$LOGGING" = "1" ]; then EXTRA="-DCONFIG_ZMK_USB_LOGGING=y"; SUFFIX="-logging"; fi
+  echo "=== BUILD $BOARD / $SH$SUFFIX ==="
+  west build -p -s zmk/app -d "build/$SH$SUFFIX" -b "$BOARD" -- \
     -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config \
-    -DBOARD_ROOT=/workspace -DDTS_ROOT=/workspace
-  cp "build/$SH/zephyr/zmk.uf2" "/workspace/output/$SH.uf2"
-  echo "=== DONE $SH ==="
+    -DBOARD_ROOT=/workspace -DDTS_ROOT=/workspace $EXTRA
+  cp "build/$SH$SUFFIX/zephyr/zmk.uf2" "/workspace/output/$SH$SUFFIX.uf2"
+  echo "=== DONE $SH$SUFFIX ==="
 done
 '
 
