@@ -80,6 +80,8 @@ fi
 # 非対応: トップレベル board:/shield: 配列形式（その場合は引数でシールド指定）。
 # 各 "- " 要素を境界に board/shield を順不同で拾い、境界か EOF で確定する。
 # コメント行（先頭 #、テンプレ冒頭の board: 例を含む）は無視する。
+# NOTE: 同一の awk を CI の .github/workflows/zmk-build.yml（build matrix 生成）も
+#   使う。片方を直したらもう片方も合わせること（build.yaml が board/shield の唯一のソース）。
 _build_pairs() {
   awk '
     /^[[:space:]]*#/ { next }
