@@ -124,21 +124,24 @@ AUTO-GENERATED ブロックを生成、`verify-eiji-sync.yml` が CI で厳密�
 ## ハードウェア / ビルドの用語
 
 ### board
-ZMK が指す **MCU 基板**。canon では `assimilator-bt`
-（Cyboard `zmk-keyboards@main` 由来）を使用する。タグ固定すると
-`arch.cmake` が `Could not find ARCH=cyboard` で落ちるため、`@main` 追従が
-必須。
+ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、Cyboard
+`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（imprint_dongle と ist 受信
+ドングル）。`assimilator-bt` はタグ固定すると `arch.cmake` が
+`Could not find ARCH=cyboard` で落ちるため `@main` 追従が必須。
 - 設定: [`config/west.yml`](../config/west.yml),
   [`build.yaml`](../build.yaml)
 - **Don't call it:** controller, mcu board, mcu pcb（板自体を指したい時のみ
   OK だが build 文脈では `board`）
 
 ### shield
-ZMK が指す **キーボード本体**（マトリクス + 物理レイアウト）の定義。
-canon では `imprint_left` / `imprint_right` の 2 シールドが分割左右に対応。
-- 設定: [`build.yaml`](../build.yaml)（`assimilator-bt × imprint_left/right`）
-- 注: [`boards/shields/`](../boards/shields/) が空でも正常（Cyboard 外部
-  モジュール由来のため）
+ZMK が指す **デバイス本体**（マトリクス / 物理レイアウト / 周辺）の定義。
+canon の 4 シールド: imprint の `imprint_left` / `imprint_right`（分割左右）/
+`imprint_dongle`、ist の `ble_hid_host_receiver`（トラックボール受信）。
+- 設定: [`build.yaml`](../build.yaml)（board × shield の唯一のソース）
+- 由来: `imprint_left/right`=Cyboard module、`imprint_dongle`=canon ローカル
+  [`boards/shields/`](../boards/shields/)、`ble_hid_host_receiver`=自前
+  `zmk-ble-hid-host` module。**ローカル shield は `imprint_dongle` のみ**
+  （`boards/shields/` は空ではない）。
 - **Don't call it:** half, side, panel, 分割キーボード
 
 ### west
@@ -147,14 +150,18 @@ Zephyr/ZMK の workspace 管理ツール。canon は manifest を
 - **Don't call it:** package manager, dependency manager, パッケージマネージャ
 
 ### build target
-1 つの `board × shield` 組み合わせ。canon の build target は 2 つ:
-`assimilator-bt × imprint_left` と `assimilator-bt × imprint_right`。
+1 つの `board × shield` 組み合わせ。canon の build target は **4 つ**（=「all」
+ビルド）: `assimilator-bt × imprint_left` / `imprint_right`、
+`xiao_ble/nrf52840/zmk × imprint_dongle`、`xiao_ble/nrf52840/zmk ×
+ble_hid_host_receiver`（ist）。サブセット（imprint だけ / ist だけ）は
+`build-zmk.sh` の shield 指定で。
 - 設定: [`build.yaml`](../build.yaml)
 - **Don't call it:** firmware variant, build config, ビルド構成
 
 ### `.uf2` artifact
-ビルド成果物。`firmware/imprint_left.uf2` と `firmware/imprint_right.uf2`
-をそれぞれ対応する分割半に書き込む。`.gitignore` 済。
+ビルド成果物。`firmware/<shield>.uf2`（例 `imprint_left.uf2` /
+`imprint_dongle.uf2` / `ble_hid_host_receiver.uf2`）を対応デバイスに書き込む。
+`.gitignore` 済。
 - 生成: `./scripts/build-zmk.sh`（Docker、依存は `~/.cache/zmk-canon`）
 - **Don't call it:** binary, image, ファーム本体
 
