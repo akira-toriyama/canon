@@ -359,9 +359,10 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   当面は ci#3 の相互参照コメントで同期担保。
 - ~~ci#3: 同 awk の相互参照コメントが片方向 → build-zmk.sh 側にも逆参照コメント。~~
   **✅ 完了（canon#88）**: build-zmk.sh の `_build_pairs` に zmk-build.yml への逆参照コメントを追加し双方向化。
-- build#2: README が flash-watch.sh / dongle flashing 未記載（C7 解消後に最小追記）。
-  **⏸ 据置（user 主体）**: README は user 主体執筆方針（CLAUDE.md）。フラッシュ節の最小文案は用意済で user 承認待ち
-  （flash-watch.sh = 左/右/dongle 自動コピー、flash-reset.sh = NVS リセット → dongle-roadmap 参照）。
+- ~~build#2: README が flash-watch.sh / dongle flashing 未記載（C7 解消後に最小追記）。~~
+  **✅ 完了（[canon#89](https://github.com/akira-toriyama/canon/pull/89)）**: README「ZMK ファーム ビルド」に
+  `### フラッシュ` 節を新設（flash-watch.sh の自動コピー = 左/右/dongle、`--reset` + flash-reset.sh の NVS リセット
+  → dongle-roadmap 参照）。README は user 主体方針のため文案を事前提示・user 承認済で追記。
 - ~~keymap#2: `ALL_MODS` dead define（behavior_macros.h:23-24）削除 +
   keymap_drawer.config.yaml:140-142 の陳腐化コメント修正（arrow morph は Ctrl+Alt のみ）。~~
   **✅ 完了（[canon#87](https://github.com/akira-toriyama/canon/pull/87)）**: ledger の 2点に加え、
@@ -429,3 +430,7 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   build#3（awk 抽出＝build クリティカルパス・blast radius 大）/ keymap#3（kana/eiji wrapper は drawer 表示名も
   担い素朴 de-dup は回帰）/ build#2（README user 主体・文案用意済で承認待ち）。gen#2 の chord 側 follow-up
   （live config `KP_X1`→`VK_X1`）は user の次回 chord 再同期で。
+- 2026-06-19: **Backlog canon build#2 ✅（[canon#89](https://github.com/akira-toriyama/canon/pull/89)）**。
+  README にフラッシュ節（flash-watch.sh 自動コピー + `--reset`/flash-reset.sh の NVS リセット）を user 承認文案で
+  追記。**canon low/nit の残は build#3 / keymap#3 のみ**（両者とも知見付きで⏸据置・任意）。chord 側 low/nit
+  （C1–C4 follow-up ほか）は別 repo の別 PR。
