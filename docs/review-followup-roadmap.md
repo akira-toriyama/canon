@@ -342,13 +342,26 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
 - ~~gen#1: gen-vkey-aliases.py がコメントも走査（将来 `// &vkey 0xNN` で誤爆）→ 行コメント除去。~~
   **✅ 完了（ist I2 #76）**: `strip_comments`（`/* */` と `//` を除去）を両 keymap 走査に追加。
   （ist keymap 冒頭の例ノードを拾わない要件と同時に解決。）
-- gen#2: DEFAULT alias `KP_X1` が chord 予約 `kp_*` 名前空間 → `VK_X1` 等へ改名し再生成。
-- gen#3: PR テンプレに vkey 用チェック欠如（eiji にはある）→ sibling checkbox + verify-vkey-sync 追記。
-- gen#4: eiji `disp:[X]` regex が幅検証なし → 1文字 assert で fail-loud。
+- ~~gen#2: DEFAULT alias `KP_X1` が chord 予約 `kp_*` 名前空間 → `VK_X1` 等へ改名し再生成。~~
+  **✅ 完了（[canon#88](https://github.com/akira-toriyama/canon/pull/88)）**: gen-vkey-aliases.py の `KP_X1`
+  （変数 `KP_X1_ID` 含む）→ `VK_X1` 一括改名 + `config/vkey-aliases.toml` 再生成（`VK_X1 = 0x01`・--check 通過）+
+  vkey-roadmap 採番スペック整合。**chord 追従（残・user）**: imprint vkey は既に chord 稼働中のため live
+  `~/.config/chord/config.toml` は現状 `KP_X1`。機能影響なし（id `0x01` で成立・alias 名は人間用ラベル）だが、
+  次回 chord 再同期で alias 定義 + 参照 binding を `VK_X1` へ改名要。
+- ~~gen#3: PR テンプレに vkey 用チェック欠如（eiji にはある）→ sibling checkbox + verify-vkey-sync 追記。~~
+  **✅ 完了（canon#88）**: vkey sibling checkbox + 手編集禁止リストへ `config/vkey-aliases.toml` + CI 列挙へ `verify-vkey-sync`。
+- ~~gen#4: eiji `disp:[X]` regex が幅検証なし → 1文字 assert で fail-loud。~~
+  **✅ 完了（canon#88）**: MACRO_RE 取り込み時に `len(ch)==1` を検証し違反は SystemExit。正常入力（全 disp 1 文字）は出力不変。
 - build#3: build-zmk.sh ↔ zmk-build.yml で patch-apply / west-build / awk が三重複
   （awk 抽出を `scripts/lib/parse-build-targets.sh` へ最初に切る、機会的に）。
-- ci#3: 同 awk の相互参照コメントが片方向 → build-zmk.sh 側にも逆参照コメント。
+  **⏸ 据置（canon#88 で見送り）**: build matrix 生成＝全ビルドのクリティカルパスで blast radius 大・ローカル検証も
+  Docker/CI 必須＝drive-by 不可。awk だけでなく patch/west の三重複統合まで含む大きめ refactor として別途意図的に。
+  当面は ci#3 の相互参照コメントで同期担保。
+- ~~ci#3: 同 awk の相互参照コメントが片方向 → build-zmk.sh 側にも逆参照コメント。~~
+  **✅ 完了（canon#88）**: build-zmk.sh の `_build_pairs` に zmk-build.yml への逆参照コメントを追加し双方向化。
 - build#2: README が flash-watch.sh / dongle flashing 未記載（C7 解消後に最小追記）。
+  **⏸ 据置（user 主体）**: README は user 主体執筆方針（CLAUDE.md）。フラッシュ節の最小文案は用意済で user 承認待ち
+  （flash-watch.sh = 左/右/dongle 自動コピー、flash-reset.sh = NVS リセット → dongle-roadmap 参照）。
 - ~~keymap#2: `ALL_MODS` dead define（behavior_macros.h:23-24）削除 +
   keymap_drawer.config.yaml:140-142 の陳腐化コメント修正（arrow morph は Ctrl+Alt のみ）。~~
   **✅ 完了（[canon#87](https://github.com/akira-toriyama/canon/pull/87)）**: ledger の 2点に加え、
@@ -357,6 +370,12 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   （`73ea43c`「vkey 移行で孤児化した修飾子 chord 機構を削除」）の掃除し残し。v-key 導入で複雑 MODS が
   不要化した帰結。firmware build / drawer SVG ともに不変（ALL_MODS 未使用・Hyper/Meh 元々未発火）。
 - keymap#3: kana/eiji 0-cell wrapper macro の冗長 indirection（任意 de-dup、draw 再実行必須）。
+  **⏸ 据置（canon#88 で見送り・知見記録）**: `HOLD_TAP_HP200(ime_kana,&kana)` は `bindings=<&kp>,<&kana>`、
+  combo `<&ime_kana MOD KANA>` の KANA(param2) は 0-cell `&kana` に渡らず無視され `kana` macro が内部で
+  `&kp KANA` を出す＝確かに冗長。**ただし** `kana`/`eiji` wrapper は keymap-drawer の raw_binding_map
+  （`&kana`→かな / `&eiji`→英数）の表示名も担い、素朴な `&kp` 置換は drawer ラベル回帰になる
+  （macros.dtsi:34-39 が EN_MACRO 分離を「描画名空間のため意図的」と明記する設計と同種）。de-dup は
+  drawer 表示の作り直し込みで別途。
 
 **検証で棄却済（false-positive・対応不要・再提起しないための記録）**:
 - 「dongle keymap に vkey node が無い」→ 実ビルド成果物で vkey node 搭載を確認（誤検知）。
@@ -404,3 +423,9 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   `special_combinations` `Hyper+`/`Meh+`）を削除。実調査で ledger 記載の 2点に加え special_combinations も
   dead（3〜4mod binding 不在）と判明し拡張。全て refactor T1（`73ea43c`）の掃除し残し。firmware/SVG 挙動不変。
   user が「v-key 動作確認済（キーボード）＝複雑 MODS 不要化」を確認済。
+- 2026-06-19: **Backlog canon low/nit 4件 ✅（[canon#88](https://github.com/akira-toriyama/canon/pull/88)）**。
+  gen#3（PR テンプレ vkey チェック）/ ci#3（awk 逆参照コメント）/ gen#4（eiji disp 1文字 assert）/
+  gen#2（DEFAULT alias `KP_X1`→`VK_X1` 改名 + 再生成）を 1 nit=1 commit で回収。**3件は据置**:
+  build#3（awk 抽出＝build クリティカルパス・blast radius 大）/ keymap#3（kana/eiji wrapper は drawer 表示名も
+  担い素朴 de-dup は回帰）/ build#2（README user 主体・文案用意済で承認待ち）。gen#2 の chord 側 follow-up
+  （live config `KP_X1`→`VK_X1`）は user の次回 chord 再同期で。
