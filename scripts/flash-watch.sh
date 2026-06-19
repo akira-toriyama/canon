@@ -6,4 +6,5 @@
 # Exit when all three are flashed.
 #
 # 共通実装は flash-impl.sh（NVS リセット版は flash-reset.sh）。
-exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "" "flashed (device will reboot)" ""
+# --yes / -y で確認スキップ（コピペ一発復旧・Claude・CI 用）。非対話でも自動スキップ。
+exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "" "flashed (device will reboot)" "" normal "$@"

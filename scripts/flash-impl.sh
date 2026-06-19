@@ -10,6 +10,11 @@
 #   $1 SUFFIX         firmware ファイル名の suffix（通常 "" / NVS リセット "_RESET"）
 #   $2 DONE_NOTE      各デバイス完了行の文言（例 "flashed (device will reboot)"）
 #   $3 ALL_DONE_NOTE  最終 ALL DONE 行の末尾に付ける文言（例 " (NVS wiped)"）
+#   $4 MODE           "normal"（通常焼き）/ "reset"（NVS 全消去・追加警告つき）
+#   以降 [--yes|-y]   確認をスキップ（コピペ一発復旧 / Claude / CI 用）
+#
+# 安全 banner は毎回必ず出す。確認プロンプトは「タイプ不要（Enter のみ）」で、
+# --yes 指定時 or 非対話（非 TTY = Claude/CI）時は自動スキップしてハングしない。
 
 set -u
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
@@ -17,6 +22,41 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 SUFFIX="${1:-}"
 DONE_NOTE="${2:-flashed}"
 ALL_DONE_NOTE="${3:-}"
+MODE="${4:-normal}"
+[ "$#" -ge 4 ] && shift 4 || shift "$#"
+
+YES=0
+for _arg in "$@"; do
+  case "$_arg" in
+    --yes|-y) YES=1 ;;
+  esac
+done
+
+# ── 安全 banner（誰が叩いても必ず出る。詳細復旧は docs/dongle-roadmap.md） ──
+cat >&2 <<'BANNER'
+============================================================
+ ⚠ imprint フラッシュ — 必ず確認
+   • ブートローダ = リセット "ダブルタップ"（シングルは再起動だけ＝bond は消えない）
+   • 左→右の順でブートローダへ（同じ基板＝マウント順で左右決定。dongle=XIAO は自動判別）
+   • 繋がらない時の復旧は手順A（ドングル抜き挿し・PC 不要）優先 → docs/dongle-roadmap.md
+BANNER
+if [ "$MODE" = "reset" ]; then
+  cat >&2 <<'BANNER'
+   ⚠⚠ これは NVS 全消去（bond/設定が全デバイスで消える）。消去後に通常版を焼き、
+      手順A（子機を先に広告 → 最後にドングル）で再ペアリングすること。
+BANNER
+fi
+echo "============================================================" >&2
+
+# 確認（--yes / 非対話 はスキップ＝コピペ一発・Claude・CI で詰まらない。タイプ不要）
+if [ "$YES" -ne 1 ] && [ -t 0 ]; then
+  if [ "$MODE" = "reset" ]; then
+    printf '%s' " NVS 全消去を実行します。Enter で続行 / Ctrl-C で中止 > " >&2
+  else
+    printf '%s' " Enter で続行 / Ctrl-C で中止 > " >&2
+  fi
+  read -r || exit 130
+fi
 
 LEFT_DONE=0
 RIGHT_DONE=0

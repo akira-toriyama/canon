@@ -16,6 +16,27 @@ Cyboard Imprint を **dongle 中継構成**(USB ドングル = central / 左右�
 > そして **リセットボタン1回・USB 挿し直しでは bond は消えない**（再起動するだけ）。
 > bond を消せるのは NVS wipe（RESET firmware）だけ。keymap に手動クリアキーは無い。
 
+### ⚡ コピペ一発復旧（一人・マウスだけ／キーボードが打てなくても可）
+
+> **Claude Code と一緒なら**: チャットに「**キーボード復旧**」とだけ伝えれば、
+> 下の手順（まず A、ダメなら下記コマンド）を Claude が代行する。
+
+まず下の **手順A（物理・PC 不要）** を試す。直らなければ Terminal を開き、
+以下を**マウスで選択 → ペースト**（末尾改行込みで自動実行＝タイプ不要）。各スクリプトの
+確認は `--yes` で飛ばすので、あとは**各デバイスをダブルタップでブートローダにするだけ**:
+
+```sh
+# 速い版（ビルド済 *_RESET.uf2 と通常版を焼くだけ）
+cd /Volumes/workspace/github.com/akira-toriyama/canon && ./scripts/flash-reset.sh --yes && ./scripts/flash-watch.sh --yes
+```
+
+```sh
+# 確実版（先に再ビルドしてから焼く。uf2 が古い/消えている時）
+cd /Volumes/workspace/github.com/akira-toriyama/canon && ./scripts/build-zmk.sh imprint --reset && ./scripts/build-zmk.sh imprint && ./scripts/flash-reset.sh --yes && ./scripts/flash-watch.sh --yes
+```
+
+焼き終わったら **手順A の順番（子機を先に広告 → 最後にドングル）で繋ぐ**。詳細は下記 A / B。
+
 ### A. まず試す（PC 操作不要・物理だけ／一度はこれで復活した）
 左右がドングルと食い違っているだけなら、**繋ぎ直す順番**だけで直る:
 
