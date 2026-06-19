@@ -76,6 +76,16 @@ ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `buil
   （`.gitignore` 済）
 - 要 Docker。依存は `~/.cache/zmk-canon` に永続化（2 回目以降は高速）
 
+### フラッシュ
+
+ビルドした `.uf2` をブートローダ（リセット2回でマウント）へコピーする。
+`scripts/flash-watch.sh` が `/Volumes` を監視して順に自動コピーする
+（assimilator-bt 1台目→左 / 2台目→右 / XIAO BLE→dongle）。3台焼けたら終了。
+
+NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset` で
+`*_RESET.uf2` を作り `scripts/flash-reset.sh`。再ペアリング復旧手順は
+[docs/dongle-roadmap.md](docs/dongle-roadmap.md)。
+
 ### リリース
 
 Actions の **Release** を手動起動 → コミットから次版を算出し、`vX.Y.Z`
