@@ -16,9 +16,9 @@
 
 ## 進め方 / 検証
 
-- **chord 先行**。順序: **C1 → C2 → C3 → C4**。**C1/C2/C4 ✅ 完了**、**C3 は vkey#1 ✅ /
-  runtime#2 のみ残**（Controller spine 統合テスト、テスト seam 新設が前提）。canon は
-  **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と統合して回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
+- **chord 先行**。順序: **C1 → C2 → C3 → C4**。**chord は C1–C4 すべて ✅ 完了**
+  （C3 = vkey#1 + runtime#2 とも完了）。canon は **C5/C6 ✅ 完了**（ist 統合作業 I1/I3 と統合して
+  回収済）、**C7 のみ残**（flash-reset.sh、削除前に user 確認）。
 - 1クラスタ = 1 PR（小さく）。コミットは gitmoji + Conventional Commits。
 - 検証コマンド:
   - chord: `cd <chord> && swift build && swift test`（特定は `swift test --filter <Name>`）。
@@ -34,7 +34,7 @@
 |----|------|------|------|------|----|
 | C1 | 出力 wire-schema 復旧 + 検証テスト | chord | High×4 | ✅ 完了 | [chord#110](https://github.com/akira-toriyama/chord/pull/110) |
 | C2 | dry-run / reload renderer 取りこぼし修正 | chord | High + Med×3 | ✅ 完了 | [chord#111](https://github.com/akira-toriyama/chord/pull/111) |
-| C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ▶ vkey#1 ✅ / runtime#2 残 | [chord#112](https://github.com/akira-toriyama/chord/pull/112) |
+| C3 | ホットパス（handleVKey / Controller spine）テスト | chord | High + Med | ✅ 完了（vkey#1 + runtime#2） | [#112](https://github.com/akira-toriyama/chord/pull/112) / [#114](https://github.com/akira-toriyama/chord/pull/114) |
 | C4 | 個別 Medium バグ（exclude_apps / typo section） | chord | Med×2 | ✅ 完了 | [chord#113](https://github.com/akira-toriyama/chord/pull/113) |
 | C5 | dongle ビルドを必須チェックへ | canon | High | ✅ 完了（ist **I3** と統合） | ruleset 16483994 |
 | C6 | docs ドリフト一括修正（dongle / release / zmk-build / vkey） | canon | Med | ✅ 完了（I1 #74 / I1-tail #78 + 本 reconcile PR） | – |
@@ -134,13 +134,24 @@ dry-run が**正しい非空 diff** を出す。`swift test` green。
 
 ---
 
-## C3. ホットパスのテスト空白を埋める　[High + Med] — ▶ vkey#1 ✅（chord#112）/ runtime#2 残
+## C3. ホットパスのテスト空白を埋める　[High + Med] — ✅ 完了（vkey#1 chord#112 / runtime#2 chord#114）
 
-**進捗（2026-06-19）**: **vkey#1 ✅ 完了（chord#112）**。`handleVKey` のエッジ/ラッチ算術を純粋値型
-`VKeyEdgeTracker`（ChordCore）へ抽出し、契約 10 ケース（dedup / 0=release / A→B roll / **wedge 回帰** ほか）を
-ユニットテスト化。`held` は dispatch/pause と独立に前進＝構造的に wedge 不能。挙動不変（敵対的レビュー
-3 レンズで等価性確認・correctness バグ 0）。**runtime#2 は残**: Controller の consume/pass spine 統合テストは
-`handle()` が private で `@testable` でも届かず、**テスト seam の新設が要る**（installHandler 等）→ 別 PR。
+**進捗（2026-06-19）**: **vkey#1 ✅（chord#112）+ runtime#2 ✅（chord#114）= C3 完了**。
+
+- **vkey#1**: `handleVKey` のエッジ/ラッチ算術を純粋値型 `VKeyEdgeTracker`（ChordCore）へ抽出し、契約 10 ケース
+  （dedup / 0=release / A→B roll / **wedge 回帰** ほか）をユニットテスト化。`held` は dispatch/pause と独立に
+  前進＝構造的に wedge 不能。挙動不変（敵対的レビュー 3 レンズで等価性確認・correctness バグ 0）。
+- **runtime#2**: `Controller.handle` の consume/pass spine を**実 handle() で統合テスト**。`handle()` が
+  `nonisolated private` で `@testable` でも届かないため、**`#if DEBUG` テスト seam を新設**
+  （`startForTesting(matcher:)` = `resetState()`+`publishMatcher()`+ 実 `start()` と同一 closure で
+  `source.start { handle($0) }` を配線、AppKit/AX/IPC 不要 / `variableSnapshotForTesting` /
+  `pendingUpCountForTesting`）。production は追加のみ・挙動不変。`ControllerSpineTests` 6 ケース
+  （B1 ペアリング / autorepeat 3 戦略を **outcome + 再 fire 副作用**で判別 / on-up / toggleVariable /
+  modifier-only entry・exit / passthrough は action 発火・pendingUp 非登録）。standalone driver で実
+  `handle()` を seam 経由で全 PASS、敵対的レビュー 3 レンズ = GO。confirmed SHOULD_FIX 1 件（autorepeat が
+  outcome のみ assert で ignore/fire-each を判別できず）を同 PR で解消。seam の落とし穴（tap は Controller を
+  弱参照 = テストが保持しないと dealloc→無言 passthrough）を `live` 配列で解消。**残（out of scope）**は下記 Backlog
+  「C3 follow-up」へ。
 
 **問題**: 最も安全性が重要な層に**直接テスト 0**。
 - **[High] vkey#1**: `Sources/ChordApp/Controller.swift:362-388`(handleVKey) の
@@ -275,6 +286,15 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   （describeMods を input.modifiers に流用 + trigger.name/keycode）。ReloadDiffRenderTests に
   「[input-aliases] body だけ変えた参照 binding が非 bare 理由を出す」ケース追加。
 
+**chord — C3 follow-up（runtime#2 の敵対的検証で out-of-scope と確定・暗黙に落とさない）**:
+- c3f#1: **extendTimer 順序**（handle の B-α reset-on-use）は runtime#2 mandate に挙がるが、global
+  `variableStore` の scheduler を test 注入できず現 seam では決定的に観測不可（timing 依存＝flaky 回避）。
+  VariableStore 自体は fake scheduler で単体テスト済。seam を「scheduler 注入可」へ拡張すれば取れる → 任意の後続。
+- c3f#2: `extraDownActions`（down の Karabiner 風 multi-action）と vkey trigger の handle() ペアリングは未カバー。
+  後者は key pairing と構造同一（B1 テストが汎用的に固定）+ `VKeyEdgeTracker` 単体テスト済。前者は `.keys` 発火＝
+  実 CGEvent post が要るため value-only seam の範囲外。記録のみ。
+- c3f#nit: `isPaused()` 早期 passthrough は到達可能だが pause を flip する seam が無い（1 行の early return・低価値）。
+
 **chord — C4 follow-up（C4 の敵対的検証で発覚・既存挙動／TOML 仕様）**:
 - c4f#1: top-level section typo の warning が wire `dropped[].section` で `[[bindings]]` を表示
   （`wireDropped` default ケース。`unknown-option-key` 等と同じ**既存近似**。v3 schema は `section` を
@@ -348,3 +368,8 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   ガード）+ parsing#1（top-level section typo を `.unknownKey` で警告・新 Kind 無しで wire enum drift 回避）を
   1 PR で回収。standalone driver で FAIL→PASS 機械検証、敵対的レビュー（4レンズ）= GO・defect 0。
   NIT 2 件を Backlog「C4 follow-up」へ。**chord 残 = C3 runtime#2 のみ**、canon 残 = C7。
+- 2026-06-19: **C3 runtime#2 ✅（chord#114）= chord C1–C4 完了**。`Controller.handle` の consume/pass spine を
+  `#if DEBUG` テスト seam（`startForTesting`）経由で**実 handle() 統合テスト**（`ControllerSpineTests` 6 ケース）。
+  production 追加のみ・挙動不変。standalone driver で全 PASS、敵対的レビュー（3レンズ）= GO。confirmed SHOULD_FIX 1 件
+  （autorepeat の ignore/fire-each 判別）を同 PR で解消。out-of-scope（extendTimer 順序 ほか）を Backlog「C3 follow-up」へ。
+  **canon 残は C7 のみ**（flash-reset dead path・削除前 user 確認）。
