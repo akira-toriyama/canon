@@ -9,7 +9,7 @@ name: Release
 # （GitHub UI で内容確認のうえ Publish。publish 時に初めてタグ生成）。
 # main 保護のため CHANGELOG は main へ push しない。
 # workflow_dispatch + dry_run=true は版算出+ノート+ビルドのみ＝ドラフトを
-# 作らず版も消費しない完全プレビュー。規約: docs/commit-convention.md
+# 作らず版も消費しない完全プレビュー。規約: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
 # 設定: cliff.toml
 #
 # firmware ビルドは通常 CI と同じ reusable (.github/workflows/zmk-build.yml) に

@@ -173,7 +173,8 @@ chord 内のハード依存は **T6 → T7** のみ。T5 は T7 より soft-befo
   canon を thin caller 化し、shared workflow ヘッダの caller リストに canon を追記。
   glossary.yml は既に reusable 委譲済なので低依存/no-paid-CI ポリシーの障害なし
   （GitHub-hosted 無料・Node/Claude なし）。**判断 2 参照**。
-- **item B** — chord の `scripts/hooks/commit-msg:22` と `docs/commit-convention.md:29` は
+- **item B** — chord の `scripts/hooks/commit-msg:22` と canonical な
+  [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md) は
   `security` type（`:lock:`）を許すが、shared reusable CI（許可型 = `feat|fix|perf|refactor|
   docs|test|build|ci|chore|style|revert`、security なし）は**拒否**し、chord の cliff.toml にも
   `^security` parser が無い（changelog/版算出から黙って漏れる）。つまり `security` コミットは

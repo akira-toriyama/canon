@@ -103,7 +103,7 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 **gitmoji + Conventional Commits**: `<:gitmoji:> <type>(<scope>)<!>: <subject>`
 semver は `type` で決まる（`feat`→minor / `fix`・`perf`→patch / `!`・
 `BREAKING CHANGE:`→major / その他は bump しない）。完全な規約・semver 表・
-bot 除外は **[docs/commit-convention.md](docs/commit-convention.md)** を参照
+bot 除外は **[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)** を参照
 （設定 [cliff.toml](cliff.toml)）。
 
 - ローカル検証フック: `git config core.hooksPath scripts/hooks`

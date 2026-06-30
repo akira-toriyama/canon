@@ -26,7 +26,7 @@ flowchart LR
 ## 環境構築
 
 クローン後、コミットメッセージ検証フックを有効化する（gitmoji +
-Conventional Commits を強制 / [docs/commit-convention.md](docs/commit-convention.md)）。
+Conventional Commits を強制 / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
 
 ```sh
 git config core.hooksPath scripts/hooks
@@ -90,7 +90,7 @@ NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset
 
 Actions の **Release** を手動起動 → コミットから次版を算出し、`vX.Y.Z`
 タグ＋GitHub Release（git-cliff 生成ノート＋`imprint_*.uf2` 添付）を生成
-（[docs/commit-convention.md](docs/commit-convention.md)）。`main` 保護尊重の
+（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。`main` 保護尊重の
 ため CHANGELOG は main へ自動 push しない。
 
 ## keymap
@@ -117,5 +117,5 @@ CI（[verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml)）で照合�
 
 ## 開発・ライセンス
 
-- コミット規約: **gitmoji + Conventional Commits**（[docs/commit-convention.md](docs/commit-convention.md)）
+- コミット規約: **gitmoji + Conventional Commits**（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）
 - ライセンス: [MIT](LICENSE) © 2026 akira-toriyama

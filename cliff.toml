@@ -1,5 +1,5 @@
 # git-cliff 設定 — gitmoji + Conventional Commits からバージョン/CHANGELOG を生成。
-# 規約は docs/commit-convention.md を参照。
+# 規約は https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md を参照。
 
 [changelog]
 header = """

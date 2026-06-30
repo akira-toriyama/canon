@@ -1,7 +1,7 @@
 #!/bin/sh
 # gitmoji + Conventional Commits 形式を検証する commit-msg フック。
 # 有効化:  git config core.hooksPath scripts/hooks
-# 規約:    docs/commit-convention.md
+# 規約:    https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
 #
 # 形式: <:gitmoji:> <type>(<scope>)<!>: <subject>
 #   例:  :sparkles: feat(keymap): 矢印レイヤーを追加
@@ -37,6 +37,6 @@ cat >&2 <<EOF
          :bug: fix(combos): home-row combo の誤爆を修正
          :boom: feat(keymap)!: base レイヤーを全面再配置
 
-  詳細: docs/commit-convention.md
+  詳細: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
 EOF
 exit 1
