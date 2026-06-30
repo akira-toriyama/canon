@@ -23,7 +23,7 @@ SUFFIX="${1:-}"
 DONE_NOTE="${2:-flashed}"
 ALL_DONE_NOTE="${3:-}"
 MODE="${4:-normal}"
-[ "$#" -ge 4 ] && shift 4 || shift "$#"
+if [ "$#" -ge 4 ]; then shift 4; else shift "$#"; fi
 
 YES=0
 for _arg in "$@"; do
