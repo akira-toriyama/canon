@@ -1,6 +1,5 @@
-# Claude Code のローカル設定（個人マシン固有の Bash 許可コマンド等）
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
+# Claude Code のローカル設定・worktree（commit しない／他 repo と統一）
+.claude/
 
 # scripts/build-zmk.sh のローカルビルド生成物
 /firmware/

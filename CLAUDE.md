@@ -127,6 +127,12 @@ bot 除外は **[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob
 - public repo のため GitHub Actions 実行は無料枠。課金 API を使う workflow を
   追加しないこと。
 
+## Claude Code
+
+- 権限（WebFetch 許可ドメイン等）はローカルの `.claude/settings.json`（gitignore 対象）に置き、repo には commit しない（個人・マシン設定は共有しない方針・他 repo と統一）。
+- 許可している WebFetch: `zmk.dev`（ZMK 公式ドキュメント）, `deepwiki.com`（repo 解説）＋ `WebSearch`。`karabiner-elements.pqrs.org` は未使用のため削除。
+- 新マシンでは `.claude/settings.json` を手で再作成する（gitignore 対象＝clone で復元されない）。
+
 ## Roadmap board (GitHub Projects)
 
 この repo の issue は集約 Project「roadmap」(akira-toriyama #5・
