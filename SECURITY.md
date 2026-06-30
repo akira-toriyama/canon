@@ -18,5 +18,5 @@ ZMK ファームウェア設定の個人リポジトリです。攻撃対象面�
 ## 対応
 
 単独メンテナンスのため即応は保証できませんが、妥当な報告には可能な
-範囲で対応します。修正は通常リリース（[docs/commit-convention.md](docs/commit-convention.md)）
+範囲で対応します。修正は通常リリース（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）
 に含めます。

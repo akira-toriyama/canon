@@ -233,7 +233,8 @@ commit-convention の release モデル）は本 reconcile PR で修正**。下�
   `CLAUDE.md:78`（+ :40 の「@main」）を更新し zmk-build.yml を inventory へ（背景=vkey-roadmap「案1」）。
 - release モデル: 「手動 dispatch → 即 vX.Y.Z タグ」→ 実は push:main 自動 → ローリング draft 更新 →
   手動 Publish で初めてタグ + dongle uf2 添付。`CLAUDE.md` / `README.md:77-82` /
-  `docs/commit-convention.md:61-75`（特に「タグを作成・push」の誤記と uf2 一覧へ dongle 追加）。
+  canonical な [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)
+  のリリース手順節（特に「タグを作成・push」の誤記と uf2 一覧へ dongle 追加）。
 - transport: 「修飾キー chord を送出」→ vendor-HID v-key へ置換済（同 README 下部と自己矛盾、
   glossary の "Don't call it: chord" 自己違反）。`README.md:6,22` / `README.en.md:6,22` /
   `glossary.md:64` のエッジラベル。

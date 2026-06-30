@@ -4,7 +4,7 @@
 
 ## 種別
 
-<!-- 該当を残す（semver は docs/commit-convention.md） -->
+<!-- 該当を残す（semver は https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md） -->
 
 - [ ] feat（機能追加 / minor）
 - [ ] fix・perf（修正・改善 / patch）

@@ -26,7 +26,7 @@ flowchart LR
 ## Setup
 
 After cloning, enable the commit-message hook (enforces gitmoji +
-Conventional Commits / [docs/commit-convention.md](docs/commit-convention.md)):
+Conventional Commits / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)):
 
 ```sh
 git config core.hooksPath scripts/hooks
@@ -81,7 +81,7 @@ Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 
 Run the **Release** workflow manually → the next version is computed from
 commits; it creates a `vX.Y.Z` tag and a GitHub Release (git-cliff-generated
-notes + `imprint_*.uf2`) ([docs/commit-convention.md](docs/commit-convention.md)).
+notes + `imprint_*.uf2`) ([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)).
 CHANGELOG is not auto-pushed to `main` (branch protection is respected).
 
 ## keymap
@@ -112,5 +112,5 @@ single source) and checked in CI
 ## Development & License
 
 - Commits: **gitmoji + Conventional Commits**
-  ([docs/commit-convention.md](docs/commit-convention.md))
+  ([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md))
 - License: [MIT](LICENSE) © 2026 akira-toriyama
