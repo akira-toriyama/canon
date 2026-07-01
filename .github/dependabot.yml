@@ -1,18 +1,17 @@
+# Canonical standard file managed by fleet-sync (.github/workflows/fleet-sync.yml).
+# Do NOT edit per-repo copies — edit THIS file; fleet-sync propagates it to every
+# owned, non-fork, non-archived repo. Synced to: .github/dependabot.yml
 version: 2
-
-# GitHub Actions の依存（actions/checkout, orhun/git-cliff-action 等）を定期更新。
-# 注: 再利用ワークフロー zmkfirmware/zmk・caksoylar/keymap-drawer は @main 追従の
-# ため Dependabot の版管理対象外（意図的に最新追従）。
-# コミットは gitmoji + Conventional Commits 規約に合わせる（https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md）。
 updates:
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
-    assignees: ["akira-toriyama"]
-    commit-message:
-      prefix: ":arrow_up: build(deps)"
+    # Batch every action bump into ONE weekly PR (not one PR per action).
     groups:
       actions:
         patterns: ["*"]
+    # gitmoji + Conventional Commits so bot PRs match the house convention
+    # (CONTRIBUTING.md). Bots are exempt from commit-lint, so this is decoration.
+    commit-message:
+      prefix: ":arrow_up: build(deps)"
