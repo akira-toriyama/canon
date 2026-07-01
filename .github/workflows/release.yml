@@ -44,7 +44,7 @@ jobs:
       release: ${{ steps.ver.outputs.release }}
       version: ${{ steps.ver.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -114,7 +114,7 @@ jobs:
       # build (reusable) と version が上げた artifact を全部回収。
       # download-artifact は <path>/<artifact名>/<file> 構造で展開する。
       - name: Download artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: dist
 

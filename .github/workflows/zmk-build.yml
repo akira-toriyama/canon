@@ -31,7 +31,7 @@ jobs:
     outputs:
       include: ${{ steps.gen.outputs.include }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - id: gen
         name: Derive build matrix from build.yaml
         run: |
@@ -66,7 +66,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: West init + update (ZMK @ main)
         run: |
