@@ -11,6 +11,11 @@ on:
     paths: ['**/*.toml']
   workflow_dispatch:
 
+# Least privilege, made explicit — closes zizmor's excessive-permissions
+# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+permissions:
+  contents: read
+
 jobs:
   taplo:
     uses: akira-toriyama/.github/.github/workflows/taplo.yml@v1

@@ -6,6 +6,11 @@ name: commit-lint
 on:
   pull_request:
 
+# Least privilege, made explicit — closes zizmor's excessive-permissions
+# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+permissions:
+  contents: read
+
 jobs:
   lint:
     uses: akira-toriyama/.github/.github/workflows/commit-lint.yml@v1

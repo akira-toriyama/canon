@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: write
     # タグ固定（Dependabot github-actions が更新を追従）。
-    uses: caksoylar/keymap-drawer/.github/workflows/draw-zmk.yml@v0.23.0
+    uses: caksoylar/keymap-drawer/.github/workflows/draw-zmk.yml@a44809b8cc718cbff646641f49a8f71a9368336d # v0.23.0
     with:
       # imprint のみ描画。ist の ble_hid_host_receiver は受信ドングル＝物理キー無し
       # （physical layout が無い）ので keymap-drawer の対象外（既定 config/*.keymap
