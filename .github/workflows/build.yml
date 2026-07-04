@@ -26,6 +26,11 @@ on:
   schedule:
     - cron: "0 3 * * 1" # 毎週月曜 03:00 UTC
 
+# Least privilege, made explicit — closes zizmor's excessive-permissions
+# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+permissions:
+  contents: read
+
 jobs:
   build:
     uses: ./.github/workflows/zmk-build.yml

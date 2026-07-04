@@ -32,8 +32,11 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+# Least privilege: only the `draft` job publishes releases (contents: write);
+# `version` (git-cliff + artifact) and `build` (firmware) need read only. Scoped
+# per-job below ahead of the fleet zizmor gate (akira-toriyama/.github t-qbp1).
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   # 次版算出 + リリースノート生成。firmware ビルド (build) と draft 公開は
@@ -53,7 +56,7 @@ jobs:
       # 次版ではないため使わない）。未公開ドラフトはタグを作らないので
       # last タグは最後に Publish した版のまま＝次版はマージしても安定。
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@9bcaee1dcae34154180f412e2fa69355a7cda9f6 # v2
         with:
           tool: git-cliff@2
 
@@ -101,6 +104,9 @@ jobs:
   draft:
     needs: [version, build]
     if: needs.version.outputs.release == 'true'
+    # The only job that writes: it creates/edits the draft release + uploads assets.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
