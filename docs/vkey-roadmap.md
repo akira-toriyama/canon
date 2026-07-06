@@ -740,6 +740,41 @@ canon PR #60）** まで全て完了。残るは **vkey→zmk upstream PR（任�
 ### 既知の保留ギャップ（機能影響なし・検査系）
 chord: `config --show --json` が vkeys 非出力 / `config --validate` サマリに vkey 数なし。
 
+## 修飾子マスク（TU_LL/TU_LM の Ctrl/Alt を vkey に載せない）— 2026-07-06
+
+**背景**: サム上段 `TU_LL`/`TU_LM` は layer 起動と同時に LCtrl/LAlt を hold する
+（`t_ll_ctrl`/`t_lm_alt`＝マウス Ctrl+click 等、レイヤー外の入力と合成するため）。この状態で
+層内キー（`&vkey`）を押すと、vkey レポート(0x20)とは別に**キーボードレポート(0x01)に Ctrl/Alt が
+載ったまま**残り、OS/chord へ修飾子が漏れていた（vkey は id がユニークで修飾子不要）。
+
+**対策**: `behavior_vkey.c`（`patches/zmk/vkey-report.patch`）で、vkey press 時に
+`zmk_hid_masked_modifiers_set(explicit_mods & (MOD_LCTL|MOD_LALT))` + キーボードレポート flush で
+**握っている Ctrl/Alt だけ**を隠してから vkey を送る（mod-morph と同じ `masked_modifiers` 機構。
+内部 `explicit_modifier_counts` に触れないので二重解放なし。Ctrl/Alt に絞るのは、同時保持した
+Shift/Cmd/右親指 mod を巻き込んで取り残さないため＝下記レビュー反映）。**毎キーでは戻さない**
+——release ごとの復帰は vkey タップ毎に Ctrl の down/up を生み、OS が「Control 2回＝音声入力」を
+誤発火し Karabiner にも Ctrl が出続けた（実機 IOHIDManager 監視で確認。生 HID＝Karabiner の上流
+なので Karabiner は無実）。代わりに **`layer_state_changed` listener** が、vkey mask 中に層が OFF
+になったら mask を解除して再 flush する（`TU_MOD` マクロが release 時に必ず `&mo LAYER` を落とす
+ので決定的に発火。`vkey_masked` フラグで「実際に mask した時だけ・1 回だけ」に限定し、無関係な層
+トグルには無反応。再 flush により、まだ握っている修飾子＝もう片方の親指や同時保持 Ctrl は復帰する）。
+
+**結果**（実機 monitor で確認・TU_LL/TU_LM 両方成立）: 1 ホールドあたり Ctrl/Alt の down/up は
+**最大 1 回**（連打消滅 → 音声入力誤発火が止まる）。vkey は毎回正常送出。
+
+- **A**（vkey 連打）: Ctrl は最初の 1 回だけ、以降 `mods=0x00` のまま ✅
+- **B**（vkey 撃たず TU_LL + マウス）: mask されず Ctrl 保持 → Ctrl+click 成立 ✅
+- **C**（vkey の“後”に同ホールドでマウス Ctrl+click）: **非対応**（離すまで mask 継続）。
+  稀ケースとして許容（＝「戻す」を毎キーやめた代償）。
+
+**マージ前レビュー**（マルチエージェント敵対的レビュー・6 次元 → 各発見を却下前提で検証）:
+確認 10 件・ブロッカー 0。収束点＝「全 explicit mod を一括 mask ＋ `explicit==0` 依存の解除」だと
+同時保持した Shift 等が mask に取り残され後続修飾子が黙って落ちうる（low）→ 上記の **Ctrl/Alt 限定
+mask ＋ フラグによる層 OFF 解除**で解消。
+
+**波及なし**: キーマップ・`gen-vkey-aliases.py`・`vkey-aliases.toml` 不変。firmware build
+（imprint_dongle central / ble_hid_host_receiver）緑・`behavior_vkey.c` compile 確認済み。
+
 ## 参考
 
 - 設計の素: 指示書 `~/Downloads/vkey-vendor-hid-spec.md`。
