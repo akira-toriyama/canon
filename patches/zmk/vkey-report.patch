@@ -139,7 +139,7 @@ new file mode 100644
 index 00000000..a83e3d69
 --- /dev/null
 +++ b/app/src/behaviors/behavior_vkey.c
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,97 @@
 +/*
 + * Copyright (c) 2024 The ZMK Contributors
 + *
@@ -155,6 +155,8 @@ index 00000000..a83e3d69
 +#include <zmk/hid.h>
 +#include <zmk/endpoints.h>
 +#include <zmk/behavior.h>
++#include <zmk/event_manager.h>
++#include <zmk/events/layer_state_changed.h>
 +
 +LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 +
@@ -162,10 +164,38 @@ index 00000000..a83e3d69
 +// the bound id and send it; on release, set 0 and send. Runs on the central
 +// (no .locality -> BEHAVIOR_LOCALITY_CENTRAL), where the HID state and the USB
 +// endpoint live, so no split event marshaling is needed.
++//
++// Modifier masking: the imprint thumb keys TU_LL/TU_LM hold LCtrl/LAlt while
++// their vkey layer is active (t_ll_ctrl / t_lm_alt), so those modifiers would
++// otherwise ride along with the vkey. The id is already unique, so no modifier
++// is wanted on it: on press we mask the thumb-owned modifiers still held
++// (explicit_mods & (MOD_LCTL|MOD_LALT) -- deliberately NOT every held modifier,
++// so a co-held Shift/Cmd/right-thumb mod is never captured or stranded) and
++// flush a keyboard report so the host sees Ctrl/Alt released. We do NOT restore
++// per key -- restoring on every release turned each vkey tap into a Ctrl down/up
++// "tap", which the OS reads as a repeated modifier tap (spurious macOS Dictation
++// "press Control twice", noisy Karabiner logs). The mask instead lives for the
++// whole hold and is cleared by the layer listener below when the thumb layer
++// turns off (its TU_MOD macro always deactivates &mo LAYER on release, so the
++// clear is deterministic). Net: at most one Ctrl/Alt down/up per hold, not one
++// per key; a hold with no vkey never masks, so plain TU_LL + mouse Ctrl+click
++// still works. Cost: a mouse Ctrl+click AFTER a vkey in the SAME hold sees no
++// Ctrl (rare "pattern C"). TU_RM/TU_RR and ist buttons own no Ctrl/Alt, so they
++// mask nothing.
++
++// Set while a vkey mask is active, so the layer listener clears exactly once
++// (and only when we actually masked) instead of on every unrelated layer-off.
++static bool vkey_masked = false;
 +
 +static int on_keymap_binding_pressed(struct zmk_behavior_binding *binding,
 +                                     struct zmk_behavior_binding_event event) {
 +    LOG_DBG("position %d vkey id %d", event.position, binding->param1);
++    zmk_mod_flags_t held = zmk_hid_get_explicit_mods() & (MOD_LCTL | MOD_LALT);
++    if (held) {
++        zmk_hid_masked_modifiers_set(held);
++        zmk_endpoint_send_report(HID_USAGE_KEY);
++        vkey_masked = true;
++    }
 +    zmk_hid_vkey_set((uint8_t)(binding->param1 & 0xFF));
 +    zmk_endpoint_send_vkey_report();
 +    return ZMK_BEHAVIOR_OPAQUE;
@@ -183,6 +213,24 @@ index 00000000..a83e3d69
 +    .binding_pressed = on_keymap_binding_pressed,
 +    .binding_released = on_keymap_binding_released,
 +};
++
++// Clear the mask when a layer turns off while a vkey mask is active. The thumb
++// key that held Ctrl/Alt releases its &mo LAYER on release (TU_MOD macro), so
++// this fires deterministically for that hold; the vkey_masked guard makes it a
++// no-op for unrelated layer toggles, and the re-flush lets any still-held
++// modifier (the other thumb, or a co-held Ctrl) reappear on the keyboard report.
++static int vkey_layer_state_listener(const zmk_event_t *eh) {
++    const struct zmk_layer_state_changed *ev = as_zmk_layer_state_changed(eh);
++    if (ev && !ev->state && vkey_masked) {
++        zmk_hid_masked_modifiers_clear();
++        zmk_endpoint_send_report(HID_USAGE_KEY);
++        vkey_masked = false;
++    }
++    return ZMK_EV_EVENT_BUBBLE;
++}
++
++ZMK_LISTENER(vkey_mask, vkey_layer_state_listener);
++ZMK_SUBSCRIPTION(vkey_mask, zmk_layer_state_changed);
 +
 +#define VKEY_INST(n)                                                                               \
 +    BEHAVIOR_DT_INST_DEFINE(n, NULL, NULL, NULL, NULL, POST_KERNEL,                                \
