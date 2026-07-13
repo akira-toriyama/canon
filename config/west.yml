@@ -7,18 +7,24 @@ manifest:
     # Additional modules containing boards/shields/custom code can be listed here as well
     # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
   projects:
-    # ZMK は main 追従が必須。Cyboard zmk-keyboards@main の assimilator-bt は
-    # 新しい Zephyr ハードウェアモデル(HWv2)を要求し、ZMK をタグ固定すると
-    # arch.cmake で "Could not find ARCH=cyboard" となり board 解決に失敗する。
+    # ZMK は main 追従が必須。Cyboard の assimilator-bt（HWv2 版）は新しい Zephyr
+    # ハードウェアモデルを要求し、ZMK をタグ固定すると arch.cmake で
+    # "Could not find ARCH=cyboard" となり board 解決に失敗する。
     # （ZMK 公式のバージョン固定推奨より、この依存関係を優先する）
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    # zmk-keyboards (Cyboard モジュール) は main 追従（タグ運用なし）。
+    # zmk-keyboards (Cyboard モジュール) は **zephyr-4.1 ブランチ**追従。
+    # 2026-07-07 に Cyboard が main の意味を変えた: main = ZMK v0.3.0 pin +
+    # assimilator-bt を HWv1 レイアウト（boards/arm/）へ差し戻し（Studio 0.3.0 スタック）。
+    # canon は zmk@main（= Zephyr 4.1）追従なので main を引くと HWv1 board になり、
+    # cmake が soc Kconfig を生成できず "Kconfig/soc/Kconfig.defconfig not found" で落ちる。
+    # Cyboard 自身が west.yml で「ZMK main / Zephyr 4.1 なら zephyr-4.1 ブランチを使え」と
+    # 案内している（HWv2 の boards/cyboard/assimilator-bt/board.yml はそちらにある）。
     - name: zmk-keyboards
       remote: Cyboard-DigitalTailor
-      revision: main
+      revision: zephyr-4.1
       import: config/west.yml
   self:
     path: config

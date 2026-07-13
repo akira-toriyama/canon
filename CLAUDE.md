@@ -40,11 +40,19 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   [boards/shields/](boards/shields/) のローカル shield は **`imprint_dongle` のみ**
   （他は module 由来）＝空ではない。board/shield の一覧（all ビルド）は
   [build.yaml](build.yaml) が唯一のソース。
-- **ZMK は `main` 追従必須・タグ固定しない**: Cyboard `zmk-keyboards@main` の
-  `assimilator-bt` は新 Zephyr ハードウェアモデル(HWv2)を要求する。ZMK を
+- **ZMK は `main` 追従必須・タグ固定しない**: Cyboard の `assimilator-bt`（HWv2 版）は
+  新 Zephyr ハードウェアモデルを要求する。ZMK を
   タグ（例 `v0.3.0`）固定すると CI/ローカルとも `arch.cmake` で
   `Could not find ARCH=cyboard` となりビルド不能。ZMK 公式の版固定推奨より
   この依存を優先（[config/west.yml](config/west.yml) / build.yml は `@main`）。
+- **Cyboard `zmk-keyboards` は `main` でなく `zephyr-4.1` ブランチを追う**: 2026-07-07 に
+  Cyboard が **main の意味を変えた**（main = ZMK `v0.3.0` pin + `assimilator-bt` を HWv1
+  レイアウト `boards/arm/` へ差し戻し＝Studio 0.3.0 スタック）。canon は zmk@main
+  （= Zephyr 4.1）なので main を引くと HWv1 board になり、cmake が soc Kconfig を作れず
+  `Kconfig/soc/Kconfig.defconfig not found` で **assimilator-bt の 2 ターゲットだけ**落ちる
+  （xiao_ble の imprint_dongle は通るので、部分的な赤に見えて紛らわしい）。HWv2 board
+  （`boards/cyboard/assimilator-bt/board.yml`）は `zephyr-4.1` ブランチ側にあり、Cyboard
+  自身が west.yml のコメントでそちらを案内している。
 - **単一ソース規約（eiji）**: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) が唯一の
   ソース。`keymap_drawer.config.yaml` の AUTO-GENERATED ブロックは
   [scripts/gen-eiji-drawer-map.py](scripts/gen-eiji-drawer-map.py) が生成し、
