@@ -60,7 +60,7 @@ dongle = BLE central / 左右 = peripheral。bond が残った子機は「昔の
 **directed 広告**する＝scanning 中の新しい親から見えない。片側だけ消える/部分ペアで
 **非対称**になると沈黙する（`security failed (err 2)` / slot 予約失敗）。だから「リセット連打」
 では永遠に直らない（同じ NVS を読み直すだけ）。`flash-*.sh` は imprint 専用（XIAO を見ると
-`imprint_dongle` を焼く）＝**ist の XIAO には使わない**。
+`imprint_dongle` を焼く）＝**ist（別 repo の受信ドングル）の XIAO には使わない**。
 
 ### 自動回復（既に有効）と検討した予防策
 

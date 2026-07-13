@@ -5,13 +5,14 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 
 ## このリポジトリ
 
-自分の **ZMK ファーム集約 repo**（リポジトリルート = ZMK user-config）。2 製品:
+自分の **ZMK ファーム repo**（リポジトリルート = ZMK user-config）。1 製品:
 
 - **imprint**: [Cyboard Imprint](https://cyboard.digital/products/imprint) キーボード
-  （board=assimilator-bt / shield=imprint_left・imprint_right・imprint_dongle）。
-- **ist**: IST PRO トラックボール受信ドングル（board=xiao_ble/nrf52840/zmk /
-  shield=ble_hid_host_receiver。BLE-HID central → USB 中継）。詳細・I2/I3 含む計画は
-  [`docs/ist-roadmap.md`](docs/ist-roadmap.md)。
+  （board=assimilator-bt / shield=imprint_left・imprint_right、board=xiao_ble/nrf52840/zmk /
+  shield=imprint_dongle）。
+
+※ ist（トラックボール受信ドングル）は 2026-07-13 に canon から分離し、別 repo
+（`zmk-ble-hid-host`）へ移した。canon には keymap も build target も残っていない。
 
 ## 用語
 
@@ -34,9 +35,8 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 ## 壊しやすい点（最優先で意識する）
 
 - **west マニフェストは [config/west.yml](config/west.yml)**（リポジトリ直下では
-  ない）。topdir はリポジトリルート。外部モジュール 2 つを取り込む:
-  Cyboard `zmk-keyboards`（imprint の assimilator-bt board + imprint_left/right
-  shield）と自前 `zmk-ble-hid-host`（ist の ble_hid_host_receiver shield）。
+  ない）。topdir はリポジトリルート。外部モジュールは Cyboard `zmk-keyboards`
+  1 つ（imprint の assimilator-bt board + imprint_left/right shield）。
   [boards/shields/](boards/shields/) のローカル shield は **`imprint_dongle` のみ**
   （他は module 由来）＝空ではない。board/shield の一覧（all ビルド）は
   [build.yaml](build.yaml) が唯一のソース。
@@ -51,15 +51,16 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   [verify-eiji-sync.yml](.github/workflows/verify-eiji-sync.yml) が CI で厳密一致を
   検証する。マーカー間を手編集しない。変更は dtsi を直し
   `python3 scripts/gen-eiji-drawer-map.py` を再実行（stdlib のみ）。
-- **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap)（imprint）と
-  [config/ble_hid_host_receiver.keymap](config/ble_hid_host_receiver.keymap)（ist）の
-  `&vkey <id>` が唯一のソース。両 keymap は `&vkey` behavior ノードを
-  [config/vkey_behavior.dtsi](config/vkey_behavior.dtsi)（共有）から `#include` する。
+- **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap) の
+  `&vkey <id>` が唯一のソース。keymap は `&vkey` behavior ノードを
+  [config/vkey_behavior.dtsi](config/vkey_behavior.dtsi) から `#include` する。
   生成物 [config/vkey-aliases.toml](config/vkey-aliases.toml)
   （host bridge [`chord`](https://github.com/akira-toriyama/chord) の `[v-key-aliases]` へ貼る用）は
-  [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が両 keymap を走査して id を復号し生成、
+  [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が keymap を走査して id を復号し生成、
   [verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml) が CI で照合する。id 空間は
-  imprint（`0x01`/`0x10`–`0x8D`）と ist（予約帯 `0xA0`–`0xBF`）で分離し衝突を検出する。
+  imprint が `0x01` / `0x10`–`0x8D`。**`0xA0`–`0xBF` は別 repo の ist 製品向けに予約**
+  （chord の id→action はホスト単位で 1 つの名前空間＝再利用すると ist のボタンが誤爆する。
+  `decode()` が構造的に拒否する）。
   `config/vkey-aliases.toml` を手編集しない。id を変えるときはキーマップを直し
   `python3 scripts/gen-vkey-aliases.py` を再実行（stdlib のみ）。これでキーマップ↔chord
   config の id 二重管理を排除する（chord 側への貼り込み＝chezmoi 運用は別管理）。
@@ -85,7 +86,7 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
 
 - ローカル: `./scripts/build-zmk.sh`（Docker。依存は `~/.cache/zmk-canon`
   に永続化、冪等。`--update` / `--clean`、シールド指定可＝サブセット（例
-  `imprint_left` だけ / `ble_hid_host_receiver`=ist だけ）。出力 `firmware/`＝
+  `imprint_left` だけ）。出力 `firmware/`＝
   gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**

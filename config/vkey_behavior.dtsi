@@ -1,11 +1,11 @@
-// 共有 &vkey behavior ノード。behaviors {} ブロックの中身として #include して使う。
-// imprint と ist（ble_hid_host_receiver）の両 keymap が参照する唯一のソース。
+// &vkey behavior ノード（唯一のソース）。behaviors {} ブロックの中身として
+// #include して使う。
 //
 // `&vkey <id>` で Report ID 0x20 のベンダーレポートを送る (press=id / release=0)。
 // chord (macOS host bridge) が IOHIDManager で受けて id→action にマップする。
 // 実体は patches/zmk/vkey-report.patch の behavior（central のみコンパイル / USB 送出）。
-// id→alias の生成は scripts/gen-vkey-aliases.py（両 keymap を走査）。
-// 詳細: docs/vkey-roadmap.md（vkey 機構） / docs/ist-roadmap.md（ist 統合）
+// id→alias の生成は scripts/gen-vkey-aliases.py（config/imprint.keymap を走査）。
+// 詳細: docs/vkey-roadmap.md（vkey 機構）
 vkey: vkey {
     compatible = "zmk,behavior-vkey";
     #binding-cells = <1>;
