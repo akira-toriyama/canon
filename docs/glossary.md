@@ -35,7 +35,7 @@ canon を構成する各パーツの **正規の呼び名** をまとめた規�
 flowchart TB
   subgraph HW["ハードウェア層"]
     BOARD["board: assimilator-bt / xiao_ble"]
-    SHIELD["shield: imprint_* / ble_hid_host_receiver"]
+    SHIELD["shield: imprint_left / imprint_right / imprint_dongle"]
   end
   subgraph FW["ZMK firmware 層"]
     KEYMAP["keymap (config/imprint.keymap)"]
@@ -47,7 +47,7 @@ flowchart TB
   subgraph BUILD["ビルド層"]
     WEST["west.yml (workspace manifest)"]
     BUILDYAML["build.yaml (build matrix)"]
-    UF2["imprint_*.uf2 / ble_hid_host_receiver.uf2"]
+    UF2["imprint_*.uf2"]
   end
   subgraph HOST["macOS host bridge"]
     CHORD["chord (独立リポジトリ)"]
@@ -123,15 +123,15 @@ AUTO-GENERATED ブロックを生成、`verify-eiji-sync.yml` が CI で厳密�
 既存のどのキー入力とも衝突しない **オリジナルキー**（連番 id）をベンダー定義 HID
 （usage page `0xFF31` / Report ID `0x20`）で送る [[behavior]]。`&vkey <id>` を press で
 id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受けて action に
-マップする。imprint と ist（[[build target]]）の両 [[keymap]] が共有ノード
-[`config/vkey_behavior.dtsi`](../config/vkey_behavior.dtsi) を `#include` する。
-- 単一ソース: `&vkey <id>`（[`config/imprint.keymap`](../config/imprint.keymap) /
-  [`config/ble_hid_host_receiver.keymap`](../config/ble_hid_host_receiver.keymap)）から
+マップする。[[keymap]] は `&vkey` ノードを
+[`config/vkey_behavior.dtsi`](../config/vkey_behavior.dtsi) から `#include` する。
+- 単一ソース: `&vkey <id>`（[`config/imprint.keymap`](../config/imprint.keymap)）から
   [`scripts/gen-vkey-aliases.py`](../scripts/gen-vkey-aliases.py) が
-  [`config/vkey-aliases.toml`](../config/vkey-aliases.toml) を生成（id 帯 imprint=`0x01`/
-  `0x10`–`0x8D`・ist=`0xA0`–`0xBF`）、`verify-vkey-sync.yml` が CI で照合。
+  [`config/vkey-aliases.toml`](../config/vkey-aliases.toml) を生成（id 帯 `0x01` /
+  `0x10`–`0x8D`。`0xA0`–`0xBF` は別製品向けに予約・canon では未使用）、
+  `verify-vkey-sync.yml` が CI で照合。
 - 実体: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch)。詳細は
-  [docs/vkey-roadmap.md](vkey-roadmap.md) / [docs/ist-roadmap.md](ist-roadmap.md)
+  [docs/vkey-roadmap.md](vkey-roadmap.md)
 - **Don't call it:** custom keycode, vendor key, raw HID key, オリジナルキー（説明文中の比喩を除く）
 
 ---
@@ -140,8 +140,8 @@ id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受
 
 ### board
 ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、Cyboard
-`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（imprint_dongle と ist 受信
-ドングル）。`assimilator-bt` はタグ固定すると `arch.cmake` が
+`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（`imprint_dongle`）。
+`assimilator-bt` はタグ固定すると `arch.cmake` が
 `Could not find ARCH=cyboard` で落ちるため `@main` 追従が必須。
 - 設定: [`config/west.yml`](../config/west.yml),
   [`build.yaml`](../build.yaml)
@@ -150,12 +150,10 @@ ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、
 
 ### shield
 ZMK が指す **デバイス本体**（マトリクス / 物理レイアウト / 周辺）の定義。
-canon の 4 シールド: imprint の `imprint_left` / `imprint_right`（分割左右）/
-`imprint_dongle`、ist の `ble_hid_host_receiver`（トラックボール受信）。
+canon の 3 シールド: `imprint_left` / `imprint_right`（分割左右）/ `imprint_dongle`。
 - 設定: [`build.yaml`](../build.yaml)（board × shield の唯一のソース）
 - 由来: `imprint_left/right`=Cyboard module、`imprint_dongle`=canon ローカル
-  [`boards/shields/`](../boards/shields/)、`ble_hid_host_receiver`=自前
-  `zmk-ble-hid-host` module。**ローカル shield は `imprint_dongle` のみ**
+  [`boards/shields/`](../boards/shields/)。**ローカル shield は `imprint_dongle` のみ**
   （`boards/shields/` は空ではない）。
 - **Don't call it:** half, side, panel, 分割キーボード
 
@@ -165,17 +163,16 @@ Zephyr/ZMK の workspace 管理ツール。canon は manifest を
 - **Don't call it:** package manager, dependency manager, パッケージマネージャ
 
 ### build target
-1 つの `board × shield` 組み合わせ。canon の build target は **4 つ**（=「all」
+1 つの `board × shield` 組み合わせ。canon の build target は **3 つ**（=「all」
 ビルド）: `assimilator-bt × imprint_left` / `imprint_right`、
-`xiao_ble/nrf52840/zmk × imprint_dongle`、`xiao_ble/nrf52840/zmk ×
-ble_hid_host_receiver`（ist）。サブセット（imprint だけ / ist だけ）は
+`xiao_ble/nrf52840/zmk × imprint_dongle`。サブセットは
 `build-zmk.sh` の shield 指定で。
 - 設定: [`build.yaml`](../build.yaml)
 - **Don't call it:** firmware variant, build config, ビルド構成
 
 ### `.uf2` artifact
 ビルド成果物。`firmware/<shield>.uf2`（例 `imprint_left.uf2` /
-`imprint_dongle.uf2` / `ble_hid_host_receiver.uf2`）を対応デバイスに書き込む。
+`imprint_dongle.uf2`）を対応デバイスに書き込む。
 `.gitignore` 済。
 - 生成: `./scripts/build-zmk.sh`（Docker、依存は `~/.cache/zmk-canon`）
 - **Don't call it:** binary, image, ファーム本体

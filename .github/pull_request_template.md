@@ -16,7 +16,7 @@
 - [ ] コミットは gitmoji + Conventional Commits 準拠（`<:gitmoji:> type(scope): subject`）
 - [ ] keymap / behavior を変更した → ローカルビルド成功（`./scripts/build-zmk.sh`）
 - [ ] `config/eiji_macros.dtsi` を変更した → `python3 scripts/gen-eiji-drawer-map.py` を実行しコミット済（verify-eiji-sync 対策）
-- [ ] `config/imprint.keymap` / `config/ble_hid_host_receiver.keymap` の `&vkey <id>` を変更した → `python3 scripts/gen-vkey-aliases.py` を実行しコミット済（verify-vkey-sync 対策）
+- [ ] `config/imprint.keymap` の `&vkey <id>` を変更した → `python3 scripts/gen-vkey-aliases.py` を実行しコミット済（verify-vkey-sync 対策）
 - [ ] 生成・ツール管理ファイル（`keymap_drawer.config.yaml` の自動生成域 / `keymap-drawer/*` / `config/imprint.json` / `config/vkey-aliases.toml`）を手編集していない
 - [ ] 必要なら docs / CLAUDE.md を更新
 - [ ] CI（build / commit-lint / shellcheck / draw / verify-eiji-sync / verify-vkey-sync）が緑

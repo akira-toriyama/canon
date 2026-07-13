@@ -4,15 +4,14 @@
 #
 #   ./scripts/build-zmk.sh                 # build.yaml の全ターゲットをビルド（=all）
 #   ./scripts/build-zmk.sh imprint         # 製品グループ: imprint の全シールド
-#   ./scripts/build-zmk.sh ist             # 製品グループ: ist 受信ドングルのみ
 #   ./scripts/build-zmk.sh imprint_left    # 指定シールドのみビルド
-#   ./scripts/build-zmk.sh ist --logging   # USB-CDC ログ版（デバッグ）を焼く
+#   ./scripts/build-zmk.sh imprint_dongle --logging  # USB-CDC ログ版（デバッグ）を焼く
 #   ./scripts/build-zmk.sh imprint --reset # NVS リセット版（*_RESET.uf2）を作る
 #   ./scripts/build-zmk.sh --update        # west update を強制（依存を最新化）
 #   ./scripts/build-zmk.sh --clean         # ワークスペースを破棄して終了
 #
-#   グループ all|imprint|ist は build.yaml の shield 名から都度引く（ハードコード無し。
-#   imprint=imprint_* / ist=ble_hid_host_receiver / all=全ターゲット）。
+#   グループ all|imprint は build.yaml の shield 名から都度引く（ハードコード無し。
+#   imprint=imprint_* / all=全ターゲット）。
 #   --logging は選択ターゲットを CONFIG_ZMK_USB_LOGGING=y で焼き直し（成果物は
 #   <shield>-logging.uf2）。USB-serial で BLE 接続や INPUT_BTN_x の観測に使う
 #   ローカル専用のデバッグビルド（build.yaml/CI/release は製品ターゲットのみで不変）。
@@ -101,14 +100,13 @@ else
   # 異種ボード混在 build.yaml で正しい組み合わせを得るため）。
   _s=("${SHIELDS[@]}"); SHIELDS=()
   for arg in "${_s[@]}"; do
-    # 製品グループ all|imprint|ist は build.yaml の board<TAB>shield 行を
+    # 製品グループ all|imprint は build.yaml の board<TAB>shield 行を
     # shield 名で絞って展開する（build.yaml が唯一のソース＝名前ハードコード無し）。
     case "$arg" in
-      all|imprint|ist)
+      all|imprint)
         case "$arg" in
           all)     _filt='.' ;;
           imprint) _filt='^imprint' ;;
-          ist)     _filt='^ble_hid_host_receiver' ;;
         esac
         _n=0
         while IFS= read -r _row; do SHIELDS+=("$_row"); _n=$((_n + 1)); done \
@@ -160,7 +158,6 @@ mkdir -p "$CFG"
 rsync -a --delete \
   --exclude '/.git/' --exclude '/.west/' --exclude '/output/' \
   --exclude '/zmk/' --exclude '/zmk-keyboards/' --exclude '/zmk-pmw3610-driver/' \
-  --exclude '/zmk-ble-hid-host/' \
   --exclude '/modules/' --exclude '/optional/' --exclude '/zephyr/' \
   --exclude '/build/' \
   "$REPO"/ "$CFG"/

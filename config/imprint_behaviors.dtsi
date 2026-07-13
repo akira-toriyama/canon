@@ -10,6 +10,6 @@
     #include "arrow_behaviors.dtsi"
 
     // ==== vendor-defined "original key" (vkey) ====
-    // 共有ノード（ist の ble_hid_host_receiver.keymap も同じものを #include）。
+    // &vkey behavior ノード（config/vkey_behavior.dtsi が唯一のソース）。
     #include "vkey_behavior.dtsi"
 
