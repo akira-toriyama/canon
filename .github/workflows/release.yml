@@ -128,8 +128,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          # 各 <shield> artifact 下の uf2 を 1 箇所へ集約。
-          find dist -name '*.uf2' -exec cp {} out/ \;
+          # canon は PUBLIC repo。リリース資産は imprint の 3 ターゲットだけを
+          # 明示 allowlist で集める（glob 禁止＝将来 build.yaml に非 imprint の
+          # ターゲットが混ざっても公開資産へ漏れない）。
+          for f in imprint_left imprint_right imprint_dongle; do
+            cp "dist/$f/$f.uf2" "out/$f.uf2"
+          done
+          # allowlist 外の uf2 が来ていたら（＝build.yaml 変更の取りこぼし）中止。
+          if [ -n "$(find dist -name '*.uf2' \
+                       ! -name 'imprint_left.uf2' \
+                       ! -name 'imprint_right.uf2' \
+                       ! -name 'imprint_dongle.uf2' -print -quit)" ]; then
+            echo "::error::allowlist 外の uf2 を検出したためリリース添付を中止"
+            exit 1
+          fi
           cp dist/release-notes/RELEASE_NOTES.md out/RELEASE_NOTES.md
           echo "収集した成果物:"; ls -l out
 
@@ -142,7 +154,9 @@ jobs:
         with:
           name: release-preview-${{ needs.version.outputs.version }}
           path: |
-            out/*.uf2
+            out/imprint_left.uf2
+            out/imprint_right.uf2
+            out/imprint_dongle.uf2
             out/RELEASE_NOTES.md
 
       - name: Dry-run summary
@@ -164,9 +178,9 @@ jobs:
         if: github.event.inputs.dry_run != 'true'
         run: |
           set -euo pipefail
-          # 成果物は out/ の uf2 を glob で拾う（build reusable が build.yaml から
-          # 派生して <shield>.uf2 を生成済み）。
-          assets="out/*.uf2"
+          # 資産は明示列挙（glob 禁止）。canon は PUBLIC なので、公開 Release へ
+          # 上げてよいのは imprint の 3 ターゲットだけ。
+          assets="out/imprint_left.uf2 out/imprint_right.uf2 out/imprint_dongle.uf2"
 
           # 既存の「自動ドラフト」（未公開・semver タグ）を列挙。
           # 公開済み（isDraft=false）は対象外＝絶対に触れない。
@@ -192,6 +206,15 @@ jobs:
           if [ "$have_current" -eq 1 ]; then
             # shellcheck disable=SC2086
             gh release upload "$VERSION" $assets --clobber
+            # --clobber は同名資産を上書きするだけで、allowlist 外の古い資産
+            # （過去ビルドの非 imprint uf2 等）は消さない。ドラフトに残ると
+            # Publish した瞬間に公開されるので、毎回明示的に剪定する。
+            while IFS= read -r a; do
+              [ -z "$a" ] && continue
+              echo "::notice::ドラフト $VERSION から allowlist 外の資産 $a を削除"
+              gh release delete-asset "$VERSION" "$a" --yes
+            done < <(gh release view "$VERSION" --json assets \
+              --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2")')
             gh release edit "$VERSION" --draft \
               --title "$VERSION" --notes-file out/RELEASE_NOTES.md --target "$SHA"
             url="$(gh release view "$VERSION" --json url --jq .url)"
