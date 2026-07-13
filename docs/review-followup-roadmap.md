@@ -10,7 +10,7 @@
 > cross-repo 運用は [refactor-roadmap.md](refactor-roadmap.md) と同じ:
 > **chord のコード変更は chord repo の独立 PR**、**本ファイルの更新は canon repo**。
 >
-> **別系統の進行 workstream**: [ist-roadmap.md](ist-roadmap.md)（zmk-mouse=IST トラックボール
+> **別系統の進行 workstream**: `ist-roadmap.md`（zmk-mouse=IST トラックボール
 > 受信ドングルを canon へ統合 + ist で vkey）。**C6(docs ドリフト) は ist I1 と同じ canon docs を
 > 触るので協調／一括**、**C5(dongle required check) は ist I3 と同じ ruleset 変更なので batch** が効く。
 
@@ -217,7 +217,7 @@ dongle（+ ist）ビルドが main 保護 ruleset(id 16483994) の required_stat
 **実施（ist I3, user "I3 GO"）**: ruleset 16483994 の required_status_checks に
 `build / Build (xiao_ble/nrf52840/zmk, imprint_dongle)` と `(…, ble_hid_host_receiver)` を追加
 （C5 が求めた dongle + ist の両方）。これで全 4 製品ビルド + `lint / lint` が必須。**コード変更なし**。
-詳細は [ist-roadmap.md](ist-roadmap.md) の I3。
+詳細は `ist-roadmap.md` の I3（当時の台帳。ist 分離時に canon から削除）。
 
 ## C6. docs ドリフト一括修正　[Med・doc のみ] — ✅ 完了（I1/#74・I1-tail/#78・本 reconcile PR, 2026-06-19）
 
@@ -435,3 +435,6 @@ README は user 主体 → 最小ファクト訂正のみ、構成変更しな�
   README にフラッシュ節（flash-watch.sh 自動コピー + `--reset`/flash-reset.sh の NVS リセット）を user 承認文案で
   追記。**canon low/nit の残は build#3 / keymap#3 のみ**（両者とも知見付きで⏸据置・任意）。chord 側 low/nit
   （C1–C4 follow-up ほか）は別 repo の別 PR。
+- 2026-07-13: **ist を canon から分離**（build target・keymap/conf・west module・`docs/ist-roadmap.md` を
+  削除し別 repo `zmk-ble-hid-host` へ）。本書の ist / `ble_hid_host_receiver` 記述は当時の記録であり
+  canon の現状ではない。C5 の必須チェックも imprint 3 ターゲット + lint へ縮小済。
