@@ -50,6 +50,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # git-cliff only reads local git history; the draft job writes via the
+          # gh API token, never git push — drop the checkout token. t-yaxa
+          persist-credentials: false
 
       # 次版は git-cliff を直接実行して算出する（git-cliff 公式推奨。
       # orhun/git-cliff-action の outputs.version は「最新リリース版」で
