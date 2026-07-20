@@ -24,7 +24,7 @@ END = "    # === END AUTO-GENERATED ==="
 
 SECTION_RE = re.compile(r"^\s*//\s*(EIJI 切替 →.*?（.*?_LAYER 用）)\s*$")
 MACRO_RE = re.compile(
-    r"^\s*EN_MACRO\(\s*([A-Za-z0-9_]+)\s*,\s*[A-Za-z0-9_]+\s*\)\s*//\s*disp:\[(.*)\]\s*$"
+    r"^\s*EN_MACRO\(\s*([A-Za-z0-9_]+)\s*,\s*[A-Za-z0-9_]+(?:\([A-Za-z0-9_]+\))?\s*\)\s*//\s*disp:\[(.*)\]\s*$"
 )
 
 
