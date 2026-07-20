@@ -36,10 +36,7 @@
     EN_MACRO(en_at,    AT_SIGN)        // disp:[@]
     EN_MACRO(en_dq,    DOUBLE_QUOTES)  // disp:["]
     EN_MACRO(en_sq,    SINGLE_QUOTE)   // disp:[']
-    // grave/tilde は NON_US_BSLH(usage 0x64) で送る: macOS がこのドングルを
-    // ISO 配列と判定するため、GRAVE(0x35) だと keycode 10(§/±) に翻訳される。
-    // ISO 判定下では 0x64 が keycode 50(`/~) になる（ANSI 判定に戻すと逆に壊れる）
-    EN_MACRO(en_grave, NON_US_BSLH)    // disp:[`]
+    EN_MACRO(en_grave, GRAVE)          // disp:[`]
     EN_MACRO(en_slash, SLASH)          // disp:[/]
     EN_MACRO(en_bsl,   BACKSLASH)      // disp:[\]
 
@@ -55,8 +52,7 @@
     EN_MACRO(en_ast,    ASTERISK)      // disp:[*]
     EN_MACRO(en_pct,    PERCENT)       // disp:[%]
     EN_MACRO(en_dollar, DOLLAR)        // disp:[$]
-    // en_grave と同じ ISO 判定事情で NON_US_BSLH 系を使う
-    EN_MACRO(en_tilde,  LS(NON_US_BSLH)) // disp:[~]
+    EN_MACRO(en_tilde,  TILDE)         // disp:[~]
     EN_MACRO(en_lpar,   LPAR)          // disp:[(]
     EN_MACRO(en_rpar,   RPAR)          // disp:[)]
     EN_MACRO(en_lbrc,   LEFT_BRACE)    // disp:[{]
