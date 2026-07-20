@@ -1,0 +1,31 @@
+--- a/subsys/usb/device/class/hid/Kconfig	2026-07-20 15:56:09
++++ b/subsys/usb/device/class/hid/Kconfig	2026-07-20 15:56:17
+@@ -18,6 +18,17 @@
+ 	  Device name template for the HID Devices. First device would have
+ 	  name $(USB_HID_DEVICE_NAME)_0, etc.
+ 
++config USB_HID_COUNTRY_CODE
++	int "HID descriptor country code (bCountryCode)"
++	default 0
++	range 0 35
++	help
++	  Country code reported in the bCountryCode field of the HID
++	  descriptor. It identifies which country the hardware is localized
++	  for, e.g. 13 for International (ISO), 15 for Japan (JIS) or
++	  33 for US (ANSI) keyboards. Hosts may use it to pick the keyboard
++	  layout handling. Most hardware is not localized and reports 0.
++
+ module = USB_HID
+ default-count = 1
+ source "subsys/usb/device/class/Kconfig.template.composite_device_number"
+--- a/subsys/usb/device/class/hid/core.c	2026-07-20 15:56:09
++++ b/subsys/usb/device/class/hid/core.c	2026-07-20 16:02:14
+@@ -83,7 +83,7 @@
+ 		.bLength = sizeof(struct usb_hid_descriptor),		\
+ 		.bDescriptorType = USB_DESC_HID,			\
+ 		.bcdHID = sys_cpu_to_le16(USB_HID_VERSION),		\
+-		.bCountryCode = 0,					\
++		.bCountryCode = CONFIG_USB_HID_COUNTRY_CODE,		\
+ 		.bNumDescriptors = 1,					\
+ 		.subdesc[0] = {						\
+ 			.bDescriptorType = USB_DESC_HID_REPORT,	\

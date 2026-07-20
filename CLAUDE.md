@@ -98,7 +98,8 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
-  に委譲し、`patches/zmk/*`（vkey 等）を当ててから build.yaml の全ターゲットを
+  に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）を
+  当ててから build.yaml の全ターゲットを
   ビルドする（公式 reusable は patch を当てず &vkey 等が解決できないため差し替えた。
   背景は zmk-build.yml / [docs/vkey-roadmap.md](docs/vkey-roadmap.md)）。
 - リリース: [release.yml](.github/workflows/release.yml)。**push:main で自動**に

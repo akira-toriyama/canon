@@ -86,30 +86,33 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Apply ZMK out-of-tree patches
+      - name: Apply out-of-tree patches (zmk, zephyr)
         run: |
           set -euo pipefail
           # scripts/build-zmk.sh と同一の冪等適用。LC_ALL=C で glob を C 照合順に
           # 固定し（patch 間の依存順 security < usb-hid-prime < vkey を保証）
-          # patches/zmk/*.patch を zmk/ へ当てる。既適用は reverse-check で skip、
-          # 当たらなければ即 fail（ZMK main drift を CI で大声で検知する）。
-          # パッチパスは **絶対パス必須**: `git -C zmk apply <path>` は <path> を
-          # zmk/ 基準で解決するため、相対パスだと patch ファイルを見失う
+          # patches/<tree>/*.patch を <tree>/ へ当てる（tree = zmk / zephyr）。
+          # 既適用は reverse-check で skip、当たらなければ即 fail
+          # （upstream drift を CI で大声で検知する）。
+          # パッチパスは **絶対パス必須**: `git -C <tree> apply <path>` は <path> を
+          # <tree>/ 基準で解決するため、相対パスだと patch ファイルを見失う
           # （build-zmk.sh は /workspace 絶対パスなので無問題）。
           export LC_ALL=C
           shopt -s nullglob
-          for p in "$GITHUB_WORKSPACE"/patches/zmk/*.patch; do
-            name=$(basename "$p")
-            if git -C zmk apply --reverse --check "$p" >/dev/null 2>&1; then
-              echo "=== PATCH zmk: $name (既適用)"
-            elif git -C zmk apply --check "$p" >/dev/null 2>&1; then
-              git -C zmk apply "$p"
-              echo "=== PATCH zmk: $name (適用)"
-            else
-              echo "❌ パッチが当たりません: $name" >&2
-              echo "   ZMK main の該当箇所が変わった可能性。patches/zmk/ を更新してください。" >&2
-              exit 1
-            fi
+          for tree in zmk zephyr; do
+            for p in "$GITHUB_WORKSPACE"/patches/"$tree"/*.patch; do
+              name=$(basename "$p")
+              if git -C "$tree" apply --reverse --check "$p" >/dev/null 2>&1; then
+                echo "=== PATCH $tree: $name (既適用)"
+              elif git -C "$tree" apply --check "$p" >/dev/null 2>&1; then
+                git -C "$tree" apply "$p"
+                echo "=== PATCH $tree: $name (適用)"
+              else
+                echo "❌ パッチが当たりません: $name" >&2
+                echo "   $tree upstream の該当箇所が変わった可能性。patches/$tree/ を更新してください。" >&2
+                exit 1
+              fi
+            done
           done
 
       - name: Build firmware
