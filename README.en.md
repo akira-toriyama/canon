@@ -78,10 +78,10 @@ Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 
 ### Release
 
-Run the **Release** workflow manually → the next version is computed from
-commits; it creates a `vX.Y.Z` tag and a GitHub Release (git-cliff-generated
-notes + `imprint_*.uf2`) ([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)).
-CHANGELOG is not auto-pushed to `main` (branch protection is respected).
+Every merge to `main` updates a rolling **draft** Release: glyph computes the
+next version and the notes (squash-safe) and attaches `imprint_*.uf2`. Publish
+the draft manually after review — the `vX.Y.Z` tag is created at publish time
+([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)).
 
 ## keymap
 

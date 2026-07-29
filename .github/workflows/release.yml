@@ -1,23 +1,22 @@
 name: Release
 
-# main へ push（PR マージ）されると、コミット（gitmoji + Conventional
-# Commits）から git-cliff が次版を算出し「ローリングドラフト」GitHub
-# Release を作成／更新する。タグは作らない（GitHub がドラフト Publish 時に
-# 生成）。同一次版のドラフトがあれば内容・成果物・target を上書き更新し、
-# 別版の自動ドラフトがあれば破棄。よって main にマージするほど「次リリース
+# main へ push（PR マージ）されると、glyph が最後の v* タグ以降の main を
+# squash-safe に歩き（各マージポイントを PR に展開して pre-squash commit を
+# 分類）、次版とリリースノートを 1 回の walk で算出して「ローリングドラフト」
+# GitHub Release を upsert する。タグは作らない（GitHub がドラフト Publish 時に
+# 生成）。同一次版のドラフトは内容・target を上書き更新し、別版の自動ドラフトは
+# glyph が破棄して常に 1 本に保つ。よって main にマージするほど「次リリース
 # 下書き」が育ち、未公開のうちはタグ・版が増殖しない。公開は手動
 # （GitHub UI で内容確認のうえ Publish。publish 時に初めてタグ生成）。
-# main 保護のため CHANGELOG は main へ push しない。
 # workflow_dispatch + dry_run=true は版算出+ノート+ビルドのみ＝ドラフトを
 # 作らず版も消費しない完全プレビュー。規約: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
-# 設定: cliff.toml
 #
 # firmware ビルドは通常 CI と同じ reusable (.github/workflows/zmk-build.yml) に
 # 一本化している。以前は release.yml が独自に west+patch+build を持っていたが、
 # build.yml 側と重複して drift し（dongle の board 名 xiao_ble/nrf52840/zmk が
 # slash を含むための SHIELD 解析破綻 + canon ローカル shield の BOARD_ROOT 欠落）
 # release だけ壊れた。ビルド定義を 1 つに集約してこの種の drift を構造的に防ぐ。
-# job 構成: version（版算出+notes）→ build（reusable）→ draft（成果物 DL+ドラフト）。
+# job 構成: version（verdict + draft upsert）→ build（reusable）→ draft（成果物添付）。
 on:
   push:
     branches: [main]
@@ -32,64 +31,79 @@ concurrency:
   group: release
   cancel-in-progress: false
 
-# Least privilege: only the `draft` job publishes releases (contents: write);
-# `version` (git-cliff + artifact) and `build` (firmware) need read only. Scoped
-# per-job below ahead of the fleet zizmor gate (akira-toriyama/.github t-qbp1).
+# Least privilege: `version` (glyph upserts the draft release) and `draft`
+# (asset upload) write releases (contents: write); `build` (firmware) needs
+# read only. Scoped per-job below ahead of the fleet zizmor gate
+# (akira-toriyama/.github t-qbp1).
 permissions:
   contents: read
 
 jobs:
-  # 次版算出 + リリースノート生成。firmware ビルド (build) と draft 公開は
-  # この出力 release==true のときだけ走る。
+  # 次版算出 + リリースノート + ローリングドラフト upsert（glyph release）。
+  # firmware ビルド (build) と成果物添付 (draft) はこの出力 release==true の
+  # ときだけ走る。
   version:
     runs-on: ubuntu-latest
+    # glyph release がドラフトを upsert する（dry run では書かない）。
+    permissions:
+      contents: write
     outputs:
-      release: ${{ steps.ver.outputs.release }}
-      version: ${{ steps.ver.outputs.version }}
+      release: ${{ steps.verdict.outputs.release }}
+      version: ${{ steps.verdict.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
         with:
+          # glyph はタグと walk range をローカル git から読むので全履歴が要る。
           fetch-depth: 0
-          # git-cliff only reads local git history; the draft job writes via the
-          # gh API token, never git push — drop the checkout token. t-yaxa
+          # 書き込みは全て glyph/gh + GH_TOKEN 経由で git push はしない —
+          # checkout token を .git/config に残さない (zizmor artipacked)。t-yaxa
           persist-credentials: false
 
-      # 次版は git-cliff を直接実行して算出する（git-cliff 公式推奨。
-      # orhun/git-cliff-action の outputs.version は「最新リリース版」で
-      # 次版ではないため使わない）。未公開ドラフトはタグを作らないので
-      # last タグは最後に Publish した版のまま＝次版はマージしても安定。
-      - name: Install git-cliff
-        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
+      # glyph 本体は自前の composite install（checksum + provenance 検証つき）
+      # で導入。action の pin と binary の version は同じ tag に揃える。
+      - uses: akira-toriyama/glyph/.github/actions/install@v0.12.0
         with:
-          tool: git-cliff@2
+          version: v0.12.0
+          token: ${{ github.token }}
 
-      - name: Compute next version
-        id: ver
-        run: |
-          set -euo pipefail
-          next="$(git-cliff --config cliff.toml --bumped-version | tr -d '[:space:]')"
-          last="$(git tag --sort=-v:refname | head -n1)"
-          echo "next=$next last=${last:-<none>}"
-          if [ -z "$next" ] || [ "$next" = "$last" ]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::リリース対象の変更（feat/fix/perf/breaking）が無いため何もしません。"
-          else
-            echo "release=true"   >> "$GITHUB_OUTPUT"
-            echo "version=$next"  >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Generate release notes
-        if: steps.ver.outputs.release == 'true'
+      # 1 回の walk で次版と notes を一緒に出す（bump / notes を別々に呼ぶと
+      # walk が 2 回になり、間にマージが着地すると版と notes がズレうる）。
+      # dry run でなければ同じ呼び出しがローリングドラフトを upsert する。
+      # exit 1 は一様な soft no-release（リリース対象なし）— 成功の no-op に
+      # 畳む。none verdict では glyph が残存ドラフトも削除して収束させる。
+      - name: Compose the verdict and upsert the rolling DRAFT
+        id: verdict
         env:
-          VERSION: ${{ steps.ver.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
           set -euo pipefail
-          git-cliff --config cliff.toml --unreleased --tag "$VERSION" --strip all > RELEASE_NOTES.md
-          if [ ! -s RELEASE_NOTES.md ]; then echo "Initial release." > RELEASE_NOTES.md; fi
+          args=(release --json)
+          if [ "$DRY_RUN" = "true" ]; then
+            args=(release --dry-run --json)
+          fi
+          status=0
+          glyph "${args[@]}" > "$RUNNER_TEMP/verdict.json" 2> "$RUNNER_TEMP/verdict.err" || status=$?
+          cat "$RUNNER_TEMP/verdict.err" >&2
+          if [ "$status" -eq 1 ]; then
+            reason="$(jq -r '.reason // empty' "$RUNNER_TEMP/verdict.json" 2>/dev/null || true)"
+            echo "::notice::${reason:-リリース対象の変更が無いため何もしません。}"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+          tag="$(jq -r .tag "$RUNNER_TEMP/verdict.json")"
+          jq -r .body "$RUNNER_TEMP/verdict.json" > RELEASE_NOTES.md
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag"     >> "$GITHUB_OUTPUT"
+          echo "verdict: $tag (draft $(jq -r .action "$RUNNER_TEMP/verdict.json"))"
 
-      # draft job へ渡すため artifact 化（git-cliff は version job でしか動かさない）。
+      # dry run のプレビューと draft job の summary 用に notes を artifact 化
+      # （ドラフト本文そのものは glyph が直接書いている）。
       - name: Upload release notes
-        if: steps.ver.outputs.release == 'true'
+        if: steps.verdict.outputs.release == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: release-notes
@@ -107,7 +121,9 @@ jobs:
   draft:
     needs: [version, build]
     if: needs.version.outputs.release == 'true'
-    # The only job that writes: it creates/edits the draft release + uploads assets.
+    # This job only touches release ASSETS: upload the firmware, prune
+    # anything outside the allowlist. The draft itself (create/update/stale
+    # deletion/target) is glyph's, done in the `version` job.
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -118,7 +134,6 @@ jobs:
       # GH_REPO で明示する（gh release / gh api 全コマンドがこれで動く）。
       GH_REPO: ${{ github.repository }}
       VERSION: ${{ needs.version.outputs.version }}
-      SHA: ${{ github.sha }}
     steps:
       # build (reusable) と version が上げた artifact を全部回収。
       # download-artifact は <path>/<artifact名>/<file> 構造で展開する。
@@ -173,65 +188,32 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # 通常実行（push:main / 手動 dry_run でない）: ローリングドラフトを
-      # 作成または更新。タグは作らない（GitHub が Publish 時に target の
-      # コミットへタグ生成）。同一版のドラフトは上書き、別版の自動ドラフトは
-      # 破棄して常に1本に保つ。公開済み Release には一切触れない。
-      - name: Create or update rolling DRAFT release
+      # 通常実行（push:main / 手動 dry_run でない）: version job で glyph が
+      # upsert 済みのドラフトへ成果物を添付し、allowlist 外の残存資産を剪定
+      # する。公開済み Release には一切触れない。
+      - name: Attach firmware to the rolling DRAFT
         if: github.event.inputs.dry_run != 'true'
         run: |
           set -euo pipefail
           # 資産は明示列挙（glob 禁止）。canon は PUBLIC なので、公開 Release へ
           # 上げてよいのは imprint の 3 ターゲットだけ。
           assets="out/imprint_left.uf2 out/imprint_right.uf2 out/imprint_dongle.uf2"
+          # shellcheck disable=SC2086
+          gh release upload "$VERSION" $assets --clobber
+          # --clobber は同名資産を上書きするだけで、allowlist 外の古い資産
+          # （過去ビルドの非 imprint uf2 等）は消さない。ドラフトに残ると
+          # Publish した瞬間に公開されるので、毎回明示的に剪定する。
+          while IFS= read -r a; do
+            [ -z "$a" ] && continue
+            echo "::notice::ドラフト $VERSION から allowlist 外の資産 $a を削除"
+            gh release delete-asset "$VERSION" "$a" --yes
+          done < <(gh release view "$VERSION" --json assets \
+            --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2")')
 
-          # 既存の「自動ドラフト」（未公開・semver タグ）を列挙。
-          # 公開済み（isDraft=false）は対象外＝絶対に触れない。
-          mapfile -t drafts < <(gh release list --limit 100 \
-            --json tagName,isDraft \
-            --jq '.[] | select(.isDraft==true and (.tagName|test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .tagName')
-
-          have_current=0
-          for t in "${drafts[@]:-}"; do
-            [ -z "$t" ] && continue
-            if [ "$t" = "$VERSION" ]; then
-              have_current=1
-            else
-              # 別版の旧自動ドラフトは破棄（superseded）。
-              # 念のため旧方式で push 済みタグがあれば併せて除去（draft job は
-              # checkout しないので git ではなく API 経由でタグ ref を削除）。
-              echo "::notice::旧自動ドラフト $t を破棄（→ $VERSION に統合）"
-              gh release delete "$t" --yes
-              gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/$t" 2>/dev/null || true
-            fi
-          done
-
-          if [ "$have_current" -eq 1 ]; then
-            # shellcheck disable=SC2086
-            gh release upload "$VERSION" $assets --clobber
-            # --clobber は同名資産を上書きするだけで、allowlist 外の古い資産
-            # （過去ビルドの非 imprint uf2 等）は消さない。ドラフトに残ると
-            # Publish した瞬間に公開されるので、毎回明示的に剪定する。
-            while IFS= read -r a; do
-              [ -z "$a" ] && continue
-              echo "::notice::ドラフト $VERSION から allowlist 外の資産 $a を削除"
-              gh release delete-asset "$VERSION" "$a" --yes
-            done < <(gh release view "$VERSION" --json assets \
-              --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2")')
-            gh release edit "$VERSION" --draft \
-              --title "$VERSION" --notes-file out/RELEASE_NOTES.md --target "$SHA"
-            url="$(gh release view "$VERSION" --json url --jq .url)"
-            action="更新"
-          else
-            # shellcheck disable=SC2086
-            url="$(gh release create "$VERSION" --draft --target "$SHA" \
-              --title "$VERSION" --notes-file out/RELEASE_NOTES.md $assets)"
-            action="作成"
-          fi
-
-          echo "::notice::ドラフト Release を${action}（未公開・タグ未生成）。内容確認のうえ手動 Publish: ${url}"
+          url="$(gh release view "$VERSION" --json url --jq .url)"
+          echo "::notice::ドラフト Release ${VERSION} へ成果物を添付（未公開・タグ未生成）。内容確認のうえ手動 Publish: ${url}"
           {
-            echo "## Draft Release ${VERSION} を${action}（未公開）"
+            echo "## Draft Release ${VERSION} に成果物を添付（未公開）"
             echo
             echo "main にマージするほどこの下書きが育ちます。"
             echo "内容を確認のうえ手動で Publish（その時点でタグ生成）: ${url}"

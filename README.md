@@ -88,10 +88,10 @@ NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset
 
 ### リリース
 
-Actions の **Release** を手動起動 → コミットから次版を算出し、`vX.Y.Z`
-タグ＋GitHub Release（git-cliff 生成ノート＋`imprint_*.uf2` 添付）を生成
-（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。`main` 保護尊重の
-ため CHANGELOG は main へ自動 push しない。
+main へマージするたび、Actions の **Release** が glyph で次版とノートを算出し
+「ローリングドラフト」Release を更新する（`imprint_*.uf2` 添付）。内容確認の
+うえ手動 Publish した時点で `vX.Y.Z` タグが生成される
+（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
 
 ## keymap
 
