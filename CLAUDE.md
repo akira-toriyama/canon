@@ -37,10 +37,11 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 
 - **west マニフェストは [config/west.yml](config/west.yml)**（リポジトリ直下では
   ない）。topdir はリポジトリルート。外部モジュールは Cyboard `zmk-keyboards`
-  1 つ（imprint の assimilator-bt board + imprint_left/right shield）。
-  [boards/shields/](boards/shields/) のローカル shield は **`imprint_dongle` のみ**
-  （他は module 由来）＝空ではない。board/shield の一覧（all ビルド）は
-  [build.yaml](build.yaml) が唯一のソース。
+  1 つ（imprint の assimilator-bt board + imprint_left/right/dongle shield）。
+  **canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に Cyboard#19 で
+  上流入りし、ローカル定義は撤去済み。canon 固有分は
+  [config/imprint_dongle.overlay](config/imprint_dongle.overlay) 等 config/ 側）。
+  board/shield の一覧（all ビルド）は [build.yaml](build.yaml) が唯一のソース。
 - **ZMK は `main` 追従必須・タグ固定しない**: Cyboard の `assimilator-bt`（HWv2 版）は
   新 Zephyr ハードウェアモデルを要求する。ZMK を
   タグ（例 `v0.3.0`）固定すると CI/ローカルとも `arch.cmake` で
@@ -53,10 +54,10 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `Kconfig/soc/Kconfig.defconfig not found` で **assimilator-bt の 2 ターゲットだけ**落ちる
   （xiao_ble の imprint_dongle は通るので、部分的な赤に見えて紛らわしい）。HWv2 board
   （`boards/cyboard/assimilator-bt/board.yml`）は `zephyr-4.1` ブランチ側にあり、Cyboard
-  自身が west.yml のコメントでそちらを案内している。
-  ※ 2026-07-29 現在は zephyr-4.1 上の一時 SHA pin 中（上流入りした imprint_dongle
-  shield がローカル同名 shield と衝突するため — 経緯と解除条件は
-  [config/west.yml](config/west.yml) のコメントと t-zy1h）。
+  自身が west.yml のコメントでそちらを案内している。系統は 2026-07-30 に
+  zephyr-4.1 維持で確定（t-wz4k。dongle forward-port Cyboard#19 の merge で
+  ブランチが features を受けることが実証された。2026-07-28〜30 の一時 SHA pin は
+  ローカル shield 撤去とともに解除済み）。
 - **単一ソース規約（eiji）**: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) が唯一の
   ソース。`keymap_drawer.config.yaml` の AUTO-GENERATED ブロックは
   [scripts/gen-eiji-drawer-map.py](scripts/gen-eiji-drawer-map.py) が生成し、
@@ -88,8 +89,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 
 現構成は健全。以下は ZMK / 上流ツールの制約で**移動不可**：
 
-- `config/` `boards/` `zephyr/module.yml` `build.yaml` はリポジトリ**ルート**必須
-  （ZMK reusable build と west の前提）。
+- `config/` `build.yaml` はリポジトリ**ルート**必須（ZMK build と west の前提）。
+  `boards/` `zephyr/module.yml` はローカル shield 撤去（2026-07-30）とともに廃止
+  — 復活させる時はルート必須＋ビルド側の BOARD_ROOT 配管も要復元。
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
 - `scripts/` は現規模に適切。これ以上分割しない。

@@ -37,15 +37,15 @@ glyph hook install
 ```
 config/         ZMK キーマップ / behaviors / combos / west.yml（ルート必須）
 build.yaml      ビルド対象 3 つ（imprint_left / imprint_right / imprint_dongle）
-boards/ zephyr/  ZMK board-root（ローカル shield は imprint_dongle のみ。他は module 由来）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
 scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
 .github/        CI（build / draw / verify-eiji-sync / commit-lint / shellcheck / release）
 ```
 
-ZMK と上流ツールの制約で `config/` `boards/` `zephyr/module.yml` `build.yaml`
-はリポジトリルート固定（移動しない）。詳細は [CLAUDE.md](CLAUDE.md)。
+ZMK と上流ツールの制約で `config/` `build.yaml` はリポジトリルート固定
+（移動しない）。board / shield はすべて upstream module 提供（ローカル shield
+無し — imprint_dongle も Cyboard 上流入り済み）。詳細は [CLAUDE.md](CLAUDE.md)。
 
 ## ZMK ファーム ビルド
 

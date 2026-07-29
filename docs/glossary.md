@@ -152,9 +152,9 @@ ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、
 ZMK が指す **デバイス本体**（マトリクス / 物理レイアウト / 周辺）の定義。
 canon の 3 シールド: `imprint_left` / `imprint_right`（分割左右）/ `imprint_dongle`。
 - 設定: [`build.yaml`](../build.yaml)（board × shield の唯一のソース）
-- 由来: `imprint_left/right`=Cyboard module、`imprint_dongle`=canon ローカル
-  [`boards/shields/`](../boards/shields/)。**ローカル shield は `imprint_dongle` のみ**
-  （`boards/shields/` は空ではない）。
+- 由来: 3 シールドすべて Cyboard module（`zmk-keyboards` の `zephyr-4.1`
+  ブランチ）。**canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に
+  Cyboard#19 で上流入りし、ローカル定義は撤去済み）。
 - **Don't call it:** half, side, panel, 分割キーボード
 
 ### west

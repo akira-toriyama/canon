@@ -145,9 +145,7 @@ fi
 
 # --- リポジトリをワークスペースへ同期 -------------------------------------
 # west が topdir に clone するツリー（zmk/ zephyr/ modules/ ...）は決して
-# 触らない（--delete 無し＋トップレベル限定の除外）。特に cfgrepo/zephyr/ は
-# Zephyr RTOS のチェックアウトとリポジトリの zephyr/module.yml が同居するため、
-# rsync の管理対象から完全に外す。編集対象（config/ boards/ build.yaml 等）
+# 触らない（トップレベル限定の除外）。編集対象（config/ build.yaml 等）
 # のみを上書き同期する。
 mkdir -p "$CFG"
 # --delete を有効化。REPO で削除したファイル(例: 不要になった
@@ -162,12 +160,11 @@ rsync -a --delete \
   --exclude '/build/' \
   "$REPO"/ "$CFG"/
 
-# zephyr/ は同期対象外なので、board_root モジュール宣言だけ明示的に配置する
-# （単一ファイルのコピーは Zephyr RTOS ツリーを壊さない）。
-if [ -f "$REPO/zephyr/module.yml" ]; then
-  mkdir -p "$CFG/zephyr"
-  cp "$REPO/zephyr/module.yml" "$CFG/zephyr/module.yml"
-fi
+# 旧構成（ローカル shield 時代）が Zephyr チェックアウト直下へ配置していた
+# board_root モジュール宣言の残骸を掃除する。zephyr/ は rsync 対象外のため
+# --delete では消えず、放置すると west が project zephyr の module.yml と
+# 誤解釈しうる。
+rm -f "$CFG/zephyr/module.yml"
 
 # --- west init/update が必要か判定 ----------------------------------------
 NEED_UPDATE=0
@@ -252,8 +249,7 @@ for t in $TARGETS; do
   if [ "$RESET" = "1" ]; then EXTRA="-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y"; SUFFIX="_RESET"; fi
   echo "=== BUILD $BOARD / $SH$SUFFIX ==="
   west build -p -s zmk/app -d "build/$SH$SUFFIX" -b "$BOARD" -- \
-    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config \
-    -DBOARD_ROOT=/workspace -DDTS_ROOT=/workspace $EXTRA
+    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config $EXTRA
   cp "build/$SH$SUFFIX/zephyr/zmk.uf2" "/workspace/output/$SH$SUFFIX.uf2"
   echo "=== DONE $SH$SUFFIX ==="
 done
