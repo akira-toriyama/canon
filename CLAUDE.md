@@ -29,8 +29,9 @@ macOS 側ホストブリッジは独立リポジトリ
 （キーマップ・ファーム）のみを扱う。
 
 設計思想は **低依存**（Python は stdlib のみ、他は shell）。重量級ツールチェーン
-（Node ランタイム依存の常駐ツール等）をリポジトリに持ち込まない。git-cliff は
-Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しない。
+（Node ランタイム依存の常駐ツール等）をリポジトリに持ち込まない。リリースの
+版・ノートは glyph（fleet 共通の Go バイナリ。Actions が checksum 検証つき
+composite で導入）が算出し、リポジトリ側に設定も依存も持ち込まない。
 
 ## 壊しやすい点（最優先で意識する）
 
@@ -91,7 +92,7 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   （ZMK reusable build と west の前提）。
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
-- `scripts/`（+`scripts/hooks/`）は現規模に適切。これ以上分割しない。
+- `scripts/` は現規模に適切。これ以上分割しない。
 
 ## ビルド
 
@@ -106,24 +107,22 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   ビルドする（公式 reusable は patch を当てず &vkey 等が解決できないため差し替えた。
   背景は zmk-build.yml / [docs/vkey-roadmap.md](docs/vkey-roadmap.md)）。
 - リリース: [release.yml](.github/workflows/release.yml)。**push:main で自動**に
-  git-cliff で次版を算出し「ローリングドラフト」Release を作成／更新する（タグは
-  作らない）。マージするほど下書きが育ち、**手動 Publish で初めてタグ生成 +
-  `*.uf2` 添付**。`workflow_dispatch` の `dry_run=true` はドラフトを作らない
-  完全プレビュー。main 保護尊重で CHANGELOG は main へ自動 push しない。
+  glyph が最後の v* タグ以降を squash-safe に歩いて次版とノートを算出し
+  「ローリングドラフト」Release を upsert する（タグは作らない）。マージするほど
+  下書きが育ち、**手動 Publish で初めてタグ生成 + `*.uf2` 添付**。
+  `workflow_dispatch` の `dry_run=true` はドラフトを作らない完全プレビュー。
 
 ## コミット規約（必須）
 
-**gitmoji + Conventional Commits**: `<:gitmoji:> <type>(<scope>)<!>: <subject>`
-semver は `type` で決まる（`feat`→minor / `fix`・`perf`→patch / `!`・
-`BREAKING CHANGE:`→major / その他は bump しない）。完全な規約・semver 表・
-bot 除外は **[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)** を参照
-（設定 [cliff.toml](cliff.toml)）。
+**gitmoji-driven**: `<:gitmoji:>[(<scope>)][!] <subject>` — semver は gitmoji で
+決まる。完全な規約・semver 表・除外規則は
+**[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)** と `glyph rules` を参照。
 
-- ローカル検証フック: `git config core.hooksPath scripts/hooks`
+- ローカル検証フック: clone ごとに一度 `glyph hook install`
 - PR では [commit-lint.yml](.github/workflows/commit-lint.yml) が同規則で検証
-- bot（`github-actions` 等）コミットは版算出・CHANGELOG から除外
-- 例: `:sparkles: feat(keymap): 矢印レイヤーを追加` /
-  `:bug: fix(combos): 誤爆を修正` / `:memo: docs: 手順を追記`
+- bot（`github-actions` 等）コミットは版算出・ノートから除外
+- 例: `:sparkles:(keymap) 矢印レイヤーを追加` /
+  `:bug:(combos) 誤爆を修正` / `:memo: 手順を追記`
 
 ## エディタ
 

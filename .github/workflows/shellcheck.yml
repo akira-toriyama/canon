@@ -1,19 +1,17 @@
 name: ShellCheck
 
-# shell スクリプト（Docker ビルド・git フック）を静的検査。
+# shell スクリプト（Docker ビルド等）を静的検査。
 # shellcheck は GitHub Ubuntu runner に同梱のため追加依存なし。
 on:
   push:
     paths:
       - "**/*.sh"
       - "**/*.bash"
-      - "scripts/hooks/**"
       - ".github/workflows/shellcheck.yml"
   pull_request:
     paths:
       - "**/*.sh"
       - "**/*.bash"
-      - "scripts/hooks/**"
   workflow_dispatch:
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions
@@ -32,7 +30,7 @@ jobs:
       - name: Run shellcheck
         run: |
           set -euo pipefail
-          files=$(git ls-files '*.sh' '*.bash' 'scripts/hooks/*')
+          files=$(git ls-files '*.sh' '*.bash')
           echo "対象:"; echo "$files"
-          # shebang からシェルを判定（commit-msg は #!/bin/sh）。
+          # shebang からシェルを判定する。
           shellcheck $files

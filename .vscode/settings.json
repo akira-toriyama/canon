@@ -5,13 +5,12 @@
   // 構文ハイライトの言語関連付け。
   // - .keymap/.dtsi/.overlay: DeviceTree（要 plorefice.devicetree 拡張。
   //   .vscode/extensions.json で推奨。未導入時はプレーンに graceful fallback）
-  // - skhdrc / .conf / commit-msg: 拡張不要のビルトイン言語で近似
+  // - skhdrc / .conf: 拡張不要のビルトイン言語で近似
   "files.associations": {
     "**/*.keymap": "devicetree",
     "**/*.dtsi": "devicetree",
     "**/*.overlay": "devicetree",
     "**/*.conf": "properties",
-    "**/scripts/hooks/commit-msg": "shellscript",
     "**/skhdrc.tmpl": "shellscript",
     "**/skhdrc": "shellscript"
   },
