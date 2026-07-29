@@ -118,13 +118,12 @@ jobs:
       - name: Build firmware
         run: |
           set -euo pipefail
-          # scripts/build-zmk.sh と同一の west build 呼び出し。BOARD_ROOT/DTS_ROOT
-          # は canon ルート（＝topdir）＝boards/shields/imprint_dongle 等を解決。
+          # scripts/build-zmk.sh と同一の west build 呼び出し。board/shield は
+          # すべて upstream モジュール提供（canon ローカル shield ゼロ）のため
+          # BOARD_ROOT/DTS_ROOT の追加は不要。
           west build -p -s zmk/app -b "${{ matrix.board }}" -- \
             -DSHIELD="${{ matrix.shield }}" \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-            -DBOARD_ROOT="$GITHUB_WORKSPACE" \
-            -DDTS_ROOT="$GITHUB_WORKSPACE"
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/config"
           cp build/zephyr/zmk.uf2 "${{ matrix.shield }}.uf2"
 
       - name: Upload firmware artifact

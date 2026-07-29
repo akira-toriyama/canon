@@ -37,15 +37,15 @@ glyph hook install
 ```
 config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
 build.yaml      3 build targets (imprint_left / imprint_right / imprint_dongle)
-boards/ zephyr/  ZMK board-root (only local shield is imprint_dongle; others come from modules)
 keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
 scripts/        build-zmk.sh (entrypoint), gen-eiji-drawer-map.py, hooks/
 docs/           commit convention, etc.
 .github/        CI (build / draw / verify-eiji-sync / commit-lint / shellcheck / release)
 ```
 
-Per ZMK/upstream constraints, `config/`, `boards/`, `zephyr/module.yml` and
-`build.yaml` must remain at the repo root (do not move). See [CLAUDE.md](CLAUDE.md).
+Per ZMK/upstream constraints, `config/` and `build.yaml` must remain at the
+repo root (do not move). Every board/shield comes from upstream modules (no
+local shields — imprint_dongle is upstreamed to Cyboard). See [CLAUDE.md](CLAUDE.md).
 
 ## ZMK firmware build
 

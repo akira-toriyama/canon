@@ -110,8 +110,8 @@ jobs:
           path: RELEASE_NOTES.md
 
   # firmware ビルドは通常 CI と同一の reusable に委譲（重複/drift 解消）。
-  # zmk-build.yml が build.yaml を唯一のソースに matrix を生成し、patch 適用・
-  # BOARD_ROOT 込みで全ターゲット (imprint_left/right/dongle) を build し
+  # zmk-build.yml が build.yaml を唯一のソースに matrix を生成し、patch を
+  # 適用して全ターゲット (imprint_left/right/dongle) を build し
   # <shield> 名の artifact を上げる。draft job がそれを DL してリリースへ添付する。
   build:
     needs: version

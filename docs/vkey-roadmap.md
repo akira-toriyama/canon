@@ -621,7 +621,7 @@ canon の out-of-tree 依存（3 patch + dongle shield）は、それぞれ upst
 | [zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385) | `security-changed-auto-unpair.patch` | 同 patch を撤去 |
 | [zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)（`CONFIG_ZMK_USB_HID_REPLAY_ON_READY`） | `usb-hid-prime-on-ready.patch` | 同 patch を撤去し Kconfig を `=y` に |
 | [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)（`CONFIG_ZMK_HID_VKEY` default-off・**提出済み/レビュー待ち**） | `vkey-report.patch`（汎用 vendor/raw-HID behavior 化） | merge されたら同 patch を撤去（**未 merge の間は維持**） |
-| [Cyboard zmk-keyboards#7](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/7)（**✅ 2026-07-14 merged** — ただし merge 先は `main` のみ。canon が追う `zephyr-4.1` への forward-port は [#19](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/19) がレビュー待ち） | `imprint_dongle` shield（Cyboard は公式にドングル非対応） | canon ローカル `boards/shields/imprint_dongle/` を削除、`zmk-build.yml` の `-DBOARD_ROOT` も不要化（**#19 merge 後に実施** — 同名 shield 衝突があるため canon 側削除 → west update の順） |
+| [Cyboard zmk-keyboards#7](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/7)（**✅ 2026-07-14 merged**）+ `zephyr-4.1` への forward-port [#19](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/19)（**✅ 2026-07-28 merged**） | `imprint_dongle` shield（Cyboard は公式にドングル非対応 → 公式化） | **✅ 2026-07-30 完了**: canon ローカル `boards/shields/imprint_dongle/` を削除し upstream shield へ移行、`zmk-build.yml`/`build-zmk.sh` の `-DBOARD_ROOT`/`-DDTS_ROOT` と `zephyr/module.yml` を撤去（t-19b3） |
 
 **終端状態（全部 merge されたら）**: `patches/zmk/` が空になり、`build.yml`/`zmk-build.yml` を
 **ZMK 公式 reusable**（`zmkfirmware/zmk/.github/workflows/build-user-config.yml@main`）へ戻せる →
