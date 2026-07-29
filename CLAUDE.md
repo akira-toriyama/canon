@@ -53,6 +53,9 @@ Actions / `npx` 経由で使い、リポジトリに Node 依存を追加しな�
   （xiao_ble の imprint_dongle は通るので、部分的な赤に見えて紛らわしい）。HWv2 board
   （`boards/cyboard/assimilator-bt/board.yml`）は `zephyr-4.1` ブランチ側にあり、Cyboard
   自身が west.yml のコメントでそちらを案内している。
+  ※ 2026-07-29 現在は zephyr-4.1 上の一時 SHA pin 中（上流入りした imprint_dongle
+  shield がローカル同名 shield と衝突するため — 経緯と解除条件は
+  [config/west.yml](config/west.yml) のコメントと t-zy1h）。
 - **単一ソース規約（eiji）**: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) が唯一の
   ソース。`keymap_drawer.config.yaml` の AUTO-GENERATED ブロックは
   [scripts/gen-eiji-drawer-map.py](scripts/gen-eiji-drawer-map.py) が生成し、
