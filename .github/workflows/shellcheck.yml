@@ -32,5 +32,7 @@ jobs:
           set -euo pipefail
           files=$(git ls-files '*.sh' '*.bash')
           echo "対象:"; echo "$files"
-          # shebang からシェルを判定する。
+          # shebang からシェルを判定する。git ls-files の改行区切りリストを
+          # 引数に展開する意図的な word-split（ファイル名に空白は使わない前提）。
+          # shellcheck disable=SC2086
           shellcheck $files
