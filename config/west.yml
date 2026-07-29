@@ -22,9 +22,16 @@ manifest:
     # cmake が soc Kconfig を生成できず "Kconfig/soc/Kconfig.defconfig not found" で落ちる。
     # Cyboard 自身が west.yml で「ZMK main / Zephyr 4.1 なら zephyr-4.1 ブランチを使え」と
     # 案内している（HWv2 の boards/cyboard/assimilator-bt/board.yml はそちらにある）。
+    #
+    # 【一時 pin — t-zy1h】2026-07-28 に zephyr-4.1 へ imprint_dongle shield が
+    # 上流入りし（Cyboard-DigitalTailor/zmk-keyboards#19）、canon ローカルの同名
+    # shield を shadow して dongle build が devicetree ラベル未定義で落ちる。
+    # ローカル shield を upstream へ移行するまで、上流入り直前のコミットに固定
+    # （= 2026-07-28 まで緑だったビルドと同一入力）。移行が済んだら
+    # revision: zephyr-4.1 に戻すこと。
     - name: zmk-keyboards
       remote: Cyboard-DigitalTailor
-      revision: zephyr-4.1
+      revision: ad5c9f2f382205c3332ccccd625109050b992b89
       import: config/west.yml
   self:
     path: config
