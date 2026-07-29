@@ -25,11 +25,11 @@ flowchart LR
 
 ## Setup
 
-After cloning, enable the commit-message hook (enforces gitmoji +
-Conventional Commits / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)):
+After cloning, enable the commit-message hook (glyph checks the gitmoji
+convention / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)):
 
 ```sh
-git config core.hooksPath scripts/hooks
+glyph hook install
 ```
 
 ## Layout

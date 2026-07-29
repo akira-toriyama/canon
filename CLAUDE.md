@@ -92,7 +92,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   （ZMK reusable build と west の前提）。
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
-- `scripts/`（+`scripts/hooks/`）は現規模に適切。これ以上分割しない。
+- `scripts/` は現規模に適切。これ以上分割しない。
 
 ## ビルド
 
@@ -118,7 +118,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 決まる。完全な規約・semver 表・除外規則は
 **[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)** と `glyph rules` を参照。
 
-- ローカル検証フック: `git config core.hooksPath scripts/hooks`
+- ローカル検証フック: clone ごとに一度 `glyph hook install`
 - PR では [commit-lint.yml](.github/workflows/commit-lint.yml) が同規則で検証
 - bot（`github-actions` 等）コミットは版算出・ノートから除外
 - 例: `:sparkles:(keymap) 矢印レイヤーを追加` /

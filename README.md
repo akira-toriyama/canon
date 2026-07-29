@@ -25,11 +25,11 @@ flowchart LR
 
 ## 環境構築
 
-クローン後、コミットメッセージ検証フックを有効化する（gitmoji +
-Conventional Commits を強制 / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
+クローン後、コミットメッセージ検証フックを有効化する（gitmoji 規約を
+glyph が検証 / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
 
 ```sh
-git config core.hooksPath scripts/hooks
+glyph hook install
 ```
 
 ## ディレクトリ構成
