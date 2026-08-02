@@ -721,7 +721,7 @@ canon PR #60）** まで全て完了。残るは **vkey→zmk upstream PR（任�
      例外**（単一 vendor page `0xFF31`・自前 1 byte selector のみ読む。汎用 HID 傍受でも per-device
      routing でも DriverKit でもない）」へ改訂。§2 per-device は「原理的不能」→「通常キーの設計選択」
      に直し vkey と区別。「When these become Yes」表・§6 Adapter scope も整合。
-   - chord `README.md`/`README.ja.md`: Triggers に v-key、Configure に v-key 節（bare `input="TU_LL_C"`
+   - chord `README.md`: Triggers に v-key、Configure に v-key 節（bare `input="TU_LL_C"`
      + `[v-key-aliases]` + canon `vkey-aliases.toml` 導線）、Install に Input Monitoring 付与手順
      （chord.app は terminal と別 identity = 別 grant）、AX-only 一文を qualify。
    - 併せて chord `glossary.md`（v-key 用語群・同一 PR 規約の積み残し回収）/`architecture.md`/
