@@ -77,6 +77,43 @@ locality で dongle 上でのみ実行され、押下が peripheral→central �
 側の腐った bond は central の BT_CLR では消せない。確実な手動復旧は RESET firmware
 （NVS wipe）のみ。
 
+## New-unit provisioning (bring-up of a brand-new imprint set)
+
+Verified 2026-08-04 by bringing up a second imprint + XIAO dongle set on a
+machine **without Docker** (release artifacts only — no local build needed).
+
+1. **Get canon firmware**: `gh release download <tag> --repo akira-toriyama/canon -p '*.uf2' -D firmware`
+   (a draft release works when `gh` is authenticated; the rolling draft carries
+   the latest `main` build).
+2. **Get the official reset/vanilla firmware**: the
+   [Cyboard-DigitalTailor/cyboard-imprint-zmk-studio-firmware](https://github.com/Cyboard-DigitalTailor/cyboard-imprint-zmk-studio-firmware)
+   releases ship `settings_reset.uf2` (NVS wipe without Docker) plus vanilla
+   left/right firmware — the vanilla set is a self-contained hardware test
+   (left = central; wired left + BLE right must both type).
+3. **Per half, one unit at a time**: double-tap into the bootloader → flash
+   `settings_reset.uf2` → let it boot ≥15 s (wipes NVS) → double-tap → flash the
+   canon uf2 → **verify boot: the half must enumerate on USB as `Imprint`**
+   (peripheral halves enumerate but do not type over USB — that is expected).
+   Track which physical unit is which by USB serial number.
+4. **Dongle**: flash `imprint_dongle.uf2`; verify it enumerates as
+   `Imprint Dongle` (HID keyboard, UsagePage 1 / Usage 6).
+5. **Pair** with the 手順A order above (halves advertise first, dongle last).
+
+Failure modes learned during that bring-up:
+
+- **Truncated UF2 copy**: a healthy copy of a ~400 KB uf2 takes 7–9 s and only
+  warns about extended attributes; a 1–3 s copy with `fcopyfile … Input/output
+  error` / `Device not configured` on the data itself produced a device that
+  never boots (observed 3×; mechanism inferred, not proven). A `DONE` line from
+  the flash script is **not** proof — always verify boot by USB enumeration.
+- A half that fails to appear on USB twice in a row (replug + single-tap reset)
+  is not running its firmware — re-flash before suspecting BLE/pairing.
+- Do not conclude from one attempt: a missed double-tap (single tap = reboot
+  only) mimics "no bootloader", and operator timing varies. Verify twice.
+- Halves that ran vanilla/factory firmware keep bonds in NVS; the successful
+  bring-up wiped them with `settings_reset.uf2` before flashing canon firmware
+  (not isolated as the root cause, but part of the sequence that worked).
+
 ## 現状
 
 | Phase | 内容 | 状態 |
