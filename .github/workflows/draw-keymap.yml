@@ -22,7 +22,7 @@ jobs:
       # なく明示指定にして、物理レイアウトを持たない keymap が混ざったときの
       # "physical layout could not be found" 事故を避ける。
       keymap_patterns: config/imprint.keymap
-      commit_message: ":bento: ci(keymap-drawer): SVG を更新"
+      commit_message: ":bento:(keymap-drawer) update the generated svg"
       amend_commit: false
       # keymap のパース/描画でエラーが出たら CI を落とす（壊れた keymap の早期検知）。
       fail_on_error: true
