@@ -2,8 +2,6 @@
 # canon キーマップの &vkey <id> を chord の論理名へ。`cat config/vkey-aliases.toml`
 # のこのブロックを chord config (dotfiles) の [v-key-aliases] に貼る（chezmoi は各自運用）。
 [v-key-aliases]
-# DEFAULT 単体 X_1
-VK_X1 = 0x01
 # T_LL_LAYER (base 0x10)
 TU_LL_Q = 0x10
 TU_LL_W = 0x11
