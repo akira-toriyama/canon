@@ -39,7 +39,7 @@
       display-name = "Base";
       bindings = <
         &ime_kana LS(LEFT_COMMAND) KANA       &al_q               &al_w              &al_e              &al_r             &al_t                    &al_y  &al_u     &al_i     &al_o      &al_p       &ime_eiji LC(LALT) EIJI
-        &kp SPACE   &al_a               &al_s              &al_d              &al_f             &al_g                    &al_h  &al_j     &al_k     &al_l      &vkey 0x01     &kp BACKSPACE
+        &kp SPACE   &al_a               &al_s              &al_d              &al_f             &al_g                    &al_h  &al_j     &al_k     &al_l      &ime_dance     &kp BACKSPACE
         &kp ESCAPE  &al_z               &al_x              &al_c              &al_v             &al_b                    &al_n  &al_m     &ar_up    &kp TAB    &kp DELETE  &kp RETURN
         &none       MO_LAYER(FUNCTION)  MO_LAYER(SYMBOL2)  MO_LAYER(SYMBOL1)  MO_LAYER(NUMBER)                                  &ar_left  &ar_down  &ar_right  &none &none
                                                                TU_LL  TU_LM  &none                    &none  TU_RM  TU_RR
