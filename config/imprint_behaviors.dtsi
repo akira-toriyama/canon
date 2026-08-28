@@ -5,16 +5,6 @@
     HOLD_TAP_HP200(ime_kana, &kana)
     HOLD_TAP_HP200(ime_eiji, &eiji)
 
-    // ==== IME tap-dance (tap = かな / double-tap = 英数) ====
-    // 単発 tap の確定は tapping-term 満了か他キー割込みまで遅延する
-    // (tap-dance の仕様。連続タイピング時は次キー押下で即確定)。
-    ime_dance: ime_dance {
-      compatible = "zmk,behavior-tap-dance";
-      #binding-cells = <0>;
-      tapping-term-ms = <200>;
-      bindings = <&kana>, <&eiji>;
-    };
-
     // ==== letter / arrow mod-morph ====
     #include "letter_morphs.dtsi"
     #include "arrow_behaviors.dtsi"

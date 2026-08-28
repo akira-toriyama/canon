@@ -137,9 +137,6 @@ parse_config:
     # combo (ime_kana/ime_eiji の tap binding として呼ばれる)
     "&kana": かな
     "&eiji": 英数
-    # base 層 tap-dance (tap=かな / double-tap=英数)。0-cell の tap-dance は
-    # keymap-drawer が bindings を展開しないため raw_binding_map で凡例を与える。
-    "&ime_dance": { t: かな, s: 英数 }
   # keymap-drawer 上での修飾子の表記（mod-morph hold 中の keep-mods など）。
   modifier_fn_map:
     left_ctrl: Ctl+
