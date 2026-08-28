@@ -23,7 +23,7 @@ layers:
   - {t: J, s: '&eiji_macro J'}
   - {t: K, s: '&eiji_macro K'}
   - {t: L, s: '&eiji_macro L'}
-  - {t: かな, s: 英数}
+  - '&vkey 0x01'
   - ⌫
   - ⎋
   - {t: Z, s: '&eiji_macro Z'}
