@@ -1,7 +1,7 @@
 layout: {zmk_keyboard: imprint, layout_name: imprint_letters_only_full_bottom_row}
 layers:
   Base:
-  - {t: かな, h: Sft+⌘}
+  - 英数
   - {t: Q, s: '&eiji_macro Q'}
   - {t: W, s: '&eiji_macro W'}
   - {t: E, s: '&eiji_macro E'}
@@ -12,7 +12,7 @@ layers:
   - {t: I, s: '&eiji_macro I'}
   - {t: O, s: '&eiji_macro O'}
   - {t: P, s: '&eiji_macro P'}
-  - {t: 英数, h: Ctl+⌥}
+  - かな
   - ␣
   - {t: A, s: '&eiji_macro A'}
   - {t: S, s: '&eiji_macro S'}
