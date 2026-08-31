@@ -65,7 +65,8 @@ parse_config:
     APPLICATION: ☰
     PRINTSCREEN: PrtSc
     PAUSE_BREAK: Pause
-    # macOS の IME 切替 (combo_kana / combo_eiji が出力)
+    # macOS の IME 切替 (base 最上段両端の &kp EIJI / &kp KANA が出力。
+    # combo_kana / combo_eiji 側は hold-tap 経由なので raw_binding_map で描画)
     LANGUAGE_1: かな
     LANGUAGE_2: 英数
   # 自作 macro / mod-morph の include 元
