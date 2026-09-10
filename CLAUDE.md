@@ -95,6 +95,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
 - `scripts/` は現規模に適切。これ以上分割しない。
+- **glyph の `[[packages]]`（サブディレクトリ毎の独立版系列）は使わない**（2026-09-10 裁定、projects t-ptp3）。製品は imprint の uf2 3 つ 1 組で、`config/`・`patches/`・`build.yaml`・`config/west.yml` は全部その 1 ビルドの入力＝単独の消費者も成果物も持つディレクトリが無い。`patches/` は upstream PR で外へ出る前提（各 README）で版の単位ではなく、分けると patch だけの修正（例 #148）が firmware の版もドラフトも動かさなくなる。release.yml の uf2 添付も単一ドラフトの `.tag` 前提。
 
 ## ビルド
 
