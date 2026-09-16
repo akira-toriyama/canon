@@ -178,10 +178,11 @@ Zephyr/ZMK の workspace 管理ツール。canon は manifest を
 - **Don't call it:** binary, image, ファーム本体
 
 ### dtsi
-DeviceTree Source Include。`#include` 経由で `keymap` に取り込まれる
-部分文書。canon では `combos.dtsi` / `macros.dtsi` /
-`imprint_behaviors.dtsi` / `eiji_macros.dtsi` / `arrow_behaviors.dtsi` /
-`letter_morphs.dtsi` が住む。
+DeviceTree Source Include。`#include` 経由で `keymap` または
+[[build target]] ごとの `*.overlay` に取り込まれる部分文書。canon では
+`combos.dtsi` / `macros.dtsi` / `imprint_behaviors.dtsi` / `eiji_macros.dtsi` /
+`arrow_behaviors.dtsi` / `letter_morphs.dtsi`（keymap 側）と
+`ext_power_off.dtsi`（左右の overlay 側）が住む。
 - **Don't call it:** include file, dts fragment, ヘッダ
 
 ---

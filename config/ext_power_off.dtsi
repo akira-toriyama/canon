@@ -1,0 +1,41 @@
+// EXT_POWER レール（assimilator-bt の P1.02）を起動時点から恒久 off にする。
+// 左右の overlay から #include する。dongle は EXT_POWER ノードを持たないので対象外。
+//
+// なぜ切るか: canon は CONFIG_ZMK_RGB_UNDERGLOW=n でこのレールの先の per-key LED を
+// 一度も点灯させない。それでも静止電流を食い、半体で 10〜18mA（2026-09-15 実測。
+// 一時 patch でレールを落とすと接続時 0.79mA）。
+//
+// なぜ zmk,ext-power-generic に任せないか: ext_power_generic_init() が無条件で
+// ext_power_enable() し、さらに settings_load() が NVS の "ext_power/state/EXT_POWER"
+// を読み戻して再び enable する。init だけ潰しても NVS が勝つ。status="disabled" なら
+// ドライバのファイル全体（settings ハンドラを含む）がコンパイルから消え、保存済みの値は
+// 読み手を失って無視される。NVS 消去が不要＝BLE bond を保ったまま決定的に off になる。
+//
+// なぜ hog が要るか: ドライバが消えると P1.02 を誰も configure せず、reset 状態
+// （入力・高 Z）でレールの状態が回路図なしには決まらない。hog は GPIO コントローラ
+// （PRE_KERNEL_1）の後に走り、能動的に low で固定する。
+//
+// なぜキー（&ext_power EP_OFF/EP_ON）で切らないか: dongle 構成では central 側に
+// EXT_POWER デバイスが無く、zmk_behavior_invoke_binding が GLOBAL 転送の前段の
+// convert で -EIO を返して打ち切る（ZMK app/src/behavior.c と
+// app/src/behaviors/behavior_ext_power.c）。押しても半体には届かない。
+//
+// 追従の注意: pin 番号は board 側（zmk-keyboards の
+// boards/cyboard/assimilator-bt/assimilator-bt.dts の EXT_POWER control-gpios）の複製。
+// ノード名が変わればこの参照でビルドが落ちるが、pin が動いても落ちない。
+// RGB underglow を復活させるならこのファイルごと外すこと（disabled ノードを
+// DEVICE_DT_GET できずビルドが落ちる）。
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+&{/EXT_POWER} {
+    status = "disabled";
+};
+
+&gpio1 {
+    ext_power_off_hog {
+        gpio-hog;
+        gpios = <2 GPIO_ACTIVE_HIGH>;
+        output-low;
+    };
+};

@@ -1,3 +1,5 @@
+#include "ext_power_off.dtsi"
+
 // Phase 5b: 左半分のトラックボール forward を dongle へ。
 //
 // dongle 構成では左は peripheral 役。upstream imprint.dtsi（zephyr-4.1・
