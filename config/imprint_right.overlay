@@ -1,0 +1,5 @@
+// 右半体の user overlay。中身は共有 dtsi 1 本だけだが、このファイルが要る:
+// ZMK は shield ごとに user overlay を 1 本しか採用しないので、左右で共通の
+// config/imprint.overlay にまとめると imprint_left.overlay が採用されなくなり、
+// 左のトラックボール forward 設定が丸ごと落ちる。
+#include "ext_power_off.dtsi"
