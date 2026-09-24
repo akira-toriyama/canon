@@ -24,6 +24,23 @@ peripheral(左右半分) の bond が片側だけ失われたときの自動復�
 (`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`、default n の Kconfig gate
 付き)。merge され次第本 patch を畳む。
 
+### `split-battery-source-bounds.patch`
+
+`app/src/split/central.c` の battery event 分岐に `source` の範囲検査を足す。upstream は
+読み出し側 (`zmk_split_central_get_peripheral_battery_level`) でしか範囲を見ておらず、
+書き込み `peripheral_battery_levels[source] = …` は無検査。`split_central_disconnected()` は
+`peripheral_slot_index_for_conn()` の戻り値をそのまま uint8_t の `source` に入れるため、
+slot を持たない接続が切れると `-EINVAL` が **234** になり、2 byte の配列の 234 byte 先へ
+0 を書く (imprint_dongle の実ビルドでは BLE controller の ECC 鍵領域に着弾する)。
+`split_central_connected()` と違い `BT_CONN_ROLE_CENTRAL` の filter が無いので、dongle 自身の
+BLE 接続 (HOG で繋いだ phone 等) が切れるだけで到達する。
+
+この分岐は `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING` 配下で、canon が
+2026-09-24 に同 Kconfig を `config/imprint_dongle.conf` で有効化するまで compile されて
+いなかった。**有効化と同じ PR で塞ぐ**。
+
+**upstream PR**: 未提出。vkey #3390 とは独立の upstream バグ修正なので単独で出す。
+
 ### `usb-hid-prime-on-ready.patch`
 
 `app/src/usb_hid.c` に **pending report queue** を追加し、USB が

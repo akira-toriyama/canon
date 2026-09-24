@@ -384,6 +384,10 @@ cache は ZMK main @ `fff185e` (2026-05-25, 約 3 週間前)。**patch の conte
 descriptor 項目は vkey hunk の post-image 内にしか置けず、別 patch にすると warm tree で
 vkey-report.patch の reverse-check / forward-check が両方落ちる（実測）。**0xFF31 collection に
 足す report は今後も全てこの 1 patch に同居させる。**
+同居の対象は **`hid.h` の descriptor / report struct に触る分**に限る。2026-09-24 に足した
+`patches/zmk/split-battery-source-bounds.patch`（`app/src/split/central.c` の `source` 範囲検査）は
+descriptor に触れず他の patch とファイルも重ならないので、独立した upstream バグ修正として
+別ファイルのままでよい（4 patch を CI 順に pristine 適用 + warm tree の reverse-check で実測確認）。
 
 ZMK 改変(cache の行番号。fresh main で要再確認):
 
