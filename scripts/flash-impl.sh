@@ -98,7 +98,7 @@ while true; do
         exit 1
       fi
       echo "[$(ts)] COPY $uf2 → $current"
-      cp "$uf2" "$current/" && sync
+      cp -X "$uf2" "$current/" && sync
       echo "[$(ts)] DONE  $target $DONE_NOTE"
       case "$target" in
         left)   LEFT_DONE=1   ;;
