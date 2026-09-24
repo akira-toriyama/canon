@@ -77,6 +77,15 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `config/vkey-aliases.toml` を手編集しない。id を変えるときはキーマップを直し
   `python3 scripts/gen-vkey-aliases.py` を再実行（stdlib のみ）。これでキーマップ↔chord
   config の id 二重管理を排除する（chord 側への貼り込み＝chezmoi 運用は別管理）。
+- **The dongle's USB product string `Imprint Dongle` is a contract with chord**:
+  chord's `VKeyHIDSource` identifies the dongle by that string (VID/PID
+  `0x1D50`/`0x615E` are ZMK's defaults and identical on the ist dongle, so they
+  cannot tell the two apart; measured 2026-09-24, both enumerated on one Mac).
+  The string comes from the upstream shield (`zmk-keyboards`
+  `boards/shields/imprint_dongle/Kconfig.defconfig` → `ZMK_KEYBOARD_NAME` →
+  `USB_DEVICE_PRODUCT`). Do not override `CONFIG_ZMK_KEYBOARD_NAME` for the
+  dongle in `config/`, and if upstream renames it, change chord's `productName`
+  in the same change.
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。
