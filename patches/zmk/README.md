@@ -114,8 +114,19 @@ bridge) が IOHIDManager で受けて id→action にマップする想定。
     `docs/vkey-roadmap.md` Phase 1 の「1 つの patch に集約」と同じ裁定。
   - `zmk_endpoint_clear_reports` には**足さない**: あれは「押しっぱなしのキーを旧 endpoint に
     残さない」契約で、battery に held state は無い。足すと endpoint 切替のたび捏造の `{source, 0}` が飛ぶ。
-  - `zmk_usb_is_hid_ready()` が偽のとき（USB suspend 中）は送らない: pending ring（8 深）から
-    打鍵を押し出さないため。level は state なので次の notify で再送される。
+  - **pending ring を一切使わない**: `zmk_usb_hid_send_split_battery_report()` は
+    `zmk_usb_hid_send_report()` を経由せず、`USB_DC_SUSPEND` 等のときと ring に未送出が残って
+    いる間は `-EAGAIN` で捨てる。理由は 2 つ。ring（8 深）は溢れると**最古**を捨てるので、
+    誰も待っていない level が打鍵を押し出す。そして `zmk_usb_hid_send_report()` の
+    `USB_DC_SUSPEND` 分岐は `usb_wakeup_request()` を呼ぶので、半体の残量変化や切断で
+    **スリープ中の host が起きる**。
+  - **`zmk_usb_is_hid_ready()` では止められない**（2026-09-24 に前提の誤りが判明し撤回）:
+    `app/src/usb.c` は `USB_DC_SUSPEND` を `ZMK_USB_CONN_HID` に写し、`is_configured` は
+    真のまま据え置くので、suspend 中も真を返す。
+  - 捨てた値は**再送されない**。半体は % が変わった時だけ notify し、無操作 30 秒で
+    サンプリング自体を止めるため、次の値は数時間先になりうる。よって listener は送出の
+    **前**に `zmk_hid_split_battery_set()` でキャッシュし、GET_REPORT(0x21) が既知の最新値を
+    返せるようにしている。
   - 上流 PR zmk#3390 の提出 diff（`docs/vkey-upstream-pr-draft.patch`）は vkey のみで、
     本 patch とは以後乖離する。merge 時の畳み方は同 draft 文書の注記を参照。
 

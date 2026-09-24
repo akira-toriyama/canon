@@ -288,10 +288,10 @@ index 00000000..7bd9dcd8
 +
 +DT_INST_FOREACH_STATUS_OKAY(VKEY_INST)
 diff --git a/app/src/endpoints.c b/app/src/endpoints.c
-index 17cdc5d7..9585169a 100644
+index 17cdc5d7..474c01c0 100644
 --- a/app/src/endpoints.c
 +++ b/app/src/endpoints.c
-@@ -261,6 +261,67 @@ int zmk_endpoint_send_report(uint16_t usage_page) {
+@@ -261,6 +261,70 @@ int zmk_endpoint_send_report(uint16_t usage_page) {
      return -ENOTSUP;
  }
  
@@ -335,7 +335,9 @@ index 17cdc5d7..9585169a 100644
 +#if IS_ENABLED(CONFIG_ZMK_USB)
 +        int err = zmk_usb_hid_send_split_battery_report();
 +        if (err) {
-+            LOG_ERR("FAILED TO SEND SPLIT BATTERY OVER USB: %d", err);
++            // Refusing the send is routine, not an error: the level is dropped
++            // whenever the bus is suspended or reports are still queued.
++            LOG_DBG("Split battery report not sent over USB: %d", err);
 +        }
 +        return err;
 +#else
@@ -346,8 +348,9 @@ index 17cdc5d7..9585169a 100644
 +
 +    case ZMK_TRANSPORT_BLE:
 +        // Same descope as vkey: no canon target presents HOG to a PC and there
-+        // is no zmk_hog_send_split_battery_report.
-+        LOG_WRN("split battery over BLE HOG not implemented (descoped)");
++        // is no zmk_hog_send_split_battery_report. LOG_DBG, not LOG_WRN: this
++        // fires on every battery notify while BLE is the active endpoint.
++        LOG_DBG("split battery over BLE HOG not implemented (descoped)");
 +        return -ENOTSUP;
 +    }
 +
@@ -359,7 +362,7 @@ index 17cdc5d7..9585169a 100644
  #if IS_ENABLED(CONFIG_ZMK_POINTING)
  int zmk_endpoint_send_mouse_report() {
      switch (current_instance.transport) {
-@@ -471,12 +532,14 @@ static int zmk_endpoints_init(void) {
+@@ -471,12 +535,14 @@ static int zmk_endpoints_init(void) {
  void zmk_endpoint_clear_reports(void) {
      zmk_hid_keyboard_clear();
      zmk_hid_consumer_clear();
@@ -459,10 +462,10 @@ index ca0b261f..fd39f143 100644
      help
 diff --git a/app/src/split/bluetooth/central_battery_hid.c b/app/src/split/bluetooth/central_battery_hid.c
 new file mode 100644
-index 00000000..77d3e67f
+index 00000000..ab8bedac
 --- /dev/null
 +++ b/app/src/split/bluetooth/central_battery_hid.c
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,63 @@
 +/*
 + * Copyright (c) 2026 The ZMK Contributors
 + *
@@ -479,7 +482,6 @@ index 00000000..77d3e67f
 +#include <zmk/event_manager.h>
 +#include <zmk/events/battery_state_changed.h>
 +#include <zmk/hid.h>
-+#include <zmk/usb.h>
 +
 +// Mirrors a split peripheral's battery level to the USB host as vendor HID
 +// report 0x21. Level 0 on peripheral disconnect is passed through unfiltered:
@@ -505,19 +507,22 @@ index 00000000..77d3e67f
 +        return ZMK_EV_EVENT_BUBBLE;
 +    }
 +
-+    // Never let a battery level enter the pending report queue: it is 8 deep
-+    // and drops the OLDEST entry on overflow, so queued keystrokes would be
-+    // evicted by a level that nobody is waiting for. A battery level is state,
-+    // not an edge - the next notify re-sends it.
-+    if (!zmk_usb_is_hid_ready()) {
-+        LOG_DBG("USB HID not ready, dropping battery level for peripheral %u", ev->source);
-+        return ZMK_EV_EVENT_BUBBLE;
-+    }
-+
 +    LOG_DBG("Peripheral %u battery level %u", ev->source, ev->state_of_charge);
 +
++    // Cache before sending, not after: a send the endpoint refuses still has to
++    // leave GET_REPORT(0x21) answering with the level we know. A half only
++    // notifies when its percentage changes and stops sampling 30 s after the
++    // last keypress, so a value dropped here is not resent for hours.
 +    zmk_hid_split_battery_set(ev->source, ev->state_of_charge);
-+    zmk_endpoint_send_split_battery_report();
++
++    // Dropping is the intended outcome when the endpoint cannot take it:
++    // zmk_usb_hid_send_split_battery_report() refuses instead of queueing, so a
++    // battery level never evicts a keystroke from the pending ring and never
++    // remote-wakes a suspended host.
++    int err = zmk_endpoint_send_split_battery_report();
++    if (err) {
++        LOG_DBG("Dropped battery level for peripheral %u (%d)", ev->source, err);
++    }
 +
 +    return ZMK_EV_EVENT_BUBBLE;
 +}
@@ -525,7 +530,7 @@ index 00000000..77d3e67f
 +ZMK_LISTENER(peripheral_battery_hid_listener, peripheral_battery_hid_listener);
 +ZMK_SUBSCRIPTION(peripheral_battery_hid_listener, zmk_peripheral_battery_state_changed);
 diff --git a/app/src/usb_hid.c b/app/src/usb_hid.c
-index 9d293064..6c7ea460 100644
+index 9d293064..c2d70ac6 100644
 --- a/app/src/usb_hid.c
 +++ b/app/src/usb_hid.c
 @@ -101,6 +101,20 @@ static int get_report_cb(const struct device *dev, struct usb_setup_packet *setu
@@ -549,7 +554,7 @@ index 9d293064..6c7ea460 100644
          default:
              LOG_ERR("Invalid report ID %d requested", setup->wValue & HID_GET_REPORT_ID_MASK);
              return -EINVAL;
-@@ -357,6 +371,30 @@ int zmk_usb_hid_send_consumer_report(void) {
+@@ -357,6 +371,66 @@ int zmk_usb_hid_send_consumer_report(void) {
      return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
  }
  
@@ -565,6 +570,16 @@ index 9d293064..6c7ea460 100644
 +}
 +
 +#if IS_ENABLED(CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID)
++// Deliberately does NOT go through zmk_usb_hid_send_report(): a battery level
++// is state, not an edge, and must be dropped rather than queued when the bus
++// cannot take it now. That path would otherwise
++//   - enqueue it in the 8 deep pending ring, which evicts the OLDEST entry, so
++//     a level nobody is waiting for can push out a queued keystroke, and
++//   - call usb_wakeup_request() in the USB_DC_SUSPEND arm, waking a sleeping
++//     host because a half's charge changed or a half dropped off.
++// zmk_usb_is_hid_ready() cannot gate that from the caller: USB_DC_SUSPEND maps
++// to ZMK_USB_CONN_HID and is_configured stays true, so it reads ready through
++// the whole suspend.
 +int zmk_usb_hid_send_split_battery_report(void) {
 +#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
 +    if (hid_protocol == HID_PROTOCOL_BOOT) {
@@ -572,8 +587,34 @@ index 9d293064..6c7ea460 100644
 +    }
 +#endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
 +
++    switch (zmk_usb_get_status()) {
++    case USB_DC_SUSPEND:
++    case USB_DC_ERROR:
++    case USB_DC_RESET:
++    case USB_DC_DISCONNECTED:
++    case USB_DC_UNKNOWN:
++    case USB_DC_CONNECTED:
++        return -EAGAIN;
++    default:
++        break;
++    }
++
++    // Reports are still queued from a not-ready window. Appending would put a
++    // battery level in the ring; overtaking them would reorder keystrokes.
++    if (pending_head != pending_tail) {
++        return -EAGAIN;
++    }
++
 +    struct zmk_hid_split_battery_report *report = zmk_hid_get_split_battery_report();
-+    return zmk_usb_hid_send_report((uint8_t *)report, sizeof(*report));
++
++    k_sem_take(&hid_sem, K_MSEC(30));
++    int err = hid_int_ep_write(hid_dev, (uint8_t *)report, sizeof(*report), NULL);
++
++    if (err) {
++        k_sem_give(&hid_sem);
++    }
++
++    return err;
 +}
 +#endif // IS_ENABLED(CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID)
 +
