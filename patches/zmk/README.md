@@ -82,6 +82,25 @@ bridge) が IOHIDManager で受けて id→action にマップする想定。
   upstream に非依存。マージは難航しうる）。提出 diff・PR 本文・移行手順は
   [`docs/vkey-upstream-pr-draft.md`](../../docs/vkey-upstream-pr-draft.md)。
 - 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
+- **Report ID `0x21` = split peripheral battery**（2026-09-24〜）。同じ `0xFF31` collection に
+  `{source, level}` 2 byte の input report を同居させる。`source` = split peripheral の slot index
+  （0/1・接続順で決まり左右固定ではない）、`level` = 0..100。切断時に central が流す `0` は
+  firmware では落とさず素通し（host が「切断」と「0%」を区別する）。
+  - 追加物: `app/src/split/bluetooth/central_battery_hid.c`（`zmk_peripheral_battery_state_changed`
+    listener → `zmk_hid_split_battery_set` → `zmk_endpoint_send_split_battery_report`）、
+    Kconfig `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID`（default n・`depends on ZMK_USB`、
+    `FETCHING` の配下）、`usb_hid.c` の GET_REPORT case と送出関数、`endpoints.c` の dispatcher。
+    有効化は `config/imprint_dongle.conf` の `..._FETCHING=y` + `..._HID=y`。
+  - **別 patch ファイルに分けない**: 0x21 の descriptor 項目は vkey hunk の post-image
+    （`hid.h` の 0xFF31 collection）の内側にしか置けず、分けると warm tree で本 patch の
+    reverse-check と forward-check が両方落ちて `build-zmk.sh` が `exit 1` する（2026-09-24 実測）。
+    `docs/vkey-roadmap.md` Phase 1 の「1 つの patch に集約」と同じ裁定。
+  - `zmk_endpoint_clear_reports` には**足さない**: あれは「押しっぱなしのキーを旧 endpoint に
+    残さない」契約で、battery に held state は無い。足すと endpoint 切替のたび捏造の `{source, 0}` が飛ぶ。
+  - `zmk_usb_is_hid_ready()` が偽のとき（USB suspend 中）は送らない: pending ring（8 深）から
+    打鍵を押し出さないため。level は state なので次の notify で再送される。
+  - 上流 PR zmk#3390 の提出 diff（`docs/vkey-upstream-pr-draft.patch`）は vkey のみで、
+    本 patch とは以後乖離する。merge 時の畳み方は同 draft 文書の注記を参照。
 
 ## パッチを追加するとき
 

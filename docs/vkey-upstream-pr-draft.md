@@ -223,6 +223,11 @@ config ZMK_BEHAVIOR_VKEY
 1. `config/imprint.conf`（または該当 .conf）に
    `CONFIG_ZMK_HID_VKEY=y` を追加（usage page/report id は既定 0xFF31/0x20 のままで可）。
 2. `patches/zmk/vkey-report.patch` を削除、`patches/zmk/README.md` の該当節も削除。
+   **注意（2026-09-24〜）**: 同 patch には zmk#3390 に含まれない Report ID `0x21`
+   （split battery report・`central_battery_hid.c` と Kconfig `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID`）
+   が同居している（分けられない理由は `patches/zmk/README.md`）。merge 時は patch を丸ごと消さず、
+   vkey hunk だけを落として battery 分を残す（`git apply -R docs/vkey-upstream-pr-draft.patch` 相当）か、
+   battery も上流化してから消す。
 3. `patches/zmk/` が空になれば `build.yml`/`zmk-build.yml`/`release.yml` を ZMK 公式
    reusable へ戻す（案1 の巻き戻し）。`security-changed`/`usb-hid-prime` も merge 済みが前提。
 4. chord 不変（wire 互換）。canon keymap 不変（`&vkey <id>` のまま）。

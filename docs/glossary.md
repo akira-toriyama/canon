@@ -62,6 +62,7 @@ flowchart TB
   BUILDYAML --> UF2
   UF2 -.flash.-> SHIELD
   BEHAVIOR -.HID / vkey 送出.-> CHORD
+  SHIELD -.split battery report (0x21).-> CHORD
 ```
 
 ---
@@ -121,7 +122,8 @@ AUTO-GENERATED ブロックを生成、`verify-eiji-sync.yml` が CI で厳密�
 
 ### vkey
 既存のどのキー入力とも衝突しない **オリジナルキー**（連番 id）をベンダー定義 HID
-（usage page `0xFF31` / Report ID `0x20`）で送る [[behavior]]。`&vkey <id>` を press で
+（usage page `0xFF31` / Report ID `0x20`。同 collection には [[split battery report]] の
+`0x21` も同居）で送る [[behavior]]。`&vkey <id>` を press で
 id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受けて action に
 マップする。[[keymap]] は `&vkey` ノードを
 [`config/vkey_behavior.dtsi`](../config/vkey_behavior.dtsi) から `#include` する。
@@ -133,6 +135,20 @@ id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受
 - 実体: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch)。詳細は
   [docs/vkey-roadmap.md](vkey-roadmap.md)
 - **Don't call it:** custom keycode, vendor key, raw HID key, オリジナルキー（説明文中の比喩を除く）
+
+### split battery report
+[[shield]] `imprint_dongle` が左右半体の電池残量をホストへ送るベンダー定義 HID
+入力レポート（usage page `0xFF31` / Report ID `0x21` / 2 byte `{source, level}`）。
+`source` は split peripheral の slot index（0/1・接続順で決まり左右固定ではない）、
+`level` は 0..100 の百分率。切断時の `0` は firmware では落とさず素通しし、
+[[host bridge]]（chord）側で「切断」と「0%」を区別する。USB のみ（BLE HOG は [[vkey]] と同じく descope）。
+- 実体: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch)
+  （[[vkey]] と同じ `0xFF31` collection・同じ patch。分けない理由は
+  [`patches/zmk/README.md`](../patches/zmk/README.md)）。有効化は
+  [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) の
+  `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_{FETCHING,HID}=y`。
+- 計測: [`scripts/battery-log.py`](../scripts/battery-log.py)（`--logging` ビルドの dongle ログから残量行だけを抽出）。
+- **Don't call it:** BAS, battery service, battery notification, 電池通知, 残量通知, バッテリーレポート
 
 ---
 
