@@ -4,9 +4,13 @@
 #
 #   python3 scripts/battery-log.py '/dev/cu.usbmodem*' /path/to/battery-log.txt
 #
-# 前提: dongle に --logging ビルドが焼いてあり、かつ半体の残量を読むなら
-# CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING=y を一時的に足してあること
-# (製品 config には入れない: 表示先が無いのに定期 GATT read で半体を起こす)。
+# 前提: dongle に --logging ビルドが焼いてあること。半体の残量購読
+# (CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING=y) は 2026-09-24 から製品 config
+# (config/imprint_dongle.conf) に入っている。同時に vendor HID report 0x21 で host へも流れる。
+# 取得は定期 read ではない: central.c:638 の bt_gatt_read は discovery 時の 1 回だけで、
+# 以後は Battery Level characteristic の notify 購読 (同 :630)。半体は値が変わった時しか
+# 通知せず、かつ 30 秒無操作で fuel gauge の読み自体を止める (battery.c:166-184 の
+# ZMK_ACTIVITY_IDLE gate / CONFIG_ZMK_IDLE_TIMEOUT=30000)。
 # DTR を上げないと ZMK 側がログを吐かない (ioctl TIOCMBIS で DTR|RTS)。
 #
 # ポートを 1 本に決め打ちしない: 同じマシンに別の ZMK デバイス (PIO_USB HID Host 等) が

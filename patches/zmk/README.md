@@ -24,6 +24,23 @@ peripheral(左右半分) の bond が片側だけ失われたときの自動復�
 (`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`、default n の Kconfig gate
 付き)。merge され次第本 patch を畳む。
 
+### `split-battery-source-bounds.patch`
+
+`app/src/split/central.c` の battery event 分岐に `source` の範囲検査を足す。upstream は
+読み出し側 (`zmk_split_central_get_peripheral_battery_level`) でしか範囲を見ておらず、
+書き込み `peripheral_battery_levels[source] = …` は無検査。`split_central_disconnected()` は
+`peripheral_slot_index_for_conn()` の戻り値をそのまま uint8_t の `source` に入れるため、
+slot を持たない接続が切れると `-EINVAL` が **234** になり、2 byte の配列の 234 byte 先へ
+0 を書く (imprint_dongle の実ビルドでは BLE controller の ECC 鍵領域に着弾する)。
+`split_central_connected()` と違い `BT_CONN_ROLE_CENTRAL` の filter が無いので、dongle 自身の
+BLE 接続 (HOG で繋いだ phone 等) が切れるだけで到達する。
+
+この分岐は `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING` 配下で、canon が
+2026-09-24 に同 Kconfig を `config/imprint_dongle.conf` で有効化するまで compile されて
+いなかった。**有効化と同じ PR で塞ぐ**。
+
+**upstream PR**: 未提出。vkey #3390 とは独立の upstream バグ修正なので単独で出す。
+
 ### `usb-hid-prime-on-ready.patch`
 
 `app/src/usb_hid.c` に **pending report queue** を追加し、USB が
@@ -82,6 +99,36 @@ bridge) が IOHIDManager で受けて id→action にマップする想定。
   upstream に非依存。マージは難航しうる）。提出 diff・PR 本文・移行手順は
   [`docs/vkey-upstream-pr-draft.md`](../../docs/vkey-upstream-pr-draft.md)。
 - 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
+- **Report ID `0x21` = split peripheral battery**（2026-09-24〜）。同じ `0xFF31` collection に
+  `{source, level}` 2 byte の input report を同居させる。`source` = split peripheral の slot index
+  （0/1・接続順で決まり左右固定ではない）、`level` = 0..100。切断時に central が流す `0` は
+  firmware では落とさず素通し（host が「切断」と「0%」を区別する）。
+  - 追加物: `app/src/split/bluetooth/central_battery_hid.c`（`zmk_peripheral_battery_state_changed`
+    listener → `zmk_hid_split_battery_set` → `zmk_endpoint_send_split_battery_report`）、
+    Kconfig `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID`（default n・`depends on ZMK_USB`、
+    `FETCHING` の配下）、`usb_hid.c` の GET_REPORT case と送出関数、`endpoints.c` の dispatcher。
+    有効化は `config/imprint_dongle.conf` の `..._FETCHING=y` + `..._HID=y`。
+  - **別 patch ファイルに分けない**: 0x21 の descriptor 項目は vkey hunk の post-image
+    （`hid.h` の 0xFF31 collection）の内側にしか置けず、分けると warm tree で本 patch の
+    reverse-check と forward-check が両方落ちて `build-zmk.sh` が `exit 1` する（2026-09-24 実測）。
+    `docs/vkey-roadmap.md` Phase 1 の「1 つの patch に集約」と同じ裁定。
+  - `zmk_endpoint_clear_reports` には**足さない**: あれは「押しっぱなしのキーを旧 endpoint に
+    残さない」契約で、battery に held state は無い。足すと endpoint 切替のたび捏造の `{source, 0}` が飛ぶ。
+  - **pending ring を一切使わない**: `zmk_usb_hid_send_split_battery_report()` は
+    `zmk_usb_hid_send_report()` を経由せず、`USB_DC_SUSPEND` 等のときと ring に未送出が残って
+    いる間は `-EAGAIN` で捨てる。理由は 2 つ。ring（8 深）は溢れると**最古**を捨てるので、
+    誰も待っていない level が打鍵を押し出す。そして `zmk_usb_hid_send_report()` の
+    `USB_DC_SUSPEND` 分岐は `usb_wakeup_request()` を呼ぶので、半体の残量変化や切断で
+    **スリープ中の host が起きる**。
+  - **`zmk_usb_is_hid_ready()` では止められない**（2026-09-24 に前提の誤りが判明し撤回）:
+    `app/src/usb.c` は `USB_DC_SUSPEND` を `ZMK_USB_CONN_HID` に写し、`is_configured` は
+    真のまま据え置くので、suspend 中も真を返す。
+  - 捨てた値は**再送されない**。半体は % が変わった時だけ notify し、無操作 30 秒で
+    サンプリング自体を止めるため、次の値は数時間先になりうる。よって listener は送出の
+    **前**に `zmk_hid_split_battery_set()` でキャッシュし、GET_REPORT(0x21) が既知の最新値を
+    返せるようにしている。
+  - 上流 PR zmk#3390 の提出 diff（`docs/vkey-upstream-pr-draft.patch`）は vkey のみで、
+    本 patch とは以後乖離する。merge 時の畳み方は同 draft 文書の注記を参照。
 
 ## パッチを追加するとき
 

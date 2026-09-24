@@ -380,6 +380,14 @@ cache は ZMK main @ `fff185e` (2026-05-25, 約 3 週間前)。**patch の conte
 `report_id` が compile 時に一致する必要があるため。build-zmk.sh は
 `LC_ALL=C` 順で適用するので分割は部分適用リスク)。新規ファイルは
 `--- /dev/null` 形式の diff で同 patch 内に入れる(`git apply` が作成対応)。
+**2026-09-24 追記**: この裁定は Report ID `0x21`（split battery report）にも効いた。0x21 の
+descriptor 項目は vkey hunk の post-image 内にしか置けず、別 patch にすると warm tree で
+vkey-report.patch の reverse-check / forward-check が両方落ちる（実測）。**0xFF31 collection に
+足す report は今後も全てこの 1 patch に同居させる。**
+同居の対象は **`hid.h` の descriptor / report struct に触る分**に限る。2026-09-24 に足した
+`patches/zmk/split-battery-source-bounds.patch`（`app/src/split/central.c` の `source` 範囲検査）は
+descriptor に触れず他の patch とファイルも重ならないので、独立した upstream バグ修正として
+別ファイルのままでよい（4 patch を CI 順に pristine 適用 + warm tree の reverse-check で実測確認）。
 
 ZMK 改変(cache の行番号。fresh main で要再確認):
 
