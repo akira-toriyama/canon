@@ -92,7 +92,9 @@ NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 （XIAO nRF52840 + 1.69" LCD）に `prospector_scanner.uf2` を焼くと、Imprint Dongle が
 BLE 広告で流す状態（layer・左右半体の電池・modifier・WPM）を表示する。ペアリングも
-接続も不要（observer のみ）で、USB-C は給電だけ。Imprint Dongle 側は本リポジトリの
+接続も不要（observer のみ）で、USB-C は給電だけ（USB スタックを切っているので Mac に
+USB 機器としては現れない。BLE 側は ZMK の都合で "Prospector" の connectable 広告が
+残る＝ペアリング候補には見えるが、繋がなければ無害）。Imprint Dongle 側は本リポジトリの
 `imprint_dongle.uf2`（status advertisement 入り）であること。
 
 焼き方は手動（`flash-watch.sh` は使わない）:
