@@ -35,7 +35,7 @@ canon を構成する各パーツの **正規の呼び名** をまとめた規�
 flowchart TB
   subgraph HW["ハードウェア層"]
     BOARD["board: assimilator-bt / xiao_ble"]
-    SHIELD["shield: imprint_left / imprint_right / imprint_dongle"]
+    SHIELD["shield: imprint_left / imprint_right / imprint_dongle / prospector_scanner"]
   end
   subgraph FW["ZMK firmware 層"]
     KEYMAP["keymap (config/imprint.keymap)"]
@@ -47,10 +47,13 @@ flowchart TB
   subgraph BUILD["ビルド層"]
     WEST["west.yml (workspace manifest)"]
     BUILDYAML["build.yaml (build matrix)"]
-    UF2["imprint_*.uf2"]
+    UF2["imprint_*.uf2 / prospector_scanner.uf2"]
   end
   subgraph HOST["macOS host bridge"]
     CHORD["chord (独立リポジトリ)"]
+  end
+  subgraph COMPANION["companion display"]
+    PROSPECTOR["Prospector Dongle (shield prospector_scanner)"]
   end
   BOARD --- SHIELD
   SHIELD --> KEYMAP
@@ -63,7 +66,44 @@ flowchart TB
   UF2 -.flash.-> SHIELD
   BEHAVIOR -.HID / vkey 送出.-> CHORD
   SHIELD -.split battery report (0x21).-> CHORD
+  SHIELD -.status advertisement (BLE ADV, no pairing).-> PROSPECTOR
 ```
+
+---
+
+## devices
+
+### Cyboard Imprint
+The split keyboard itself: the left and right halves (board `assimilator-bt`,
+shields `imprint_left` / `imprint_right`), both BLE split peripherals of the
+[[Imprint Dongle]]. Product page: <https://cyboard.digital/products/imprint>.
+- **Don't call it:** the keyboard, Cyboard (that is the vendor), imprint alone
+  (that is the product group in `build-zmk.sh`), キーボード本体
+
+### Imprint Dongle
+The split central: a XIAO nRF52840 with shield `imprint_dongle`, bonded to both
+halves over BLE and attached to the Mac as a USB HID keyboard. Its USB product
+string `Imprint Dongle` is the [[host bridge]] contract (CLAUDE.md). Since
+2026-09-25 it also broadcasts the [[status advertisement]] the
+[[Prospector Dongle]] displays.
+- Config: [`config/imprint_dongle.conf`](../config/imprint_dongle.conf),
+  [`config/imprint_dongle.overlay`](../config/imprint_dongle.overlay)
+- **Don't call it:** XIAO, XIAO ドングル (both dongles are XIAO nRF52840), Canon
+  Dongle, receiver, central alone (that is the ZMK role, not the device)
+
+### Prospector Dongle
+The companion status display: a beekeeb pre-soldered
+[Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
+(XIAO nRF52840 + Waveshare 1.69" LCD, no ambient light sensor, touch panel
+unwired) running shield `prospector_scanner` from t-ogura
+`prospector-zmk-module` in scanner mode. A BLE observer only: it renders the
+[[Imprint Dongle]]'s [[status advertisement]] and never pairs or connects; its
+USB-C is power only. It does not replace the Imprint Dongle.
+- Config: [`config/prospector_scanner.conf`](../config/prospector_scanner.conf);
+  module pin in [`config/west.yml`](../config/west.yml)
+- **Don't call it:** XIAO, XIAO ドングル, Canon Dongle, scanner alone, Prospector
+  alone in prose (the vendor's product; `prospector_scanner` is the shield),
+  second dongle, 表示ドングル
 
 ---
 
@@ -139,7 +179,10 @@ id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受
 ### split battery report
 [[shield]] `imprint_dongle` が左右半体の電池残量をホストへ送るベンダー定義 HID
 入力レポート（usage page `0xFF31` / Report ID `0x21` / 2 byte `{source, level}`）。
-`source` は split peripheral の slot index（0/1・接続順で決まり左右固定ではない）、
+`source` は split peripheral の slot index（0/1。初回ペアリング時に ZMK が空き slot へ
+bond アドレスを保存し settings に永続化するので、以後は再起動・再接続でも同じ半体＝同じ
+index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/ble.c`
+`zmk_ble_put_peripheral_addr()` / `central.c` `reserve_peripheral_slot()`）、
 `level` は 0..100 の百分率。切断時の `0` は firmware では落とさず素通しし、
 [[host bridge]]（chord）側で「切断」と「0%」を区別する。USB のみ（BLE HOG は [[vkey]] と同じく descope）。
 - 実体: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch)
@@ -150,13 +193,30 @@ id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受
 - 計測: [`scripts/battery-log.py`](../scripts/battery-log.py)（`--logging` ビルドの dongle ログから残量行だけを抽出）。
 - **Don't call it:** BAS, battery service, battery notification, 電池通知, 残量通知, バッテリーレポート
 
+### status advertisement
+The BLE advertisement the [[Imprint Dongle]] broadcasts for the
+[[Prospector Dongle]]: a 26-byte payload in manufacturer data (active layer index
+and its 4-byte `display-name`, both halves' battery levels, modifiers, WPM,
+profile, connection count), carried in ZMK's scan response while ZMK advertises and as
+the module's own non-connectable advertisement otherwise. Connectionless: no
+pairing, no bond, no BLE slot consumed on either side.
+- Producer: t-ogura `prospector-zmk-module` on the `imprint_dongle` build
+  (`CONFIG_ZMK_STATUS_ADVERTISEMENT=y`, `CONFIG_ZMK_STATUS_ADV_CENTRAL_SIDE="AUX"`,
+  `CONFIG_PROSPECTOR_EXPECTED_PERIPHERAL_COUNT=2` in
+  [`config/imprint_dongle.conf`](../config/imprint_dongle.conf); the
+  `CONFIG_COMPILER_OPT` line there is a workaround, see CLAUDE.md). Peripheral
+  builds compile it out. Consumer: shield `prospector_scanner`.
+- Payload layout: `include/zmk/status_advertisement.h` in the module
+  (`char layer_name[4]`: only the active [[layer]]'s name travels).
+- **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
+
 ---
 
 ## ハードウェア / ビルドの用語
 
 ### board
 ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、Cyboard
-`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（`imprint_dongle`）。
+`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（`imprint_dongle` と `prospector_scanner`）。
 `assimilator-bt` はタグ固定すると `arch.cmake` が
 `Could not find ARCH=cyboard` で落ちるため `@main` 追従が必須。
 - 設定: [`config/west.yml`](../config/west.yml),
@@ -166,10 +226,12 @@ ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、
 
 ### shield
 ZMK が指す **デバイス本体**（マトリクス / 物理レイアウト / 周辺）の定義。
-canon の 3 シールド: `imprint_left` / `imprint_right`（分割左右）/ `imprint_dongle`。
+canon の 4 シールド: `imprint_left` / `imprint_right`（分割左右）/ `imprint_dongle` /
+`prospector_scanner`（[[Prospector Dongle]]）。
 - 設定: [`build.yaml`](../build.yaml)（board × shield の唯一のソース）
-- 由来: 3 シールドすべて Cyboard module（`zmk-keyboards` の `zephyr-4.1`
-  ブランチ）。**canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に
+- 由来: imprint の 3 シールドは Cyboard module（`zmk-keyboards` の `zephyr-4.1`
+  ブランチ）、`prospector_scanner` は t-ogura `prospector-zmk-module`（`v2.2.3` tag
+  pin）。**canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に
   Cyboard#19 で上流入りし、ローカル定義は撤去済み）。
 - **Don't call it:** half, side, panel, 分割キーボード
 
@@ -179,16 +241,17 @@ Zephyr/ZMK の workspace 管理ツール。canon は manifest を
 - **Don't call it:** package manager, dependency manager, パッケージマネージャ
 
 ### build target
-1 つの `board × shield` 組み合わせ。canon の build target は **3 つ**（=「all」
+1 つの `board × shield` 組み合わせ。canon の build target は **4 つ**（=「all」
 ビルド）: `assimilator-bt × imprint_left` / `imprint_right`、
-`xiao_ble/nrf52840/zmk × imprint_dongle`。サブセットは
-`build-zmk.sh` の shield 指定で。
+`xiao_ble/nrf52840/zmk × imprint_dongle` / `prospector_scanner`。サブセットは
+`build-zmk.sh` の shield 指定で（`imprint` グループは imprint の 3 つ、
+`prospector_scanner` は単体指定）。
 - 設定: [`build.yaml`](../build.yaml)
 - **Don't call it:** firmware variant, build config, ビルド構成
 
 ### `.uf2` artifact
 ビルド成果物。`firmware/<shield>.uf2`（例 `imprint_left.uf2` /
-`imprint_dongle.uf2`）を対応デバイスに書き込む。
+`imprint_dongle.uf2` / `prospector_scanner.uf2`）を対応デバイスに書き込む。
 `.gitignore` 済。
 - 生成: `./scripts/build-zmk.sh`（Docker、依存は `~/.cache/zmk-canon`）
 - **Don't call it:** binary, image, ファーム本体

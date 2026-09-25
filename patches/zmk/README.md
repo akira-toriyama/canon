@@ -101,7 +101,8 @@ bridge) が IOHIDManager で受けて id→action にマップする想定。
 - 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
 - **Report ID `0x21` = split peripheral battery**（2026-09-24〜）。同じ `0xFF31` collection に
   `{source, level}` 2 byte の input report を同居させる。`source` = split peripheral の slot index
-  （0/1・接続順で決まり左右固定ではない）、`level` = 0..100。切断時に central が流す `0` は
+  （0/1。初回ペアリング順で決まり settings に永続化＝NVS リセットまで同じ半体。`ble.c`
+  `zmk_ble_put_peripheral_addr()` 2026-09-25 実読）、`level` = 0..100。切断時に central が流す `0` は
   firmware では落とさず素通し（host が「切断」と「0%」を区別する）。
   - 追加物: `app/src/split/bluetooth/central_battery_hid.c`（`zmk_peripheral_battery_state_changed`
     listener → `zmk_hid_split_battery_set` → `zmk_endpoint_send_split_battery_report`）、

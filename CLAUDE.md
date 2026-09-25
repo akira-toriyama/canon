@@ -5,11 +5,18 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
 
 ## このリポジトリ
 
-自分の **ZMK ファーム repo**（リポジトリルート = ZMK user-config）。1 製品:
+自分の **ZMK ファーム repo**（リポジトリルート = ZMK user-config）。1 製品 + companion 1 台:
 
 - **imprint**: [Cyboard Imprint](https://cyboard.digital/products/imprint) キーボード
   （board=assimilator-bt / shield=imprint_left・imprint_right、board=xiao_ble/nrf52840/zmk /
   shield=imprint_dongle）。
+- **Prospector Dongle** (companion, not a replacement for the Imprint Dongle):
+  board=xiao_ble/nrf52840/zmk / shield=prospector_scanner from t-ogura
+  `prospector-zmk-module` (scanner mode). A BLE observer that renders the Imprint
+  Dongle's status advertisement (layer, both halves' batteries, modifiers, WPM);
+  it never pairs or connects and its USB-C is power only. Device names are fixed
+  in [docs/glossary.md](docs/glossary.md): Cyboard Imprint (the halves) /
+  Imprint Dongle (the split central) / Prospector Dongle.
 
 ※ ist（トラックボール受信ドングル）は 2026-07-13 に canon から分離し、別 repo
 （`zmk-ble-hid-host`）へ移した。canon には keymap も build target も残っていない。
@@ -36,8 +43,10 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 ## 壊しやすい点（最優先で意識する）
 
 - **west マニフェストは [config/west.yml](config/west.yml)**（リポジトリ直下では
-  ない）。topdir はリポジトリルート。外部モジュールは Cyboard `zmk-keyboards`
-  1 つ（imprint の assimilator-bt board + imprint_left/right/dongle shield）。
+  ない）。topdir はリポジトリルート。外部モジュールは 2 つ: Cyboard `zmk-keyboards`
+  （imprint の assimilator-bt board + imprint_left/right/dongle shield）と t-ogura
+  `prospector-zmk-module`（`prospector_scanner` shield と Imprint Dongle 側の status
+  advertisement。tag `v2.2.3` pin、bump は手動）。
   **canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に Cyboard#19 で
   上流入りし、ローカル定義は撤去済み。canon 固有分は
   [config/imprint_dongle.overlay](config/imprint_dongle.overlay) 等 config/ 側）。
@@ -86,6 +95,39 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `USB_DEVICE_PRODUCT`). Do not override `CONFIG_ZMK_KEYBOARD_NAME` for the
   dongle in `config/`, and if upstream renames it, change chord's `productName`
   in the same change.
+- **The Cyboard module defaults `ZMK_RGB_UNDERGLOW=y` for every build in the
+  manifest**: `boards/shields/imprint/Kconfig.defconfig` in `zmk-keyboards` puts
+  that default outside its `if SHIELD_…` guard, so a target with no
+  `zmk,underglow` chosen node fails in `rgb_underglow.c` with `#error`. Every
+  non-imprint target needs `CONFIG_ZMK_RGB_UNDERGLOW=n` in its conf
+  ([config/prospector_scanner.conf](config/prospector_scanner.conf) has it, as
+  does `imprint_dongle.conf`). Measured 2026-09-25 on the first scanner build.
+- **`CONFIG_COMPILER_OPT="-DBT_LE_ADV_OPT_FORCE_NAME_IN_AD=…"` in
+  [config/imprint_dongle.conf](config/imprint_dongle.conf) is a workaround, not
+  a setting**: prospector-zmk-module v2.2.3 picks its piggyback advertising
+  layout with `#if defined(BT_LE_ADV_OPT_FORCE_NAME_IN_AD)`, which is false on
+  ZMK's Zephyr fork (the option is an enum constant), so without that macro the
+  status advertisement never leaves the dongle (`Too big advertising data`,
+  -EINVAL, measured 2026-09-25 on the logging build). Remove it only together
+  with a module bump that selects the layout without the preprocessor (upstream
+  fix tracked in projects t-tbaf).
+- **Both dongles share the `XIAO-SENSE` bootloader volume, and
+  `scripts/flash-*.sh` copies `imprint_dongle.uf2` onto any XIAO mount**: never
+  put the Prospector Dongle into its bootloader while `flash-watch.sh` /
+  `flash-reset.sh` is running, and never have both dongles in bootloader at the
+  same time. Flash `prospector_scanner.uf2` by hand with `cp -X` (README).
+- **A split peripheral's slot index is its first-pairing order, persisted**:
+  ZMK `app/src/ble.c` `zmk_ble_put_peripheral_addr()` stores a new peripheral's
+  address in the first free slot and saves it as `ble/peripheral_addresses/<i>`;
+  `central.c` `reserve_peripheral_slot()` then maps that address to the same slot
+  on every reconnect and reboot. The index changes only after an NVS reset (the
+  `*_RESET.uf2` flow). Two consumers depend on it: the split battery report's
+  `source` (chord) and the Prospector's half mapping
+  (`ZMK_STATUS_ADV_LEFT_PERIPHERAL=0` / `RIGHT_PERIPHERAL=1`, module defaults;
+  slot 0 is the left half in the current bonds, seen on the display 2026-09-25).
+  If the Prospector shows the halves swapped after a reset, re-pair with the left
+  half powered on first or swap those two values. Source read 2026-09-25 (ZMK
+  main 9ebbeff0).
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。
@@ -104,7 +146,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
 - `scripts/` は現規模に適切。これ以上分割しない。
-- **glyph の `[[packages]]`（サブディレクトリ毎の独立版系列）は使わない**（2026-09-10 裁定、projects t-ptp3）。製品は imprint の uf2 3 つ 1 組で、`config/`・`patches/`・`build.yaml`・`config/west.yml` は全部その 1 ビルドの入力＝単独の消費者も成果物も持つディレクトリが無い。`patches/` は upstream PR で外へ出る前提（各 README）で版の単位ではなく、分けると patch だけの修正（例 #148）が firmware の版もドラフトも動かさなくなる。release.yml の uf2 添付も単一ドラフトの `.tag` 前提。
+- **glyph の `[[packages]]`（サブディレクトリ毎の独立版系列）は使わない**（2026-09-10 裁定、projects t-ptp3）。製品は imprint の uf2 3 つ + companion の `prospector_scanner.uf2` 1 つの 1 組で（同じ manifest・同じ patch 適用・同じ release draft。2026-09-25 t-tbaf）、`config/`・`patches/`・`build.yaml`・`config/west.yml` は全部その 1 ビルドの入力＝単独の消費者も成果物も持つディレクトリが無い。`patches/` は upstream PR で外へ出る前提（各 README）で版の単位ではなく、分けると patch だけの修正（例 #148）が firmware の版もドラフトも動かさなくなる。release.yml の uf2 添付も単一ドラフトの `.tag` 前提。
 
 ## ビルド
 
