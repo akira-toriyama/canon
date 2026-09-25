@@ -168,6 +168,10 @@ rsync -a --delete \
 # --delete では消えず、放置すると west が project zephyr の module.yml と
 # 誤解釈しうる。
 rm -f "$CFG/zephyr/module.yml"
+# `/.git` 除外導入前に worktree から複製された gitdir ポインタの残骸を消す。除外パスは
+# --delete の対象外なので rsync では二度と消えず、残るとコンテナ内の最初の git が
+# rc 128 で落ちる（~/.cache/zmk-canon に実在、2026-09-26）。ディレクトリは触らない。
+if [ -f "$CFG/.git" ]; then rm -f "$CFG/.git"; fi
 
 # --- west init/update が必要か判定 ----------------------------------------
 NEED_UPDATE=0
