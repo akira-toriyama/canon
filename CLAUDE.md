@@ -120,9 +120,12 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   mount**: never put the Prospector Dongle into its bootloader while either is
   running, and never have both dongles in bootloader at the same time. Flash
   `prospector_scanner.uf2` with `scripts/flash-prospector.sh`, which refuses to
-  start while either runs or while `XIAO-SENSE` is already mounted. The first
-  image with the 1200 baud entry, and any run the script fails, go on by
-  double-tap + `cp -X` by hand (README).
+  start while either runs or while `XIAO-SENSE` is already mounted, checks both
+  again before the copy, and copies only when the disk behind `XIAO-SENSE`
+  belongs to the USB device at the Prospector Dongle's USB `locationID` (the
+  bootloader re-enumerating on the same port is design intent, not yet
+  verified on hardware). The first image with the 1200 baud entry, and any run
+  the script fails, go on by double-tap + `cp -X` by hand (README).
 - **Opening the Prospector Dongle's serial port at 1200 baud reboots it into the
   UF2 bootloader** (by design: `CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` from
   [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md);
