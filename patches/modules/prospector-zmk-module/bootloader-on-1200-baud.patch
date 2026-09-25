@@ -11,16 +11,15 @@ index 1738206..9d83bb8 100644
          # Get git describe for scanner version display
          execute_process(
 diff --git a/Kconfig b/Kconfig
-index 014492f..bc0ff2a 100644
+index 014492f..8bb6d3b 100644
 --- a/Kconfig
 +++ b/Kconfig
-@@ -251,6 +251,22 @@ config PROSPECTOR_TOUCH_ENABLED
+@@ -251,6 +251,23 @@ config PROSPECTOR_TOUCH_ENABLED
  
        This automatically enables INPUT, INPUT_CST816S drivers when selected.
  
 +config PROSPECTOR_BOOTLOADER_ON_1200_BAUD
 +    bool "Enter the UF2 bootloader on a 1200 baud touch"
-+    default y
 +    depends on PROSPECTOR_MODE_SCANNER && USB_CDC_ACM && RETENTION_BOOT_MODE
 +    select CDC_ACM_DTE_RATE_CALLBACK_SUPPORT
 +    help
@@ -32,17 +31,19 @@ index 014492f..bc0ff2a 100644
 +      host's control transfer complete before the device resets.
 +
 +      Needs the legacy USB device stack with CDC ACM and a board with
-+      boot mode retention (ZMK's xiao_ble board has both).
++      boot mode retention (ZMK's xiao_ble board has both). Off by default:
++      with it on, any program that sets the port to 1200 baud, a serial
++      monitor included, reboots the scanner.
 +
  config PROSPECTOR_DEFAULT_LAYOUT
      int "Default display layout"
      default 0
 diff --git a/src/bootloader_on_1200_baud.c b/src/bootloader_on_1200_baud.c
 new file mode 100644
-index 0000000..3e3e9ca
+index 0000000..b68ebc5
 --- /dev/null
 +++ b/src/bootloader_on_1200_baud.c
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,79 @@
 +/*
 + * Copyright (c) 2026 The ZMK Contributors
 + *
@@ -78,9 +79,6 @@ index 0000000..3e3e9ca
 +#include <zephyr/sys/reboot.h>
 +
 +LOG_MODULE_REGISTER(bootloader_on_1200_baud, LOG_LEVEL_INF);
-+
-+BUILD_ASSERT(DT_HAS_COMPAT_STATUS_OKAY(zephyr_cdc_acm_uart),
-+             "PROSPECTOR_BOOTLOADER_ON_1200_BAUD needs a zephyr,cdc-acm-uart node");
 +
 +#define TOUCH_BAUD 1200
 +#define REBOOT_DELAY_MS 250
