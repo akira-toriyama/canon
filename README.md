@@ -111,6 +111,8 @@ USB 機器としては現れない。BLE 側は ZMK の都合で "Prospector" �
 `config/prospector_scanner.conf` は beekeeb の pre-soldered 版（環境光センサー無し・
 touch 未配線）向け: 明るさ固定 80%・touch 無効。layout は
 `CONFIG_PROSPECTOR_DEFAULT_LAYOUT` で選ぶ（touch が無いので conf の値が唯一の選択手段）。
+既定は 1=Field: 現在 layer の名前を大きく、左右半体の電池、modifier、WPM 連動の演出。
+layer 名は広告の 4 byte 制約で先頭 4 文字・大文字になる。
 
 ### リリース
 
