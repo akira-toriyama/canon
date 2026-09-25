@@ -153,8 +153,11 @@ mkdir -p "$CFG"
 # cmake cache に古い KEYMAP_FILE が残るなどして挙動がおかしくなる。
 # 除外パスは west モジュール群と build 出力。これらは CFG 固有なので
 # --delete でも触らない。
+# `/.git` に末尾 / を付けない: git worktree の .git はファイル（gitdir ポインタ）で、
+# `/.git/` はディレクトリにしか効かず複製され、コンテナ内の最初の git が
+# `fatal: not a git repository` で落ちる（2026-09-26 実測）。
 rsync -a --delete \
-  --exclude '/.git/' --exclude '/.west/' --exclude '/output/' \
+  --exclude '/.git' --exclude '/.west/' --exclude '/output/' \
   --exclude '/zmk/' --exclude '/zmk-keyboards/' --exclude '/zmk-pmw3610-driver/' \
   --exclude '/modules/' --exclude '/optional/' --exclude '/zephyr/' \
   --exclude '/build/' \
