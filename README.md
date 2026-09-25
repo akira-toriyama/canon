@@ -92,21 +92,28 @@ NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 （XIAO nRF52840 + 1.69" LCD）に `prospector_scanner.uf2` を焼くと、Imprint Dongle が
 BLE 広告で流す状態（layer・左右半体の電池・modifier・WPM）を表示する。ペアリングも
-接続も不要（observer のみ）で、USB-C は給電だけ（USB スタックを切っているので Mac に
-USB 機器としては現れない。BLE 側は ZMK の都合で "Prospector" の connectable 広告が
-残る＝ペアリング候補には見えるが、繋がなければ無害）。Imprint Dongle 側は本リポジトリの
+接続も不要（observer のみ）。Mac には CDC シリアルポート 1 つ（製品名
+`Prospector Dongle`、HID キーボードではない）としてだけ現れるようビルドしている
+（実機未検証）。このポートは 1200 baud で開くとブートローダへ入るためのもの。
+BLE 側は ZMK の都合で "Prospector" の connectable 広告が残る（ペアリング候補には
+見えるが、繋がなければ無害）。Imprint Dongle 側は本リポジトリの
 `imprint_dongle.uf2`（status advertisement 入り）であること。
 
-焼き方は手動（`flash-watch.sh` は使わない）:
+焼き方（`flash-watch.sh` は使わない）:
 
-1. Prospector Dongle のリセットをダブルタップ → `/Volumes/XIAO-SENSE` がマウント
-2. `cp -X firmware/prospector_scanner.uf2 /Volumes/XIAO-SENSE/`（末尾の
-   `fcopyfile failed: Input/output error` は書き込み完了で再起動した合図）
-3. 再列挙後、Imprint Dongle が動いていれば広告を拾って表示が始まる
+- 通常は `./scripts/flash-prospector.sh`（既定 `firmware/prospector_scanner.uf2`）。
+  ポートを 1200 baud で開いてブートローダへ入れ、`cp -X` し、再列挙まで待つ（実機未検証）。
+  表示が正しいかは目視で確認する。
+- 1200 baud 対応前の版（USB 給電のみ）から上げる初回と、スクリプトが失敗したときは手動:
+  1. Prospector Dongle のリセットをダブルタップ → `/Volumes/XIAO-SENSE` がマウント
+  2. `cp -X firmware/prospector_scanner.uf2 /Volumes/XIAO-SENSE/`（末尾の
+     `fcopyfile failed: Input/output error` は書き込み完了で再起動した合図）
+  3. 再列挙後、Imprint Dongle が動いていれば広告を拾って表示が始まる
 
 **Imprint Dongle と同じ `XIAO-SENSE` ブートローダ**なので、2 台を同時にブートローダへ
 入れない。`flash-watch.sh` / `flash-reset.sh` は XIAO を見ると `imprint_dongle.uf2` を
-焼くため、実行中は Prospector Dongle をブートローダに入れない。
+焼くため、実行中は Prospector Dongle をブートローダに入れず、ポートを 1200 baud で
+開かない（`flash-prospector.sh` はその間は起動を拒否する）。
 
 `config/prospector_scanner.conf` は beekeeb の pre-soldered 版（環境光センサー無し・
 touch 未配線）向け: 明るさ固定 80%・touch 無効。layout は
