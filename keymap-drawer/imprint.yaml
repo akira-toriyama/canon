@@ -33,7 +33,7 @@ layers:
   - {t: B, s: '&eiji_macro B'}
   - {t: N, s: '&eiji_macro N'}
   - {t: M, s: '&eiji_macro M'}
-  - {t: ↑, h: ↑, s: ↑}
+  - {t: ↑, h: UArr, s: ↑}
   - ⇥
   - ⌦
   - ⏎
@@ -42,9 +42,9 @@ layers:
   - Sym2
   - Sym1
   - Num
-  - {t: ←, h: ←, s: ←}
-  - {t: ↓, h: ↓, s: ↓}
-  - {t: →, h: →, s: →}
+  - {t: ←, h: LArr, s: ←}
+  - {t: ↓, h: DArr, s: ↓}
+  - {t: →, h: RArr, s: →}
   - ''
   - ''
   - '&t_ll_ctrl'
@@ -295,7 +295,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  ←:
+  LArr:
   - ''
   - ''
   - ''
@@ -354,7 +354,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  →:
+  RArr:
   - ''
   - ''
   - ''
@@ -413,7 +413,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  ↑:
+  UArr:
   - ''
   - ''
   - ''
@@ -472,7 +472,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  ↓:
+  DArr:
   - ''
   - ''
   - ''

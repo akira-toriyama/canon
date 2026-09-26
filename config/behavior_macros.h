@@ -84,12 +84,13 @@
 
 // 矢印 mod-morph + 対応 hold-tap の 1 ペアを生成。
 // name : ベース名 (例: ar_up → ar_up と ar_up_ht を生成)
-// LAYER, KEY : tap 時に潜るレイヤーと出力キー
+// LAYER, KEY : hold 時に潜るレイヤーと tap 時の出力キー
 // P1, P2     : hold-trigger-key-positions に追加する 2 つの矢印キー位置
 //
 // mod-morph の分岐 (Ctrl/Alt ローリングタップ救済):
 //   - 修飾子なし / Shift / Cmd 押下 → name##_ht (hold-tap)。
-//     tap=矢印 / hold=矢印サブレイヤー (HOME/END/PgUp/PgDn)。Shift+HOME 等の
+//     tap=矢印 / hold=矢印サブレイヤー (LArr/RArr/UArr/DArr、中身は HOME/END/
+//     PgUp/PgDn)。Shift+HOME 等の
 //     範囲選択を維持するため Shift/Cmd ではサブレイヤーを残す。
 //   - Ctrl / Alt 押下 → &kp KEY を即時送出 (keep-mods で Ctrl/Alt を保持)。
 //     hold-tap は tap を「キーのリリース時」に送るため、ctrl↓ left↓ ctrl↑
