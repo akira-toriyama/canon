@@ -11,10 +11,13 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
   （board=assimilator-bt / shield=imprint_left・imprint_right、board=xiao_ble/nrf52840/zmk /
   shield=imprint_dongle）。
 - **Prospector Dongle** (companion, not a replacement for the Imprint Dongle):
-  board=xiao_ble/nrf52840/zmk / shield=prospector_scanner from t-ogura
-  `prospector-zmk-module` (scanner mode). A BLE observer that renders the Imprint
-  Dongle's status advertisement (layer, both halves' batteries, modifiers, WPM);
-  it never pairs or connects. Over USB it enumerates as one CDC ACM port
+  board=xiao_ble/nrf52840/zmk / shield=prospector from the own module
+  [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). A BLE observer
+  that shows both halves' battery from the Imprint Dongle's status
+  advertisement; it never advertises, pairs or connects (`CONFIG_ZMK_BLE=n` in
+  the shield; a Mac scan saw no advertisement from it, 2026-09-26). The screen,
+  the observer and their contracts are documented in zmk-beacon's README and
+  CLAUDE.md. Over USB it enumerates as one CDC ACM port
   (product `Prospector Dongle`, no HID) that exists for the 1200 baud
   bootloader entry (seen on hardware 2026-09-26). Device names are fixed
   in [docs/glossary.md](docs/glossary.md): Cyboard Imprint (the halves) /
@@ -44,13 +47,21 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 
 ## 壊しやすい点（最優先で意識する）
 
-- **west マニフェストは [config/west.yml](config/west.yml)**（リポジトリ直下では
-  ない）。topdir はリポジトリルート。外部モジュールは 2 つ: Cyboard `zmk-keyboards`
-  （imprint の assimilator-bt board + imprint_left/right/dongle shield）と t-ogura
-  `prospector-zmk-module`（`prospector_scanner` shield と Imprint Dongle 側の status
-  advertisement。tag `v2.2.3` pin、bump は手動で、そのたびに
-  [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md)
-  が当たるか再確認）。
+- **The west manifest is [config/west.yml](config/west.yml)** (not at the
+  repository root); the topdir is the repository root. Three external modules:
+  - Cyboard `zmk-keyboards`: the imprint's assimilator-bt board and the
+    imprint_left/right/dongle shields.
+  - t-ogura `prospector-zmk-module`: the Imprint Dongle's status advertisement
+    only. Tag-pinned at `v2.2.3`; bumps are manual and must re-check that
+    [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md)
+    applies, and must re-read the payload layout, which zmk-beacon's
+    `src/status_observer.c` reads by byte offset (the version byte carries
+    major.minor only, so a patch bump passes its filter).
+  - Own `zmk-beacon`: the Prospector Dongle's `prospector` shield. Pinned by
+    commit SHA, not by tag, so canon takes a change without a zmk-beacon
+    release being published (decided 2026-09-26, projects t-5gxp); bump the SHA
+    by hand after a zmk-beacon merge.
+
   **canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に Cyboard#19 で
   上流入りし、ローカル定義は撤去済み。canon 固有分は
   [config/imprint_dongle.overlay](config/imprint_dongle.overlay) 等 config/ 側）。
@@ -104,8 +115,8 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   that default outside its `if SHIELD_…` guard, so a target with no
   `zmk,underglow` chosen node fails in `rgb_underglow.c` with `#error`. Every
   non-imprint target needs `CONFIG_ZMK_RGB_UNDERGLOW=n` in its conf
-  ([config/prospector_scanner.conf](config/prospector_scanner.conf) has it, as
-  does `imprint_dongle.conf`). Measured 2026-09-25 on the first scanner build.
+  ([config/prospector.conf](config/prospector.conf) has it, as does
+  `imprint_dongle.conf`). Measured 2026-09-25 on the first Prospector build.
 - **`CONFIG_COMPILER_OPT="-DBT_LE_ADV_OPT_FORCE_NAME_IN_AD=…"` in
   [config/imprint_dongle.conf](config/imprint_dongle.conf) is a workaround, not
   a setting**: prospector-zmk-module v2.2.3 picks its piggyback advertising
@@ -119,7 +130,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `flash-watch.sh` / `flash-reset.sh` copy `imprint_dongle.uf2` onto any XIAO
   mount**: never put the Prospector Dongle into its bootloader while either is
   running, and never have both dongles in bootloader at the same time. Flash
-  `prospector_scanner.uf2` with `scripts/flash-prospector.sh`, which refuses to
+  `prospector.uf2` with `scripts/flash-prospector.sh`, which refuses to
   start while either runs or while `XIAO-SENSE` is already mounted, checks both
   again before the copy, and copies only when the disk behind `XIAO-SENSE`
   belongs to the USB device at the Prospector Dongle's USB `locationID` (the
@@ -131,17 +142,19 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   contents already match (`src/flash_nrf5x.c`) and resets only after every
   block arrived, so the short copy is not a truncated one.
 - **Opening the Prospector Dongle's serial port at 1200 baud reboots it into the
-  UF2 bootloader** (`CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` from
-  [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md);
-  two script-only flashes in a row on hardware 2026-09-26, bootloader 0.6.1,
-  about 2.5 s from the touch to the mounted volume). Any program that sets
+  UF2 bootloader** (`CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on by default in
+  zmk-beacon's shield; the same code first ran as the canon module patch in
+  [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md).
+  Script-only flashes on hardware 2026-09-26: two with the patch, four with
+  zmk-beacon images; bootloader 0.6.1, about 2.5 s from the touch to the
+  mounted volume). Any program that sets
   that rate does it, not only `flash-prospector.sh` (Arduino-style uploaders,
   a serial monitor at 1200), so never do it while `flash-watch.sh` /
   `flash-reset.sh` run: they
   would copy `imprint_dongle.uf2` onto it. Find the port by the USB product
-  string `Prospector Dongle` (the contract between
-  [config/prospector_scanner.conf](config/prospector_scanner.conf) and `PRODUCT`
-  in the script), never by VID/PID (the Imprint Dongle's pair) or by a
+  string `Prospector Dongle` (the contract between `CONFIG_USB_DEVICE_PRODUCT`
+  in zmk-beacon's `boards/shields/prospector/prospector.conf` and `PRODUCT` in
+  the script), never by VID/PID (the Imprint Dongle's pair) or by a
   `/dev/cu.usbmodem*` name (derived from the USB location, e.g. `211201` for
   location `0x02112000`, ioreg 2026-09-26). The Imprint Dongle's own CDC port
   has no such handler (`CDC_ACM_DTE_RATE_CALLBACK_SUPPORT` unset in its build,
@@ -154,7 +167,8 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `*_RESET.uf2` flow). Two consumers depend on it: the split battery report's
   `source` (chord) and the Prospector's half mapping
   (`ZMK_STATUS_ADV_LEFT_PERIPHERAL=0` / `RIGHT_PERIPHERAL=1`, module defaults;
-  slot 0 is the left half in the current bonds, seen on the display 2026-09-25).
+  slot 0 is the left half in the current bonds, seen on the display 2026-09-25
+  and 2026-09-26).
   If the Prospector shows the halves swapped after a reset, re-pair with the left
   half powered on first or swap those two values. Source read 2026-09-25 (ZMK
   main 9ebbeff0).
@@ -176,7 +190,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - `keymap_drawer.config.yaml`（ルート）と `keymap-drawer/`（出力）の分離は
   caksoylar/keymap-drawer の既定どおりで**意図的**。"整理"して移動しない。
 - `scripts/` は現規模に適切。これ以上分割しない。
-- **glyph の `[[packages]]`（サブディレクトリ毎の独立版系列）は使わない**（2026-09-10 裁定、projects t-ptp3）。製品は imprint の uf2 3 つ + companion の `prospector_scanner.uf2` 1 つの 1 組で（同じ manifest・同じ patch 適用・同じ release draft。2026-09-25 t-tbaf）、`config/`・`patches/`・`build.yaml`・`config/west.yml` は全部その 1 ビルドの入力＝単独の消費者も成果物も持つディレクトリが無い。`patches/` は upstream PR で外へ出る前提（各 README）で版の単位ではなく、分けると patch だけの修正（例 #148）が firmware の版もドラフトも動かさなくなる。release.yml の uf2 添付も単一ドラフトの `.tag` 前提。
+- **glyph の `[[packages]]`（サブディレクトリ毎の独立版系列）は使わない**（2026-09-10 裁定、projects t-ptp3）。製品は imprint の uf2 3 つ + companion の `prospector.uf2` 1 つの 1 組で（同じ manifest・同じ patch 適用・同じ release draft。2026-09-25 t-tbaf）、`config/`・`patches/`・`build.yaml`・`config/west.yml` は全部その 1 ビルドの入力＝単独の消費者も成果物も持つディレクトリが無い。`patches/` は upstream PR で外へ出る前提（各 README）で版の単位ではなく、分けると patch だけの修正（例 #148）が firmware の版もドラフトも動かさなくなる。release.yml の uf2 添付も単一ドラフトの `.tag` 前提。
 
 ## ビルド
 
@@ -187,7 +201,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
   に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）と
-  `patches/modules/prospector-zmk-module/*`（1200 baud bootloader entry）を
+  `patches/modules/prospector-zmk-module/*`（1200 baud bootloader entry; no
+  target has used it since the Prospector Dongle moved to zmk-beacon, and it
+  goes with the module in t-k8pk）を
   当ててから build.yaml の全ターゲットを
   ビルドする（公式 reusable は patch を当てず &vkey 等が解決できないため差し替えた。
   背景は zmk-build.yml / [docs/vkey-roadmap.md](docs/vkey-roadmap.md)）。

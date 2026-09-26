@@ -22,6 +22,13 @@ and delete it here once a tag carrying it is pinned. Each patch is a plain
 
 ### `bootloader-on-1200-baud.patch`
 
+**No canon target turns this on any more** (2026-09-26): the Prospector Dongle
+builds from zmk-beacon's `prospector` shield, which carries the same code as
+`CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`. The patch is opt-in (default n), so
+it still applies to every build without effect. It stays here as the diff of
+the upstream PR below until t-k8pk removes the module, this directory and the
+module tree from the patch loops.
+
 Adds `CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` (bool, default n, depends on
 `PROSPECTOR_MODE_SCANNER && USB_CDC_ACM && RETENTION_BOOT_MODE`, selects
 `CDC_ACM_DTE_RATE_CALLBACK_SUPPORT`) and `src/bootloader_on_1200_baud.c`. At
@@ -38,15 +45,12 @@ dependency holds by default (the board's CDC ACM serial backend defaults
 `RETENTION_BOOT_MODE=y`; Zephyr `boards/common/usb/Kconfig.cdc_acm_serial.defconfig`,
 `subsys/usb/device/class/Kconfig.cdc:6-11`, ZMK
 `app/boards/seeed/xiao_ble/xiao_ble_zmk_defconfig:29`, read 2026-09-26).
-canon turns it on in
-[config/prospector_scanner.conf](../../../config/prospector_scanner.conf).
+canon turned it on in `config/prospector_scanner.conf` until 2026-09-26.
 That `=y` does not fail the build when a dependency breaks: Kconfig drops the
 option and only prints "was assigned the value 'y' but got the value 'n'"
 (Zephyr `scripts/kconfig/kconfig.py:123-125` and `warn()` at `:324-329`, read
 2026-09-26; the imprint builds print such a warning for `ZMK_USB` and
-complete). After a module or ZMK bump, check
-`CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD=y` in
-`build/prospector_scanner/zephyr/.config`.
+complete). zmk-beacon's CLAUDE.md carries the same check for its own symbol.
 
 Why: the Prospector Dongle has no keys for `&bootloader` and its touch panel
 is unwired, so the reset double-tap was the only way into the UF2 bootloader.
