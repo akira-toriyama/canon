@@ -35,6 +35,10 @@
   keymap {
     compatible = "zmk,keymap";
 
+    // display-name matches [A-Za-z][A-Za-z0-9]{0,3} and stays unique after
+    // uppercasing: only its first 4 bytes reach the Prospector Dongle, and
+    // keymap-drawer silently drops a layer whose name repeats. Formal names,
+    // reasons and sources: docs/glossary.md, entry "layer".
     DEFAULT_LAYER {
       display-name = "Base";
       bindings = <
@@ -84,10 +88,10 @@
     };
     // ar_* hold-tap で発動する矢印サブレイヤー（hold 中の単発キーで
     // 行頭/行末/ページ送りを混在発火させるための層）。
-    // 各 display-name は keymap-drawer 出力のラベル（矢印記号で簡潔に）、
-    // 実キーは `&kp <KEY>` 行の対応を直接参照。
+    // display-name は発動元の矢印キー（ノード名 *_ARROW）由来。中の送出キーは
+    // 差し替わりうるので名前に使わない。
     LEFT_ARROW_LAYER {  // ar_left hold + 右親指右隣 = HOME
-      display-name = "←";
+      display-name = "LArr";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -97,7 +101,7 @@
       >;
     };
     RIGHT_ARROW_LAYER {  // ar_right hold + 右親指右隣 = END
-      display-name = "→";
+      display-name = "RArr";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -107,7 +111,7 @@
       >;
     };
     UP_ARROW_LAYER {  // ar_up hold + 右親指左隣 = PAGE_UP
-      display-name = "↑";
+      display-name = "UArr";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -117,7 +121,7 @@
       >;
     };
     DOWN_ARROW_LAYER {  // ar_down hold + 右親指左隣 = PAGE_DOWN
-      display-name = "↓";
+      display-name = "DArr";
       bindings = <
         ROW_NONE
         ROW_NONE

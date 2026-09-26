@@ -116,12 +116,44 @@ canon の入力レイアウト全体を記述する DeviceTree 文書。
 - **Don't call it:** layout, keyboard config, profile, レイアウト, 設定
 
 ### layer
-[[keymap]] の中の 1 レイヤー（例: `DEFAULT_LAYER` / `NUMBER_LAYER` /
-`SYMBOL1_LAYER` / `SYMBOL2_LAYER` / `FUNCTION_LAYER` / `LEFT_ARROW_LAYER`
-など）。`display-name` で人間可読名を持ち、ZMK のレイヤースタックで
-on/off される。
+[[keymap]] の中の 1 レイヤーで、ZMK のレイヤースタックで on/off される。
+名前はノード名・正規名・`display-name`（短縮名）の 3 つを持つ。
 - 定義: [`config/layers.h`](../config/layers.h) で index、
   [`config/imprint.keymap`](../config/imprint.keymap) で内容
+- ノード名: `config/layers.h` の index マクロ。同じマクロを `config/arrow_behaviors.dtsi`・
+  `config/macros.dtsi`・`config/behavior_macros.h` が使うので改名しない。
+- 正規名: 文章・コミットで使う名前。単語は空白で区切り（`Symbol 1` / `Left Arrow` /
+  `Vkey LL`）、ハイフン・括弧は使わない。
+- `display-name`: firmware に入る短縮名で、[[keymap-drawer]] の図と [[Prospector Dongle]]
+  に出る。`[A-Za-z][A-Za-z0-9]{0,3}`（英字始まりの英数字 4 文字以内）で、a-z を大文字化
+  しても重複しない。理由: [[status advertisement]] は先頭 4 byte だけを運び、空の名前は
+  `L<index % 10>` に置き換える。Prospector Dongle の Field layout は a-z を大文字化し、
+  そのフォントは U+0020–U+007E のみ（fallback なし）。keymap-drawer は layer を名前で
+  持つので同名は 1 つが黙って消え（exit 0 なので `fail_on_error` でも落ちない）、SVG の
+  アンカー id は最初の ASCII 英字より前と `[A-Za-z0-9-_:.]` 以外の文字を捨てて作るので、
+  記号や空白を含む別名どうしが同じ id になりうる（英数字だけなら id = 名前）。
+  ソース確認 2026-09-26: prospector-zmk-module v2.2.3 `src/status_advertisement.c:798-812`、
+  `boards/shields/prospector_scanner/src/field_layout.c:478-480,527-543`、
+  `boards/shields/prospector_scanner/src/fonts_carrefinho/FR_Regular_36.c:2829,2889`、
+  keymap-drawer 0.23.0 `keymap_drawer/parse/zmk.py:211`・`keymap_drawer/draw/utils.py:26-35`。
+  2026-09-26 に keymap-drawer 0.23.0 で実測: 矢印サブレイヤーの 1 つを `Fn` と同名にすると
+  exit 0・stderr 空のまま 12 layer になり Function の中身が消える。`_str_to_id` は
+  `Fn!`・`Fn?`・`1Fn` をすべて `Fn` にする。
+- ノード名 → 正規名 → `display-name`（矢印サブレイヤー 4 つは発動元の矢印キー
+  由来で、中の送出キーの名前は使わない。Vkey 系は [[vkey]] だけを持つ親指 layer）:
+  - `DEFAULT_LAYER` → Base → `Base`
+  - `NUMBER_LAYER` → Number → `Num`
+  - `SYMBOL1_LAYER` → Symbol 1 → `Sym1`
+  - `SYMBOL2_LAYER` → Symbol 2 → `Sym2`
+  - `FUNCTION_LAYER` → Function → `Fn`
+  - `LEFT_ARROW_LAYER` → Left Arrow → `LArr`
+  - `RIGHT_ARROW_LAYER` → Right Arrow → `RArr`
+  - `UP_ARROW_LAYER` → Up Arrow → `UArr`
+  - `DOWN_ARROW_LAYER` → Down Arrow → `DArr`
+  - `T_LL_LAYER` → Vkey LL → `LL`
+  - `T_LM_LAYER` → Vkey LM → `LM`
+  - `T_RM_LAYER` → Vkey RM → `RM`
+  - `T_RR_LAYER` → Vkey RR → `RR`
 - **Don't call it:** mode, page, view, モード, ページ
 
 ### behavior
@@ -196,7 +228,7 @@ index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/b
 ### status advertisement
 The BLE advertisement the [[Imprint Dongle]] broadcasts for the
 [[Prospector Dongle]]: a 26-byte payload in manufacturer data (active layer index
-and its 4-byte `display-name`, both halves' battery levels, modifiers, WPM,
+and the first 4 bytes of its `display-name`, both halves' battery levels, modifiers, WPM,
 profile, connection count), carried in ZMK's scan response while ZMK advertises and as
 the module's own non-connectable advertisement otherwise. Connectionless: no
 pairing, no bond, no BLE slot consumed on either side.
@@ -207,7 +239,8 @@ pairing, no bond, no BLE slot consumed on either side.
   `CONFIG_COMPILER_OPT` line there is a workaround, see CLAUDE.md). Peripheral
   builds compile it out. Consumer: shield `prospector_scanner`.
 - Payload layout: `include/zmk/status_advertisement.h` in the module
-  (`char layer_name[4]`: only the active [[layer]]'s name travels).
+  (`char layer_name[4]`: only the first 4 bytes of the active [[layer]]'s name
+  travel, which is why [[layer]] limits `display-name` to 4 ASCII characters).
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ---
