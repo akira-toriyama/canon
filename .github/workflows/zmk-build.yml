@@ -7,8 +7,9 @@ name: ZMK Build
 # リポジトリは ZMK コア・Zephyr・prospector-zmk-module への out-of-tree パッチ
 # (patches/<tree>/*.patch — vkey や usb-hid-prime 等) を前提とする。公式
 # reusable は「素の ZMK」をビルドし patches/ を当てないため、パッチ依存の
-# behavior (&vkey 等) が devicetree で解決できず全ターゲットが落ちる。そこで scripts/build-zmk.sh と同一手順
-# (west init/update → patch 適用 → west build) を踏む自前ジョブにした。
+# behavior (&vkey 等) が devicetree で解決できず全ターゲットが落ちる。そこで
+# scripts/build-zmk.sh と同一手順 (west init/update → patch 適用 → west build)
+# を踏む自前ジョブにした。
 # CI モデルが「素 ZMK のコンパイル検証」→「patch 済みファームの build」へ変わる
 # (既存 security-changed / usb-hid-prime patch も乗る＝ローカルと等価)。
 # 将来 patches/ の全 patch が上流へ採用されたら撤去し公式 reusable へ戻せる。
