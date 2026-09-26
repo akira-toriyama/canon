@@ -14,7 +14,9 @@
 #   ./scripts/flash-prospector.sh              # firmware/prospector.uf2
 #   ./scripts/flash-prospector.sh firmware/prospector-logging.uf2
 #
-# Only firmware/prospector*.uf2 whose payload holds the product string
+# Only firmware/prospector.uf2 or firmware/prospector-*.uf2 (a build variant
+# such as -logging; the prospector_scanner*.uf2 names are the t-ogura builds
+# before 2026-09-26) whose payload holds the product string
 # is accepted: any other image (the USB power-only one that predates the
 # 1200 baud handler, a renamed imprint_dongle.uf2) never enumerates as
 # "Prospector Dongle", so the next run could not find it. Re-enumeration shows
@@ -190,8 +192,8 @@ UF2_ARG="${UF2_ARG:-$REPO/firmware/prospector.uf2}"
 UF2_DIR="$(cd "$(dirname "$UF2_ARG")" 2>/dev/null && pwd -P)" || UF2_DIR=""
 UF2_BASE="$(basename "$UF2_ARG")"
 case "$UF2_BASE" in
-  prospector*.uf2) ;;
-  *) echo "refusing $UF2_ARG: only firmware/prospector*.uf2 goes onto the Prospector Dongle" >&2; exit 2 ;;
+  prospector.uf2|prospector-*.uf2) ;;
+  *) echo "refusing $UF2_ARG: only firmware/prospector.uf2 or firmware/prospector-*.uf2 goes onto the Prospector Dongle" >&2; exit 2 ;;
 esac
 [ "$UF2_DIR" = "$REPO/firmware" ] \
   || { echo "refusing $UF2_ARG: not in $REPO/firmware" >&2; exit 2; }

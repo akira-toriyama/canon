@@ -239,7 +239,11 @@ for tree in zmk zephyr modules/prospector-zmk-module; do
   fi
 done
 west zephyr-export
+# output/ holds the images of this run only: the old image of a removed or
+# renamed target (e.g. prospector_scanner.uf2, 2026-09-26) must not reach
+# firmware/ again with a fresh mtime, where it would pass for a new build.
 mkdir -p /workspace/output
+rm -f /workspace/output/*.uf2
 for t in $TARGETS; do
   BOARD="${t%%:*}"; SH="${t##*:}"
   # 成果物名は常に元の shield 名ベース（flash-impl.sh が device ごとに
@@ -270,4 +274,4 @@ cp "$CFG"/output/*.uf2 "$REPO/firmware/"
 
 echo
 echo "✅ 完了。生成物:"
-ls -lh "$REPO/firmware/"*.uf2
+for f in "$CFG"/output/*.uf2; do ls -lh "$REPO/firmware/$(basename "$f")"; done
