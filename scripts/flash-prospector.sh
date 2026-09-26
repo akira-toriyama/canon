@@ -4,17 +4,19 @@
 #      find the one USB device with that product string, its USB location and
 #      its /dev/cu.* port (ioreg)
 #   2. set that port to 1200 baud (stty) → the firmware reboots into the UF2
-#      bootloader (CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD)
+#      bootloader (CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD, zmk-beacon)
 #   3. wait for /Volumes/XIAO-SENSE and check that its disk belongs to the USB
 #      device at the Prospector Dongle's USB location
 #   4. cp -X the .uf2 → the volume disappears once the bootloader has taken the
 #      image and rebooted
 #   5. wait for "Prospector Dongle" to enumerate again with its /dev/cu.* port
 #
-#   ./scripts/flash-prospector.sh              # firmware/prospector_scanner.uf2
-#   ./scripts/flash-prospector.sh firmware/prospector_scanner-logging.uf2
+#   ./scripts/flash-prospector.sh              # firmware/prospector.uf2
+#   ./scripts/flash-prospector.sh firmware/prospector-logging.uf2
 #
-# Only firmware/prospector_scanner*.uf2 whose payload holds the product string
+# Only firmware/prospector.uf2 or firmware/prospector-*.uf2 (a build variant
+# such as -logging; the prospector_scanner*.uf2 names are the t-ogura builds
+# before 2026-09-26) whose payload holds the product string
 # is accepted: any other image (the USB power-only one that predates the
 # 1200 baud handler, a renamed imprint_dongle.uf2) never enumerates as
 # "Prospector Dongle", so the next run could not find it. Re-enumeration shows
@@ -34,7 +36,8 @@ set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)" || exit 1
 
-# Contract with config/prospector_scanner.conf (CONFIG_USB_DEVICE_PRODUCT).
+# Contract with CONFIG_USB_DEVICE_PRODUCT in zmk-beacon's
+# boards/shields/prospector/prospector.conf (pinned in config/west.yml).
 PRODUCT="Prospector Dongle"
 VOL="/Volumes/XIAO-SENSE"
 STTY_TIMEOUT_S=5
@@ -185,18 +188,18 @@ done
 # Resolved against the caller's cwd, then pinned to <repo>/firmware and to a
 # regular file, so that neither ../ nor a symlink can smuggle in
 # imprint_dongle.uf2.
-UF2_ARG="${UF2_ARG:-$REPO/firmware/prospector_scanner.uf2}"
+UF2_ARG="${UF2_ARG:-$REPO/firmware/prospector.uf2}"
 UF2_DIR="$(cd "$(dirname "$UF2_ARG")" 2>/dev/null && pwd -P)" || UF2_DIR=""
 UF2_BASE="$(basename "$UF2_ARG")"
 case "$UF2_BASE" in
-  prospector_scanner*.uf2) ;;
-  *) echo "refusing $UF2_ARG: only firmware/prospector_scanner*.uf2 goes onto the Prospector Dongle" >&2; exit 2 ;;
+  prospector.uf2|prospector-*.uf2) ;;
+  *) echo "refusing $UF2_ARG: only firmware/prospector.uf2 or firmware/prospector-*.uf2 goes onto the Prospector Dongle" >&2; exit 2 ;;
 esac
 [ "$UF2_DIR" = "$REPO/firmware" ] \
   || { echo "refusing $UF2_ARG: not in $REPO/firmware" >&2; exit 2; }
 UF2="$UF2_DIR/$UF2_BASE"
 [ ! -L "$UF2" ] || { echo "refusing $UF2_ARG: a symlink" >&2; exit 2; }
-[ -f "$UF2" ] || die "$UF2 not found (build it: ./scripts/build-zmk.sh prospector_scanner)"
+[ -f "$UF2" ] || die "$UF2 not found (build it: ./scripts/build-zmk.sh prospector)"
 
 [ "$(uname -s)" = Darwin ] || die "macOS only (ioreg, stty -f, /Volumes)"
 for tool in ioreg stty df pgrep python3; do
@@ -206,7 +209,7 @@ done
 uf2_holds "$UF2" "$PRODUCT"
 case $? in
   0) ;;
-  1) echo "refusing $UF2_ARG: its image has no \"$PRODUCT\" USB product string, so it would not enumerate for the next flash (a USB power-only build or another device's image). Rebuild: ./scripts/build-zmk.sh prospector_scanner" >&2; exit 2 ;;
+  1) echo "refusing $UF2_ARG: its image has no \"$PRODUCT\" USB product string, so it would not enumerate for the next flash (a USB power-only build or another device's image). Rebuild: ./scripts/build-zmk.sh prospector" >&2; exit 2 ;;
   *) echo "refusing $UF2_ARG: not a UF2 file" >&2; exit 2 ;;
 esac
 

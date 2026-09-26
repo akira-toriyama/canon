@@ -35,7 +35,7 @@ canon を構成する各パーツの **正規の呼び名** をまとめた規�
 flowchart TB
   subgraph HW["ハードウェア層"]
     BOARD["board: assimilator-bt / xiao_ble"]
-    SHIELD["shield: imprint_left / imprint_right / imprint_dongle / prospector_scanner"]
+    SHIELD["shield: imprint_left / imprint_right / imprint_dongle / prospector"]
   end
   subgraph FW["ZMK firmware 層"]
     KEYMAP["keymap (config/imprint.keymap)"]
@@ -47,13 +47,13 @@ flowchart TB
   subgraph BUILD["ビルド層"]
     WEST["west.yml (workspace manifest)"]
     BUILDYAML["build.yaml (build matrix)"]
-    UF2["imprint_*.uf2 / prospector_scanner.uf2"]
+    UF2["imprint_*.uf2 / prospector.uf2"]
   end
   subgraph HOST["macOS host bridge"]
     CHORD["chord (独立リポジトリ)"]
   end
   subgraph COMPANION["companion display"]
-    PROSPECTOR["Prospector Dongle (shield prospector_scanner)"]
+    PROSPECTOR["Prospector Dongle (shield prospector, zmk-beacon)"]
   end
   BOARD --- SHIELD
   SHIELD --> KEYMAP
@@ -95,20 +95,21 @@ string `Imprint Dongle` is the [[host bridge]] contract (CLAUDE.md). Since
 The companion status display: a beekeeb pre-soldered
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 (XIAO nRF52840 + Waveshare 1.69" LCD, no ambient light sensor, touch panel
-unwired) running shield `prospector_scanner` from t-ogura
-`prospector-zmk-module` in scanner mode. A BLE observer only: it renders the
-[[Imprint Dongle]]'s [[status advertisement]] and never pairs or connects. Over
+unwired) running shield `prospector` from the own module
+[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). A BLE observer
+only: it shows both halves' battery from the [[Imprint Dongle]]'s
+[[status advertisement]] and never advertises, pairs or connects (since
+2026-09-26; before that it ran t-ogura's `prospector_scanner` shield). Over
 USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
 (no HID), and opening that port at 1200 baud reboots it into the UF2
 bootloader for `scripts/flash-prospector.sh` (both seen on hardware
 2026-09-26). It does not replace the Imprint Dongle.
-- Config: [`config/prospector_scanner.conf`](../config/prospector_scanner.conf),
-  [`config/prospector_scanner.overlay`](../config/prospector_scanner.overlay);
-  module pin in [`config/west.yml`](../config/west.yml), module patch in
-  [`patches/modules/prospector-zmk-module/`](../patches/modules/prospector-zmk-module/README.md)
+- Config: [`config/prospector.conf`](../config/prospector.conf) (canon's
+  additions only); the shield's own defaults live in zmk-beacon, pinned by
+  commit in [`config/west.yml`](../config/west.yml)
 - **Don't call it:** XIAO, XIAO ドングル, Canon Dongle, scanner alone, Prospector
-  alone in prose (the vendor's product; `prospector_scanner` is the shield),
-  second dongle, 表示ドングル
+  alone in prose (the vendor's product; `prospector` is the shield), beacon
+  (the module's name), second dongle, 表示ドングル
 
 ---
 
@@ -129,10 +130,10 @@ canon の入力レイアウト全体を記述する DeviceTree 文書。
   `config/macros.dtsi`・`config/behavior_macros.h` が使うので改名しない。
 - 正規名: 文章・コミットで使う名前。単語は空白で区切り（`Symbol 1` / `Left Arrow` /
   `Vkey LL`）、ハイフン・括弧は使わない。
-- `display-name`: firmware に入る短縮名で、[[keymap-drawer]] の図と [[Prospector Dongle]]
-  に出る。`[A-Za-z][A-Za-z0-9]{0,3}`（英字始まりの英数字 4 文字以内）で、a-z を大文字化
+- `display-name`: firmware に入る短縮名で、[[keymap-drawer]] の図と [[status advertisement]]
+  に出る（[[Prospector Dongle]] の画面は 2026-09-26 から layer 名を描かない）。`[A-Za-z][A-Za-z0-9]{0,3}`（英字始まりの英数字 4 文字以内）で、a-z を大文字化
   しても重複しない。理由: [[status advertisement]] は先頭 4 byte だけを運び、空の名前は
-  `L<index % 10>` に置き換える。Prospector Dongle の Field layout は a-z を大文字化し、
+  `L<index % 10>` に置き換える。2026-09-26 まで使った t-ogura の画面（Field layout）は a-z を大文字化し、
   そのフォントは U+0020–U+007E のみ（fallback なし）。keymap-drawer は layer を名前で
   持つので同名は 1 つが黙って消え（exit 0 なので `fail_on_error` でも落ちない）、SVG の
   アンカー id は最初の ASCII 英字より前と `[A-Za-z0-9-_:.]` 以外の文字を捨てて作るので、
@@ -242,10 +243,12 @@ pairing, no bond, no BLE slot consumed on either side.
   `CONFIG_PROSPECTOR_EXPECTED_PERIPHERAL_COUNT=2` in
   [`config/imprint_dongle.conf`](../config/imprint_dongle.conf); the
   `CONFIG_COMPILER_OPT` line there is a workaround, see CLAUDE.md). Peripheral
-  builds compile it out. Consumer: shield `prospector_scanner`.
+  builds compile it out. Consumer: zmk-beacon's shield `prospector`, which
+  reads only both halves' battery bytes (`src/status_observer.c` there).
 - Payload layout: `include/zmk/status_advertisement.h` in the module
   (`char layer_name[4]`: only the first 4 bytes of the active [[layer]]'s name
   travel, which is why [[layer]] limits `display-name` to 4 ASCII characters).
+  zmk-beacon reads it by byte offset, so a module bump re-reads the layout.
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ---
@@ -254,7 +257,7 @@ pairing, no bond, no BLE slot consumed on either side.
 
 ### board
 ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、Cyboard
-`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（`imprint_dongle` と `prospector_scanner`）。
+`zmk-keyboards@main` 由来）と `xiao_ble/nrf52840/zmk`（`imprint_dongle` と `prospector`）。
 `assimilator-bt` はタグ固定すると `arch.cmake` が
 `Could not find ARCH=cyboard` で落ちるため `@main` 追従が必須。
 - 設定: [`config/west.yml`](../config/west.yml),
@@ -265,11 +268,11 @@ ZMK が指す **MCU 基板**。canon では 2 種: `assimilator-bt`（imprint、
 ### shield
 ZMK が指す **デバイス本体**（マトリクス / 物理レイアウト / 周辺）の定義。
 canon の 4 シールド: `imprint_left` / `imprint_right`（分割左右）/ `imprint_dongle` /
-`prospector_scanner`（[[Prospector Dongle]]）。
+`prospector`（[[Prospector Dongle]]）。
 - 設定: [`build.yaml`](../build.yaml)（board × shield の唯一のソース）
 - 由来: imprint の 3 シールドは Cyboard module（`zmk-keyboards` の `zephyr-4.1`
-  ブランチ）、`prospector_scanner` は t-ogura `prospector-zmk-module`（`v2.2.3` tag
-  pin）。**canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に
+  ブランチ）、`prospector` は自前の module
+  [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)（commit pin）。**canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に
   Cyboard#19 で上流入りし、ローカル定義は撤去済み）。
 - **Don't call it:** half, side, panel, 分割キーボード
 
@@ -281,15 +284,15 @@ Zephyr/ZMK の workspace 管理ツール。canon は manifest を
 ### build target
 1 つの `board × shield` 組み合わせ。canon の build target は **4 つ**（=「all」
 ビルド）: `assimilator-bt × imprint_left` / `imprint_right`、
-`xiao_ble/nrf52840/zmk × imprint_dongle` / `prospector_scanner`。サブセットは
+`xiao_ble/nrf52840/zmk × imprint_dongle` / `prospector`。サブセットは
 `build-zmk.sh` の shield 指定で（`imprint` グループは imprint の 3 つ、
-`prospector_scanner` は単体指定）。
+`prospector` は単体指定）。
 - 設定: [`build.yaml`](../build.yaml)
 - **Don't call it:** firmware variant, build config, ビルド構成
 
 ### `.uf2` artifact
 ビルド成果物。`firmware/<shield>.uf2`（例 `imprint_left.uf2` /
-`imprint_dongle.uf2` / `prospector_scanner.uf2`）を対応デバイスに書き込む。
+`imprint_dongle.uf2` / `prospector.uf2`）を対応デバイスに書き込む。
 `.gitignore` 済。
 - 生成: `./scripts/build-zmk.sh`（Docker、依存は `~/.cache/zmk-canon`）
 - **Don't call it:** binary, image, ファーム本体

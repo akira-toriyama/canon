@@ -36,7 +36,7 @@ glyph hook install
 
 ```
 config/         ZMK キーマップ / behaviors / combos / west.yml（ルート必須）
-build.yaml      ビルド対象 4 つ（imprint_left / imprint_right / imprint_dongle + prospector_scanner）
+build.yaml      ビルド対象 4 つ（imprint_left / imprint_right / imprint_dongle + prospector）
 keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
 scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
 docs/           コミット規約ほか
@@ -44,14 +44,15 @@ docs/           コミット規約ほか
 ```
 
 ZMK と上流ツールの制約で `config/` `build.yaml` はリポジトリルート固定
-（移動しない）。board / shield はすべて upstream module 提供（ローカル shield
-無し — imprint_dongle も Cyboard 上流入り済み）。詳細は [CLAUDE.md](CLAUDE.md)。
+（移動しない）。board / shield はすべて module 提供（ローカル shield 無し —
+imprint_dongle は Cyboard 上流入り済み、Prospector Dongle の shield は
+[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)）。詳細は [CLAUDE.md](CLAUDE.md)。
 
 ## ZMK ファーム ビルド
 
 `config/imprint.keymap` 等を変更したら、以下のいずれかで `.uf2` を得る。
 ビルド対象は [build.yaml](build.yaml)（`imprint_left` / `imprint_right` /
-`imprint_dongle` の 3 つ + Prospector Dongle 用 `prospector_scanner`）。ZMK 本体は
+`imprint_dongle` の 3 つ + Prospector Dongle 用 `prospector`）。ZMK 本体は
 `main` 追従（Cyboard モジュールが要求。タグ固定
 不可。詳細 [CLAUDE.md](CLAUDE.md)）。
 
@@ -66,15 +67,15 @@ ZMK と上流ツールの制約で `config/` `build.yaml` はリポジトリル�
 
 ```sh
 ./scripts/build-zmk.sh                 # build.yaml の全ターゲット（=all）
-./scripts/build-zmk.sh imprint         # imprint の 3 ターゲット（prospector_scanner を除く）
+./scripts/build-zmk.sh imprint         # imprint の 3 ターゲット（prospector を除く）
 ./scripts/build-zmk.sh imprint_left    # シールド指定
-./scripts/build-zmk.sh prospector_scanner  # Prospector Dongle のみ
+./scripts/build-zmk.sh prospector     # Prospector Dongle のみ
 ./scripts/build-zmk.sh --update        # 依存を最新化（west update）
 ./scripts/build-zmk.sh --clean         # キャッシュ破棄
 ```
 
 - 出力先: **`firmware/imprint_left.uf2`** / **`firmware/imprint_right.uf2`** /
-  `firmware/imprint_dongle.uf2` / `firmware/prospector_scanner.uf2`（`.gitignore` 済）
+  `firmware/imprint_dongle.uf2` / `firmware/prospector.uf2`（`.gitignore` 済）
 - 要 Docker。依存は `~/.cache/zmk-canon` に永続化（2 回目以降は高速）
 
 ### フラッシュ
@@ -90,23 +91,24 @@ NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset
 ### Prospector Dongle（状態表示の companion）
 
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
-（XIAO nRF52840 + 1.69" LCD）に `prospector_scanner.uf2` を焼くと、Imprint Dongle が
-BLE 広告で流す状態（layer・左右半体の電池・modifier・WPM）を表示する。ペアリングも
-接続も不要（observer のみ）。Mac には CDC シリアルポート 1 つ（製品名
-`Prospector Dongle`、HID キーボードではない）としてだけ現れる（2026-09-26 実機確認）。
-このポートは 1200 baud で開くとブートローダへ入るためのもの。
-BLE 側は ZMK の都合で "Prospector" の connectable 広告が残る（ペアリング候補には
-見えるが、繋がなければ無害）。Imprint Dongle 側は本リポジトリの
-`imprint_dongle.uf2`（status advertisement 入り）であること。
+（XIAO nRF52840 + 1.69" LCD）に `prospector.uf2` を焼くと、Imprint Dongle が
+BLE 広告で流す状態から左右半体の電池を表示する。受信するだけで、広告もペアリングも
+接続もしない（2026-09-26 に Mac の BLE スキャンで広告 0 件を確認）。Mac には CDC
+シリアルポート 1 つ（製品名 `Prospector Dongle`、HID キーボードではない）としてだけ
+現れる（2026-09-26 実機確認）。このポートは 1200 baud で開くとブートローダへ入るための
+もの。Imprint Dongle 側は本リポジトリの `imprint_dongle.uf2`（status advertisement
+入り）であること。shield と画面は
+[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon) にあり、画面の見方
+（`75%`、値の無い半体は白の `--`、1 分受信が無ければ灰色の `--`）は同 README。
 
 焼き方（`flash-watch.sh` は使わない）:
 
-- 通常は `./scripts/flash-prospector.sh`（既定 `firmware/prospector_scanner.uf2`）。
+- 通常は `./scripts/flash-prospector.sh`（既定 `firmware/prospector.uf2`）。
   ポートを 1200 baud で開いてブートローダへ入れ、`cp -X` し、再列挙まで待つ
   （2026-09-26 実機で 2 回連続成功、1 回 8 秒前後）。表示が正しいかは目視で確認する。
 - 1200 baud 対応前の版（USB 給電のみ）から上げる初回と、スクリプトが失敗したときは手動:
   1. Prospector Dongle のリセットをダブルタップ → `/Volumes/XIAO-SENSE` がマウント
-  2. `cp -X firmware/prospector_scanner.uf2 /Volumes/XIAO-SENSE/`（末尾の
+  2. `cp -X firmware/prospector.uf2 /Volumes/XIAO-SENSE/`（末尾の
      `fcopyfile failed: Input/output error` は書き込み完了で再起動した合図）
   3. 再列挙後、Imprint Dongle が動いていれば広告を拾って表示が始まる
 
@@ -115,16 +117,14 @@ BLE 側は ZMK の都合で "Prospector" の connectable 広告が残る（ペ�
 焼くため、実行中は Prospector Dongle をブートローダに入れず、ポートを 1200 baud で
 開かない（`flash-prospector.sh` はその間は起動を拒否する）。
 
-`config/prospector_scanner.conf` は beekeeb の pre-soldered 版（環境光センサー無し・
-touch 未配線）向け: 明るさ固定 80%・touch 無効。layout は
-`CONFIG_PROSPECTOR_DEFAULT_LAYOUT` で選ぶ（touch が無いので conf の値が唯一の選択手段）。
-既定は 1=Field: 現在 layer の名前を大きく、左右半体の電池、modifier、WPM 連動の演出。
-layer 名は広告の 4 byte 制約で先頭 4 文字・大文字になる。
+zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー無し・touch 未配線）
+向け: 明るさ固定 80%・touch 無し。`config/prospector.conf` はこの manifest の都合
+（`CONFIG_ZMK_RGB_UNDERGLOW=n`、[CLAUDE.md](CLAUDE.md) 参照）だけを足す。
 
 ### リリース
 
 main へマージするたび、Actions の **Release** が glyph で次版とノートを算出し
-「ローリングドラフト」Release を更新する（`imprint_*.uf2` と `prospector_scanner.uf2` を添付）。内容確認の
+「ローリングドラフト」Release を更新する（`imprint_*.uf2` と `prospector.uf2` を添付）。内容確認の
 うえ手動 Publish した時点で `vX.Y.Z` タグが生成される
 （[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
 

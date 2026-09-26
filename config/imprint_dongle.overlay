@@ -30,12 +30,13 @@ RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                         
 // voltage divider, and an unloaded divider reads a bogus level (100% on USB
 // power in the advertisement decoded 2026-09-26; 47% seen earlier). The
 // Prospector module (CENTRAL_SIDE="AUX") copies the central's own reading into
-// the Aux1 slot of the status advertisement, and the Prospector Dongle's YADS
-// and Operator layouts draw every slot > 0, so the ghost appears as a third
-// battery.
+// the Aux1 slot of the status advertisement. Until 2026-09-26 the Prospector
+// Dongle ran t-ogura's prospector_scanner, whose YADS and Operator layouts drew
+// every slot > 0, so the ghost showed as a third battery; its zmk-beacon
+// screen reads the halves' bytes only.
 // Without a chosen node ZMK's battery.c bails out with -ENODEV and keeps
-// reporting 0, which every consumer treats as "absent". Nothing else reads
-// the dongle's own level: chord's vendor report 0x21 carries the halves only,
+// reporting 0, which every consumer treats as "absent". Nothing reads the
+// dongle's own level: chord's vendor report 0x21 carries the halves only,
 // and USB HID has no battery path. Disabling vbatt also drops the divider's
 // ADC channel and its power GPIO from the build.
 / {

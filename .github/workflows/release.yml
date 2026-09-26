@@ -111,7 +111,7 @@ jobs:
 
   # firmware ビルドは通常 CI と同一の reusable に委譲（重複/drift 解消）。
   # zmk-build.yml が build.yaml を唯一のソースに matrix を生成し、patch を
-  # 適用して全ターゲット (imprint_left/right/dongle + prospector_scanner) を build し
+  # 適用して全ターゲット (imprint_left/right/dongle + prospector) を build し
   # <shield> 名の artifact を上げる。draft job がそれを DL してリリースへ添付する。
   build:
     needs: version
@@ -147,11 +147,11 @@ jobs:
           set -euo pipefail
           mkdir -p out
           # canon は PUBLIC repo。リリース資産は imprint の 3 ターゲット + companion の
-          # prospector_scanner だけを明示 allowlist で集める（glob 禁止＝将来 build.yaml に
+          # prospector だけを明示 allowlist で集める（glob 禁止＝将来 build.yaml に
           # 無関係なターゲットが混ざっても公開資産へ漏れない）。
-          # prospector_scanner.uf2 (Prospector Dongle, the companion display) ships with
+          # prospector.uf2 (Prospector Dongle, the companion display) ships with
           # the imprint three: same manifest, same patches, same draft (t-tbaf, 2026-09-25).
-          for f in imprint_left imprint_right imprint_dongle prospector_scanner; do
+          for f in imprint_left imprint_right imprint_dongle prospector; do
             cp "dist/$f/$f.uf2" "out/$f.uf2"
           done
           # allowlist 外の uf2 が来ていたら（＝build.yaml 変更の取りこぼし）中止。
@@ -159,7 +159,7 @@ jobs:
                        ! -name 'imprint_left.uf2' \
                        ! -name 'imprint_right.uf2' \
                        ! -name 'imprint_dongle.uf2' \
-                       ! -name 'prospector_scanner.uf2' -print -quit)" ]; then
+                       ! -name 'prospector.uf2' -print -quit)" ]; then
             echo "::error::allowlist 外の uf2 を検出したためリリース添付を中止"
             exit 1
           fi
@@ -178,7 +178,7 @@ jobs:
             out/imprint_left.uf2
             out/imprint_right.uf2
             out/imprint_dongle.uf2
-            out/prospector_scanner.uf2
+            out/prospector.uf2
             out/RELEASE_NOTES.md
 
       - name: Dry-run summary
@@ -200,8 +200,8 @@ jobs:
         run: |
           set -euo pipefail
           # 資産は明示列挙（glob 禁止）。canon は PUBLIC なので、公開 Release へ
-          # 上げてよいのは imprint の 3 ターゲット + prospector_scanner だけ。
-          assets="out/imprint_left.uf2 out/imprint_right.uf2 out/imprint_dongle.uf2 out/prospector_scanner.uf2"
+          # 上げてよいのは imprint の 3 ターゲット + prospector だけ。
+          assets="out/imprint_left.uf2 out/imprint_right.uf2 out/imprint_dongle.uf2 out/prospector.uf2"
           # shellcheck disable=SC2086
           gh release upload "$VERSION" $assets --clobber
           # --clobber は同名資産を上書きするだけで、allowlist 外の古い資産
@@ -212,7 +212,7 @@ jobs:
             echo "::notice::ドラフト $VERSION から allowlist 外の資産 $a を削除"
             gh release delete-asset "$VERSION" "$a" --yes
           done < <(gh release view "$VERSION" --json assets \
-            --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2" and . != "prospector_scanner.uf2")')
+            --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2" and . != "prospector.uf2")')
 
           url="$(gh release view "$VERSION" --json url --jq .url)"
           echo "::notice::ドラフト Release ${VERSION} へ成果物を添付（未公開・タグ未生成）。内容確認のうえ手動 Publish: ${url}"

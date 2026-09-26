@@ -6,6 +6,8 @@ manifest:
       url-base: https://github.com/Cyboard-DigitalTailor
     - name: t-ogura
       url-base: https://github.com/t-ogura
+    - name: akira-toriyama
+      url-base: https://github.com/akira-toriyama
     # Additional modules containing boards/shields/custom code can be listed here as well
     # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
   projects:
@@ -32,17 +34,29 @@ manifest:
       remote: Cyboard-DigitalTailor
       revision: zephyr-4.1
       import: config/west.yml
-    # prospector-zmk-module (t-ogura fork, scanner mode). Two consumers in canon:
-    # the Prospector Dongle build (shield prospector_scanner, a BLE observer) and
-    # the Imprint Dongle build (CONFIG_ZMK_STATUS_ADVERTISEMENT, the broadcaster).
+    # prospector-zmk-module (t-ogura). One consumer in canon: the Imprint Dongle
+    # build (CONFIG_ZMK_STATUS_ADVERTISEMENT, the broadcaster the Prospector
+    # Dongle listens to) until zmk-beacon carries its own broadcaster (t-k8pk).
     # Tag-pinned: v2.2.3 (2026-09-01) states keyboard-side support for ZMK main /
-    # Zephyr 4.x; bumps are manual and must re-check the canon patches in
-    # patches/modules/prospector-zmk-module/ (applied on top of this tag). `path`
-    # keeps the clone under modules/, which scripts/build-zmk.sh already excludes
-    # from its rsync --delete sync.
+    # Zephyr 4.x. Bumps are manual and must re-check:
+    #  - the canon patches in patches/modules/prospector-zmk-module/ (applied on
+    #    top of this tag);
+    #  - the status payload layout, which zmk-beacon's src/status_observer.c
+    #    reads by byte offset (its header cites the module lines). The version
+    #    byte encodes major.minor only, so a patch-level bump passes its filter.
+    # `path` keeps the clone under modules/, which scripts/build-zmk.sh already
+    # excludes from its rsync --delete sync.
     - name: prospector-zmk-module
       remote: t-ogura
       revision: v2.2.3
       path: modules/prospector-zmk-module
+    # zmk-beacon (own module): the Prospector Dongle, shield `prospector` (BLE
+    # observer + battery screen; it never advertises). Pinned by commit, not by
+    # tag, so that canon picks up a change without a zmk-beacon release being
+    # published (decided 2026-09-26, t-5gxp); bump the SHA by hand.
+    - name: zmk-beacon
+      remote: akira-toriyama
+      revision: 9d3dcf25790746d52a12be139ba006c53ffa811f
+      path: modules/zmk-beacon
   self:
     path: config
