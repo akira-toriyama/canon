@@ -263,8 +263,9 @@ disk="$(mounted_disk "$VOL")"
 owner="$(ioq disk "$disk")" || die_touched "ioreg query failed. Nothing copied."
 IFS=$'\x1f' read -r OWNER_PRODUCT OWNER_SERIAL _ OWNER_LOCATION <<<"$owner"
 say "      $VOL is $disk on USB location ${OWNER_LOCATION:-(none)}: ${OWNER_PRODUCT:-(no product string)} serial=${OWNER_SERIAL:-(none)}"
-[ -n "$OWNER_LOCATION" ] && [ "$OWNER_LOCATION" = "$LOCATION" ] \
-  || die_touched "$VOL is not on the Prospector Dongle's USB location ($LOCATION): another board's bootloader holds it. Nothing copied."
+if [ -z "$OWNER_LOCATION" ] || [ "$OWNER_LOCATION" != "$LOCATION" ]; then
+  die_touched "$VOL is not on the Prospector Dongle's USB location ($LOCATION): another board's bootloader holds it. Nothing copied."
+fi
 
 if running="$(flashers_running)"; then
   die_touched "flash-watch.sh / flash-reset.sh started meanwhile. Nothing copied. Stop it first:
