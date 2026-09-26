@@ -14,9 +14,9 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
   board=xiao_ble/nrf52840/zmk / shield=prospector_scanner from t-ogura
   `prospector-zmk-module` (scanner mode). A BLE observer that renders the Imprint
   Dongle's status advertisement (layer, both halves' batteries, modifiers, WPM);
-  it never pairs or connects. Over USB it is built to enumerate as one CDC ACM
-  port (product `Prospector Dongle`, no HID) that exists for the 1200 baud
-  bootloader entry (not yet verified on hardware). Device names are fixed
+  it never pairs or connects. Over USB it enumerates as one CDC ACM port
+  (product `Prospector Dongle`, no HID) that exists for the 1200 baud
+  bootloader entry (seen on hardware 2026-09-26). Device names are fixed
   in [docs/glossary.md](docs/glossary.md): Cyboard Imprint (the halves) /
   Imprint Dongle (the split central) / Prospector Dongle.
 
@@ -123,15 +123,21 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   start while either runs or while `XIAO-SENSE` is already mounted, checks both
   again before the copy, and copies only when the disk behind `XIAO-SENSE`
   belongs to the USB device at the Prospector Dongle's USB `locationID` (the
-  bootloader re-enumerating on the same port is design intent, not yet
-  verified on hardware). The first image with the 1200 baud entry, and any run
-  the script fails, go on by double-tap + `cp -X` by hand (README).
+  bootloader enumerates with the app's `locationID` and USB serial, both taken
+  from the port and the chip: seen on hardware 2026-09-26). The first image
+  with the 1200 baud entry, and any run the script fails, go on by double-tap +
+  `cp -X` by hand (README). Reflashing an unchanged image copies in about 3 s
+  against about 24 s for a new one: bootloader 0.6.1 skips pages whose
+  contents already match (`src/flash_nrf5x.c`) and resets only after every
+  block arrived, so the short copy is not a truncated one.
 - **Opening the Prospector Dongle's serial port at 1200 baud reboots it into the
-  UF2 bootloader** (by design: `CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` from
+  UF2 bootloader** (`CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` from
   [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md);
-  not yet verified on hardware). Any program that sets that rate does it, not
-  only `flash-prospector.sh` (Arduino-style uploaders, a serial monitor at
-  1200), so never do it while `flash-watch.sh` / `flash-reset.sh` run: they
+  two script-only flashes in a row on hardware 2026-09-26, bootloader 0.6.1,
+  about 2.5 s from the touch to the mounted volume). Any program that sets
+  that rate does it, not only `flash-prospector.sh` (Arduino-style uploaders,
+  a serial monitor at 1200), so never do it while `flash-watch.sh` /
+  `flash-reset.sh` run: they
   would copy `imprint_dongle.uf2` onto it. Find the port by the USB product
   string `Prospector Dongle` (the contract between
   [config/prospector_scanner.conf](config/prospector_scanner.conf) and `PRODUCT`

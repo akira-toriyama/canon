@@ -98,10 +98,10 @@ The companion status display: a beekeeb pre-soldered
 unwired) running shield `prospector_scanner` from t-ogura
 `prospector-zmk-module` in scanner mode. A BLE observer only: it renders the
 [[Imprint Dongle]]'s [[status advertisement]] and never pairs or connects. Over
-USB it is built to enumerate as one CDC ACM port with product string
-`Prospector Dongle` (no HID), and opening that port at 1200 baud is designed to
-reboot it into the UF2 bootloader for `scripts/flash-prospector.sh` (both not
-yet verified on hardware). It does not replace the Imprint Dongle.
+USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
+(no HID), and opening that port at 1200 baud reboots it into the UF2
+bootloader for `scripts/flash-prospector.sh` (both seen on hardware
+2026-09-26). It does not replace the Imprint Dongle.
 - Config: [`config/prospector_scanner.conf`](../config/prospector_scanner.conf),
   [`config/prospector_scanner.overlay`](../config/prospector_scanner.overlay);
   module pin in [`config/west.yml`](../config/west.yml), module patch in

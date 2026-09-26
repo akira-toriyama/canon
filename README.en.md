@@ -93,9 +93,9 @@ Flashing `prospector_scanner.uf2` onto a
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 (XIAO nRF52840 + 1.69" LCD) turns it into a display for what the Imprint Dongle
 broadcasts over BLE advertising: the active layer, both halves' battery levels,
-modifiers and WPM. It never pairs or connects (observer only). It is built to
-appear on the Mac only as one CDC serial port (product `Prospector Dongle`, no
-HID keyboard; not yet verified on hardware), and that port exists so that
+modifiers and WPM. It never pairs or connects (observer only). It appears on
+the Mac only as one CDC serial port (product `Prospector Dongle`, no HID
+keyboard; seen on hardware 2026-09-26), and that port exists so that
 opening it at 1200 baud enters the bootloader. The Imprint Dongle must run this
 repository's `imprint_dongle.uf2`, which carries the status advertisement.
 
@@ -104,7 +104,8 @@ Flashing (not with `flash-watch.sh`):
 - Normally `./scripts/flash-prospector.sh` (default
   `firmware/prospector_scanner.uf2`): it opens the port at 1200 baud to enter
   the bootloader, copies with `cp -X` and waits for the device to re-enumerate
-  (not yet verified on hardware). Check the display yourself.
+  (two runs in a row on hardware 2026-09-26, about 8 s each). Check the
+  display yourself.
 - The first time, coming from the USB power-only image that predates the
   1200 baud entry, and whenever the script fails, flash by hand:
   1. Double-tap the Prospector Dongle's reset → `/Volumes/XIAO-SENSE` mounts

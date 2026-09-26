@@ -50,8 +50,9 @@ complete). After a module or ZMK bump, check
 
 Why: the Prospector Dongle has no keys for `&bootloader` and its touch panel
 is unwired, so the reset double-tap was the only way into the UF2 bootloader.
-With this patch `scripts/flash-prospector.sh` can flash it from the Mac alone
-(design intent until the first hardware run; see the repository CLAUDE.md).
+With this patch `scripts/flash-prospector.sh` flashes it from the Mac alone
+(two runs in a row on hardware 2026-09-26: Seeed XIAO nRF52840 Sense,
+bootloader 0.6.1, macOS; see the repository CLAUDE.md).
 
 Design points, from source reads on 2026-09-26 (Zephyr `10ba6d0cb`, ZMK
 `9ebbeff0`):
