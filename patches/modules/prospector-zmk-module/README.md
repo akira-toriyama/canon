@@ -59,11 +59,14 @@ Design points, from source reads on 2026-09-26 (Zephyr `10ba6d0cb`, ZMK
 
 - Not `sys_reboot(0x57)`: the Cortex-M `sys_arch_reboot()` ignores its type
   and calls `NVIC_SystemReset()` (`arch/arm/core/cortex_m/scb.c:38-43`), and
-  nothing in the nRF SoC code overrides it; `NRF_STORE_REBOOT_TYPE_GPREGRET`
-  was removed in Zephyr 3.6 (`doc/releases/migration-guide-3.6.rst:55-56`).
-  `sys_reboot(0x57)` in `system_settings_widget.c:73` would be a plain reset
-  too, but that widget is not linked into scanner builds (its sections sit in
-  the discarded list of `zmk.map`, 2026-09-26). The settings screen's live
+  nothing in the nRF SoC code overrides it; Zephyr 3.6 removed the code
+  behind `NRF_STORE_REBOOT_TYPE_GPREGRET`
+  (`doc/releases/migration-guide-3.6.rst:55-56`). ZMK's `app/Kconfig` still
+  declares that symbol with default y, so it shows as `=y` in `.config`, but
+  nothing reads it. `sys_reboot(0x57)` in `system_settings_widget.c:73` would
+  be a plain reset too, but that widget is not linked into scanner builds (its
+  sections sit in the discarded list of `zmk.map`, 2026-09-26). The Quick
+  Actions screen's live
   bootloader button (`custom_status_screen.c:2398-2404`, linked) already uses
   `bootmode_set()` + `sys_reboot(SYS_REBOOT_WARM)`, and this patch follows it.
   On ZMK's `xiao_ble` board, `bootmode_set()` lands in GPREGRET as 0x57, the
@@ -78,4 +81,7 @@ Design points, from source reads on 2026-09-26 (Zephyr `10ba6d0cb`, ZMK
   a second 1200 with no other rate in between is ignored; every USB reset
   restores 115200 (`cdc_acm.c:72-73`, `:361-373`, `:387-389`).
 
-**Upstream PR**: not yet submitted.
+**Upstream PR**: [t-ogura/prospector-zmk-module#4](https://github.com/t-ogura/prospector-zmk-module/pull/4)
+(opened 2026-09-26; this patch is that PR's diff minus its README section).
+Once a module release carries it, bump `config/west.yml` and delete this
+directory.
