@@ -9,7 +9,7 @@
 #      device at the Prospector Dongle's USB location
 #   4. cp -X the .uf2 → the volume disappears once the bootloader has taken the
 #      image and rebooted
-#   5. wait for "Prospector Dongle" to enumerate again
+#   5. wait for "Prospector Dongle" to enumerate again with its /dev/cu.* port
 #
 #   ./scripts/flash-prospector.sh              # firmware/prospector_scanner.uf2
 #   ./scripts/flash-prospector.sh firmware/prospector_scanner-logging.uf2
@@ -28,7 +28,7 @@
 # check stands in for the mount check.
 #
 # Exit status: 0 image copied, bootloader volume released and a
-# "Prospector Dongle" back on USB / 1 failed / 2 usage.
+# "Prospector Dongle" back on USB with its port / 1 failed / 2 usage.
 
 set -u
 
@@ -285,7 +285,9 @@ case "$cp_rc" in
     case "$cp_err" in
       *"Input/output error"*|*"Device not configured"*)
         say "      cp exit=$cp_rc: $cp_err(the bootloader rebooting under the copy)" ;;
-      *) die_touched "cp -X failed (exit $cp_rc): $cp_err" ;;
+      # Other errno texts of a volume vanishing under cp are not ruled out, and
+      # a failed copy leaves the volume mounted, so the wait below decides.
+      *) say "      cp exit=$cp_rc: $cp_err(unrecognised; the volume and re-enumeration decide)" ;;
     esac ;;
 esac
 
@@ -298,17 +300,26 @@ done
 t_written=$(now_ms)
 say "WRITTEN $VOL gone after $(secs "$t0" "$t_written")"
 
+# Back means its /dev/cu.* port is attached too: the serial driver attaches
+# after the device appears, and the next run needs the port.
 deadline=$((t_written + ENUM_TIMEOUT_S * 1000))
+BACK_PORTS=""
 while :; do
   back="$(ioq product "$PRODUCT")" || die "ioreg query failed"
-  [ -z "$back" ] || break
-  [ "$(now_ms)" -lt "$deadline" ] \
-    || die_touched "\"$PRODUCT\" did not enumerate within ${ENUM_TIMEOUT_S}s of the write: the image may not boot. Check the display."
+  if [ -n "$back" ]; then
+    IFS=$'\x1f' read -r _ BACK_SERIAL BACK_SESSION BACK_LOCATION <<<"$back"
+    BACK_PORTS="$(ioq ports "$BACK_SESSION")" || die "ioreg query failed"
+    [ -z "$BACK_PORTS" ] || break
+  fi
+  if [ "$(now_ms)" -ge "$deadline" ]; then
+    [ -n "$back" ] \
+      && die "\"$PRODUCT\" enumerated but has no /dev/cu.* port ${ENUM_TIMEOUT_S}s after the write. Check the display."
+    die_touched "\"$PRODUCT\" did not enumerate within ${ENUM_TIMEOUT_S}s of the write: the image may not boot. Check the display."
+  fi
   sleep 0.5
 done
 t_back=$(now_ms)
-IFS=$'\x1f' read -r _ BACK_SERIAL BACK_SESSION BACK_LOCATION <<<"$back"
-say "BACK $PRODUCT serial=$BACK_SERIAL location=$BACK_LOCATION after $(secs "$t0" "$t_back")"
+say "BACK $PRODUCT serial=$BACK_SERIAL location=$BACK_LOCATION port=$BACK_PORTS after $(secs "$t0" "$t_back")"
 [ "$BACK_SERIAL" = "$SERIAL" ] || say "      WARN serial differs from before the touch ($SERIAL)"
 [ "$BACK_LOCATION" = "$LOCATION" ] || say "      WARN location differs from before the touch ($LOCATION)"
 [ "$BACK_SESSION" != "$SESSION" ] || say "      WARN same registry session as before the touch"
