@@ -56,7 +56,7 @@ manifest:
     # published (decided 2026-09-26, t-5gxp); bump the SHA by hand.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: 2b00bfe1678f88fb806b2a0b8a13c0921e2a318d
+      revision: 9d3dcf25790746d52a12be139ba006c53ffa811f
       path: modules/zmk-beacon
   self:
     path: config
