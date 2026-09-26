@@ -97,10 +97,15 @@ The companion status display: a beekeeb pre-soldered
 (XIAO nRF52840 + Waveshare 1.69" LCD, no ambient light sensor, touch panel
 unwired) running shield `prospector_scanner` from t-ogura
 `prospector-zmk-module` in scanner mode. A BLE observer only: it renders the
-[[Imprint Dongle]]'s [[status advertisement]] and never pairs or connects; its
-USB-C is power only. It does not replace the Imprint Dongle.
-- Config: [`config/prospector_scanner.conf`](../config/prospector_scanner.conf);
-  module pin in [`config/west.yml`](../config/west.yml)
+[[Imprint Dongle]]'s [[status advertisement]] and never pairs or connects. Over
+USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
+(no HID), and opening that port at 1200 baud reboots it into the UF2
+bootloader for `scripts/flash-prospector.sh` (both seen on hardware
+2026-09-26). It does not replace the Imprint Dongle.
+- Config: [`config/prospector_scanner.conf`](../config/prospector_scanner.conf),
+  [`config/prospector_scanner.overlay`](../config/prospector_scanner.overlay);
+  module pin in [`config/west.yml`](../config/west.yml), module patch in
+  [`patches/modules/prospector-zmk-module/`](../patches/modules/prospector-zmk-module/README.md)
 - **Don't call it:** XIAO, XIAO ドングル, Canon Dongle, scanner alone, Prospector
   alone in prose (the vendor's product; `prospector_scanner` is the shield),
   second dongle, 表示ドングル

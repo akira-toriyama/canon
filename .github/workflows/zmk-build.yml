@@ -4,14 +4,15 @@ name: ZMK Build
 #
 # 通常 ZMK user-config は公式 reusable
 # (zmkfirmware/zmk/.github/workflows/build-user-config.yml) を使うだけだが、本
-# リポジトリは ZMK コアへの out-of-tree パッチ (patches/zmk/*.patch — vkey や
-# usb-hid-prime 等) を前提とする。公式 reusable は「素の ZMK」をビルドし
-# patches/ を当てないため、パッチ依存の behavior (&vkey 等) が devicetree で
-# 解決できず全ターゲットが落ちる。そこで scripts/build-zmk.sh と同一手順
-# (west init/update → patch 適用 → west build) を踏む自前ジョブにした。
+# リポジトリは ZMK コア・Zephyr・prospector-zmk-module への out-of-tree パッチ
+# (patches/<tree>/*.patch — vkey や usb-hid-prime 等) を前提とする。公式
+# reusable は「素の ZMK」をビルドし patches/ を当てないため、パッチ依存の
+# behavior (&vkey 等) が devicetree で解決できず全ターゲットが落ちる。そこで
+# scripts/build-zmk.sh と同一手順 (west init/update → patch 適用 → west build)
+# を踏む自前ジョブにした。
 # CI モデルが「素 ZMK のコンパイル検証」→「patch 済みファームの build」へ変わる
 # (既存 security-changed / usb-hid-prime patch も乗る＝ローカルと等価)。
-# 将来 vkey が ZMK 上流へ採用されたら patch を撤去し公式 reusable へ戻せる。
+# 将来 patches/ の全 patch が上流へ採用されたら撤去し公式 reusable へ戻せる。
 # 詳細・upstream 化方針: docs/vkey-roadmap.md。
 #
 # build.yml から `uses: ./.github/workflows/zmk-build.yml` で呼ぶ薄い構成に
@@ -86,12 +87,14 @@ jobs:
           west update
           west zephyr-export
 
-      - name: Apply out-of-tree patches (zmk, zephyr)
+      - name: Apply out-of-tree patches (zmk, zephyr, prospector-zmk-module)
         run: |
           set -euo pipefail
           # scripts/build-zmk.sh と同一の冪等適用。LC_ALL=C で glob を C 照合順に
           # 固定し（patch 間の依存順 security < usb-hid-prime < vkey を保証）
-          # patches/<tree>/*.patch を <tree>/ へ当てる（tree = zmk / zephyr）。
+          # patches/<tree>/*.patch を <tree>/ へ当てる（tree = zmk / zephyr /
+          # modules/prospector-zmk-module。patches/ 側は west の path をそのまま写す）。
+          # tree の列挙は build-zmk.sh のループと同じ順に保つこと。
           # 既適用は reverse-check で skip、当たらなければ即 fail
           # （upstream drift を CI で大声で検知する）。
           # パッチパスは **絶対パス必須**: `git -C <tree> apply <path>` は <path> を
@@ -99,7 +102,7 @@ jobs:
           # （build-zmk.sh は /workspace 絶対パスなので無問題）。
           export LC_ALL=C
           shopt -s nullglob
-          for tree in zmk zephyr; do
+          for tree in zmk zephyr modules/prospector-zmk-module; do
             for p in "$GITHUB_WORKSPACE"/patches/"$tree"/*.patch; do
               name=$(basename "$p")
               if git -C "$tree" apply --reverse --check "$p" >/dev/null 2>&1; then

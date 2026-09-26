@@ -14,7 +14,9 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
   board=xiao_ble/nrf52840/zmk / shield=prospector_scanner from t-ogura
   `prospector-zmk-module` (scanner mode). A BLE observer that renders the Imprint
   Dongle's status advertisement (layer, both halves' batteries, modifiers, WPM);
-  it never pairs or connects and its USB-C is power only. Device names are fixed
+  it never pairs or connects. Over USB it enumerates as one CDC ACM port
+  (product `Prospector Dongle`, no HID) that exists for the 1200 baud
+  bootloader entry (seen on hardware 2026-09-26). Device names are fixed
   in [docs/glossary.md](docs/glossary.md): Cyboard Imprint (the halves) /
   Imprint Dongle (the split central) / Prospector Dongle.
 
@@ -46,7 +48,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   ない）。topdir はリポジトリルート。外部モジュールは 2 つ: Cyboard `zmk-keyboards`
   （imprint の assimilator-bt board + imprint_left/right/dongle shield）と t-ogura
   `prospector-zmk-module`（`prospector_scanner` shield と Imprint Dongle 側の status
-  advertisement。tag `v2.2.3` pin、bump は手動）。
+  advertisement。tag `v2.2.3` pin、bump は手動で、そのたびに
+  [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md)
+  が当たるか再確認）。
   **canon ローカル shield は無い**（`imprint_dongle` は 2026-07-28 に Cyboard#19 で
   上流入りし、ローカル定義は撤去済み。canon 固有分は
   [config/imprint_dongle.overlay](config/imprint_dongle.overlay) 等 config/ 側）。
@@ -112,10 +116,36 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   with a module bump that selects the layout without the preprocessor (upstream
   fix tracked in projects t-tbaf).
 - **Both dongles share the `XIAO-SENSE` bootloader volume, and
-  `scripts/flash-*.sh` copies `imprint_dongle.uf2` onto any XIAO mount**: never
-  put the Prospector Dongle into its bootloader while `flash-watch.sh` /
-  `flash-reset.sh` is running, and never have both dongles in bootloader at the
-  same time. Flash `prospector_scanner.uf2` by hand with `cp -X` (README).
+  `flash-watch.sh` / `flash-reset.sh` copy `imprint_dongle.uf2` onto any XIAO
+  mount**: never put the Prospector Dongle into its bootloader while either is
+  running, and never have both dongles in bootloader at the same time. Flash
+  `prospector_scanner.uf2` with `scripts/flash-prospector.sh`, which refuses to
+  start while either runs or while `XIAO-SENSE` is already mounted, checks both
+  again before the copy, and copies only when the disk behind `XIAO-SENSE`
+  belongs to the USB device at the Prospector Dongle's USB `locationID` (the
+  bootloader enumerates with the app's `locationID` and USB serial, both taken
+  from the port and the chip: seen on hardware 2026-09-26). The first image
+  with the 1200 baud entry, and any run the script fails, go on by double-tap +
+  `cp -X` by hand (README). Reflashing an unchanged image copies in about 3 s
+  against about 24 s for a new one: bootloader 0.6.1 skips pages whose
+  contents already match (`src/flash_nrf5x.c`) and resets only after every
+  block arrived, so the short copy is not a truncated one.
+- **Opening the Prospector Dongle's serial port at 1200 baud reboots it into the
+  UF2 bootloader** (`CONFIG_PROSPECTOR_BOOTLOADER_ON_1200_BAUD` from
+  [patches/modules/prospector-zmk-module/](patches/modules/prospector-zmk-module/README.md);
+  two script-only flashes in a row on hardware 2026-09-26, bootloader 0.6.1,
+  about 2.5 s from the touch to the mounted volume). Any program that sets
+  that rate does it, not only `flash-prospector.sh` (Arduino-style uploaders,
+  a serial monitor at 1200), so never do it while `flash-watch.sh` /
+  `flash-reset.sh` run: they
+  would copy `imprint_dongle.uf2` onto it. Find the port by the USB product
+  string `Prospector Dongle` (the contract between
+  [config/prospector_scanner.conf](config/prospector_scanner.conf) and `PRODUCT`
+  in the script), never by VID/PID (the Imprint Dongle's pair) or by a
+  `/dev/cu.usbmodem*` name (derived from the USB location, e.g. `211201` for
+  location `0x02112000`, ioreg 2026-09-26). The Imprint Dongle's own CDC port
+  has no such handler (`CDC_ACM_DTE_RATE_CALLBACK_SUPPORT` unset in its build,
+  2026-09-26).
 - **A split peripheral's slot index is its first-pairing order, persisted**:
   ZMK `app/src/ble.c` `zmk_ble_put_peripheral_addr()` stores a new peripheral's
   address in the first free slot and saves it as `ble/peripheral_addresses/<i>`;
@@ -156,7 +186,8 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
-  に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）を
+  に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）と
+  `patches/modules/prospector-zmk-module/*`（1200 baud bootloader entry）を
   当ててから build.yaml の全ターゲットを
   ビルドする（公式 reusable は patch を当てず &vkey 等が解決できないため差し替えた。
   背景は zmk-build.yml / [docs/vkey-roadmap.md](docs/vkey-roadmap.md)）。

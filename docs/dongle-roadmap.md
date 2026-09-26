@@ -59,10 +59,10 @@ cd /Volumes/workspace/github.com/akira-toriyama/canon && ./scripts/build-zmk.sh 
 dongle = BLE central / 左右 = peripheral。bond が残った子機は「昔の親 MAC だけ」に向けて
 **directed 広告**する＝scanning 中の新しい親から見えない。片側だけ消える/部分ペアで
 **非対称**になると沈黙する（`security failed (err 2)` / slot 予約失敗）。だから「リセット連打」
-では永遠に直らない（同じ NVS を読み直すだけ）。`flash-*.sh` は imprint 専用（XIAO を見ると
-`imprint_dongle` を焼く）＝**ist（別 repo の受信ドングル）や Prospector Dongle の XIAO には
-使わない**（Prospector Dongle は README の手順で `cp -X` 手動。ブートローダ volume も同じ
-`XIAO-SENSE` なので 2 台を同時にブートローダへ入れない）。
+では永遠に直らない（同じ NVS を読み直すだけ）。`flash-watch.sh` / `flash-reset.sh` は imprint
+専用（XIAO を見ると `imprint_dongle` を焼く）＝**ist（別 repo の受信ドングル）や Prospector Dongle の
+XIAO には使わない**（Prospector Dongle は `flash-prospector.sh`、初回と失敗時は README の手順で
+`cp -X` 手動。ブートローダ volume も同じ `XIAO-SENSE` なので 2 台を同時にブートローダへ入れない）。
 
 ### 自動回復（既に有効）と検討した予防策
 

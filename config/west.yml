@@ -36,8 +36,10 @@ manifest:
     # the Prospector Dongle build (shield prospector_scanner, a BLE observer) and
     # the Imprint Dongle build (CONFIG_ZMK_STATUS_ADVERTISEMENT, the broadcaster).
     # Tag-pinned: v2.2.3 (2026-09-01) states keyboard-side support for ZMK main /
-    # Zephyr 4.x; bumps are manual. `path` keeps the clone under modules/, which
-    # scripts/build-zmk.sh already excludes from its rsync --delete sync.
+    # Zephyr 4.x; bumps are manual and must re-check the canon patches in
+    # patches/modules/prospector-zmk-module/ (applied on top of this tag). `path`
+    # keeps the clone under modules/, which scripts/build-zmk.sh already excludes
+    # from its rsync --delete sync.
     - name: prospector-zmk-module
       remote: t-ogura
       revision: v2.2.3
