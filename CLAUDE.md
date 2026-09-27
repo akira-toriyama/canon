@@ -158,9 +158,19 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   in zmk-beacon's `boards/shields/prospector/prospector.conf` and `PRODUCT` in
   the script), never by VID/PID (the Imprint Dongle's pair) or by a
   `/dev/cu.usbmodem*` name (derived from the USB location, e.g. `211201` for
-  location `0x02112000`, ioreg 2026-09-26). The Imprint Dongle's own CDC port
-  has no such handler (`CDC_ACM_DTE_RATE_CALLBACK_SUPPORT` unset in its build,
-  2026-09-26).
+  location `0x02112000`, ioreg 2026-09-26). Since 2026-09-27 the Imprint
+  Dongle's CDC port has the same handler (`CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD=y`
+  in [config/imprint_dongle.conf](config/imprint_dongle.conf); the product
+  image carries that port even without logging). Flash it the same way: find
+  the port by the product string `Imprint Dongle` (on this Mac location
+  `0x02112000`, serial `E49630484A277DFD`, ioreg 2026-09-27), touch 1200, wait
+  for `XIAO-SENSE`, and `cp -X` only when the disk behind it carries that
+  location and serial (the bootloader keeps both). Right after the mount
+  `diskutil info` can still answer "Could not find disk": retry until it names
+  the disk (seen once on 2026-09-27). The first image with the entry, coming
+  from a product image without it, goes on by double-tap. Measured 2026-09-27
+  with the t-eray images: touch to mount 2.4-2.6 s, copy 9.5-12.2 s,
+  re-enumeration 0.7-1.3 s.
 - **A split peripheral's slot index is its first-pairing order, persisted**:
   ZMK `app/src/ble.c` `zmk_ble_put_peripheral_addr()` stores a new peripheral's
   address in the first free slot and saves it as `ble/peripheral_addresses/<i>`;
