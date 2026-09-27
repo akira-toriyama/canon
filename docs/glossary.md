@@ -132,8 +132,8 @@ canon の入力レイアウト全体を記述する DeviceTree 文書。
   `Vkey LL`）、ハイフン・括弧は使わない。
 - `display-name`: firmware に入る短縮名で、[[keymap-drawer]] の図と [[status advertisement]]
   に出る（[[Prospector Dongle]] の画面は 2026-09-26 から layer 名を描かない）。`[A-Za-z][A-Za-z0-9]{0,3}`（英字始まりの英数字 4 文字以内）で、a-z を大文字化
-  しても重複しない。理由: [[status advertisement]] は先頭 4 byte だけを運び、空の名前は
-  `L<index % 10>` に置き換える。2026-09-26 まで使った t-ogura の画面（Field layout）は a-z を大文字化し、
+  しても重複しない。理由: [[status advertisement]] は先頭 4 byte だけを運ぶ（空の名前は 0 埋め。
+  2026-09-27 まで送っていた t-ogura の module は `L<index % 10>` に置き換えていた）。2026-09-26 まで使った t-ogura の画面（Field layout）は a-z を大文字化し、
   そのフォントは U+0020–U+007E のみ（fallback なし）。keymap-drawer は layer を名前で
   持つので同名は 1 つが黙って消え（exit 0 なので `fail_on_error` でも落ちない）、SVG の
   アンカー id は最初の ASCII 英字より前と `[A-Za-z0-9-_:.]` 以外の文字を捨てて作るので、
@@ -233,22 +233,22 @@ index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/b
 
 ### status advertisement
 The BLE advertisement the [[Imprint Dongle]] broadcasts for the
-[[Prospector Dongle]]: a 26-byte payload in manufacturer data (active layer index
-and the first 4 bytes of its `display-name`, both halves' battery levels, modifiers, WPM,
-profile, connection count), carried in ZMK's scan response while ZMK advertises and as
-the module's own non-connectable advertisement otherwise. Connectionless: no
-pairing, no bond, no BLE slot consumed on either side.
-- Producer: t-ogura `prospector-zmk-module` on the `imprint_dongle` build
-  (`CONFIG_ZMK_STATUS_ADVERTISEMENT=y`, `CONFIG_ZMK_STATUS_ADV_CENTRAL_SIDE="AUX"`,
-  `CONFIG_PROSPECTOR_EXPECTED_PERIPHERAL_COUNT=2` in
-  [`config/imprint_dongle.conf`](../config/imprint_dongle.conf); the
-  `CONFIG_COMPILER_OPT` line there is a workaround, see CLAUDE.md). Peripheral
-  builds compile it out. Consumer: zmk-beacon's shield `prospector`, which
-  reads only both halves' battery bytes (`src/status_observer.c` there).
-- Payload layout: `include/zmk/status_advertisement.h` in the module
-  (`char layer_name[4]`: only the first 4 bytes of the active [[layer]]'s name
-  travel, which is why [[layer]] limits `display-name` to 4 ASCII characters).
-  zmk-beacon reads it by byte offset, so a module bump re-reads the layout.
+[[Prospector Dongle]]: a 26-byte payload in manufacturer data (both halves'
+battery levels, the highest active layer's index and the first 4 bytes of its
+`display-name`) on a second, legacy, non-connectable advertising set next to
+ZMK's own connectable one, every 200 ms. Connectionless: no pairing, no bond,
+no BLE slot consumed on either side.
+- Producer: zmk-beacon's `src/status_broadcaster.c` on the `imprint_dongle`
+  build (`CONFIG_BEACON_STATUS_BROADCAST=y` and `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`
+  in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf); peripheral
+  builds compile it out). Until 2026-09-27 the producer was t-ogura's
+  `prospector-zmk-module` v2.2.3, riding ZMK's scan response. Consumer:
+  zmk-beacon's shield `prospector`, which reads only both halves' battery
+  bytes (`src/status_observer.c` there).
+- Payload layout: `src/status_payload.h` in zmk-beacon, shared by both ends
+  (the module's v2.2.3 layout kept byte for byte; its `layer_name[4]` is why
+  [[layer]] limits `display-name` to 4 ASCII characters). A new layout is a
+  new version byte (t-xe2q), and both ends move in one zmk-beacon commit.
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ---
