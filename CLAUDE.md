@@ -166,9 +166,11 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   on every reconnect and reboot. The index changes only after an NVS reset (the
   `*_RESET.uf2` flow). Two consumers depend on it: the split battery report's
   `source` (chord) and the Prospector's half mapping
-  (`ZMK_STATUS_ADV_LEFT_PERIPHERAL=0` / `RIGHT_PERIPHERAL=1`, module defaults;
-  slot 0 is the left half in the current bonds, seen on the display 2026-09-25
-  and 2026-09-26).
+  (`ZMK_STATUS_ADV_LEFT_PERIPHERAL=0` / `RIGHT_PERIPHERAL=1`, module defaults).
+  In the current bonds slot 0 is the left half and slot 1 the right half,
+  measured 2026-09-27 by powering each half off in turn: the dongle's log showed
+  `conn down` on slot 0 for the left half and on slot 1 for the right half, and
+  chord's report and the Prospector's `--` moved the same way (projects t-eray).
   If the Prospector shows the halves swapped after a reset, re-pair with the left
   half powered on first or swap those two values. Source read 2026-09-25 (ZMK
   main 9ebbeff0).
