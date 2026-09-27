@@ -7,6 +7,7 @@
 #   ./scripts/build-zmk.sh imprint_left    # 指定シールドのみビルド
 #   ./scripts/build-zmk.sh imprint_dongle --logging  # USB-CDC ログ版（デバッグ）を焼く
 #   ./scripts/build-zmk.sh imprint --reset # NVS リセット版（*_RESET.uf2）を作る
+#   ./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # GIF sprite 入り（prospector-sprite.uf2）
 #   ./scripts/build-zmk.sh --update        # west update を強制（依存を最新化）
 #   ./scripts/build-zmk.sh --clean         # ワークスペースを破棄して終了
 #
@@ -21,6 +22,13 @@
 #   方式は assimilator-bt board が spi1_default pinctrl を欠いて失敗するため不可）。
 #   ペアリングが壊れた時の復旧用で flash-reset.sh で焼く（焼いた後ふつうの firmware を
 #   焼き直す）。--logging と排他。build.yaml/CI/release は不変（ローカル専用）。
+#   --sprite <gif> embeds that GIF as zmk-beacon's animated sprite
+#   (CONFIG_BEACON_SPRITE_GIF) in the prospector target only, output
+#   prospector-sprite[-logging].uf2; other targets build as usual. Sprite GIFs
+#   are the user's personal files: they live in the git-ignored assets/ (or
+#   anywhere outside the repository), are never committed, and never reach CI
+#   or a release. The GIF is copied into the workspace ($CFG/.sprite/) because
+#   the container only sees $CFG. Exclusive with --reset.
 #
 # 仕組み:
 #   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
@@ -41,6 +49,8 @@
 set -euo pipefail
 
 # --- リポジトリルートへ移動（どこから呼んでも動く） -----------------------
+# A relative --sprite path is the caller's, so keep the caller's directory.
+CALLER_DIR="$PWD"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
@@ -50,15 +60,20 @@ CFG="$WS/cfgrepo"          # リポジトリ複製 = west topdir
 FORCE_UPDATE=0
 LOGGING=0
 RESET=0
+SPRITE=""
 
 # --- 引数処理 -------------------------------------------------------------
 SHIELDS=()
-for arg in "$@"; do
+while [ $# -gt 0 ]; do
+  arg="$1"; shift
   case "$arg" in
     --clean)   echo "ワークスペースを削除: $WS"; rm -rf "$WS"; exit 0 ;;
     --update)  FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
     --reset)   RESET=1 ;;
+    --sprite)
+      [ $# -gt 0 ] || { echo "--sprite には GIF のパスが要ります" >&2; exit 2; }
+      SPRITE="$1"; shift ;;
     -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "${BASH_SOURCE[0]}"; exit 0 ;;
     -*) echo "不明なオプション: $arg" >&2; exit 2 ;;
     *)  SHIELDS+=("$arg") ;;
@@ -69,6 +84,15 @@ done
 # 両立しない（NVS を消すだけの復旧 firmware にログを足しても意味が無い）→ 排他。
 if [ "$LOGGING" -eq 1 ] && [ "$RESET" -eq 1 ]; then
   echo "--logging と --reset は同時指定できません" >&2; exit 2
+fi
+# The prospector has no settings to reset (zmk-beacon: CONFIG_ZMK_BLE=n), and a
+# _RESET image is a recovery tool, not a display variant.
+if [ -n "$SPRITE" ] && [ "$RESET" -eq 1 ]; then
+  echo "--sprite と --reset は同時指定できません" >&2; exit 2
+fi
+if [ -n "$SPRITE" ]; then
+  case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
+  [ -f "$SPRITE" ] || { echo "GIF が見つかりません: $SPRITE" >&2; exit 2; }
 fi
 
 # build.yaml の include: リストから "board<TAB>shield" 行を全て出力する。
@@ -135,6 +159,11 @@ fi
 if [ ${#SHIELDS[@]} -eq 0 ]; then
   echo "ビルド対象が見つかりません（build.yaml を確認）" >&2; exit 1
 fi
+if [ -n "$SPRITE" ]; then
+  _has=0
+  for row in "${SHIELDS[@]}"; do [ "${row##*	}" = prospector ] && _has=1; done
+  [ "$_has" -eq 1 ] || { echo "--sprite は prospector にだけ効きます（ビルド対象に prospector がありません）" >&2; exit 2; }
+fi
 
 # --- 前提チェック ---------------------------------------------------------
 if ! docker info >/dev/null 2>&1; then
@@ -160,7 +189,7 @@ rsync -a --delete \
   --exclude '/.git' --exclude '/.west/' --exclude '/output/' \
   --exclude '/zmk/' --exclude '/zmk-keyboards/' --exclude '/zmk-pmw3610-driver/' \
   --exclude '/modules/' --exclude '/optional/' --exclude '/zephyr/' \
-  --exclude '/build/' \
+  --exclude '/build/' --exclude '/assets/' \
   "$REPO"/ "$CFG"/
 
 # 旧構成（ローカル shield 時代）が Zephyr チェックアウト直下へ配置していた
@@ -172,6 +201,12 @@ rm -f "$CFG/zephyr/module.yml"
 # --delete の対象外なので rsync では二度と消えず、残るとコンテナ内の最初の git が
 # rc 128 で落ちる（~/.cache/zmk-canon に実在、2026-09-26）。ディレクトリは触らない。
 if [ -f "$CFG/.git" ]; then rm -f "$CFG/.git"; fi
+# The rsync above deleted the previous run's copy, so a build without --sprite
+# leaves no GIF in the workspace.
+if [ -n "$SPRITE" ]; then
+  mkdir -p "$CFG/.sprite"
+  cp "$SPRITE" "$CFG/.sprite/sprite.gif"
+fi
 
 # --- west init/update が必要か判定 ----------------------------------------
 NEED_UPDATE=0
@@ -186,6 +221,8 @@ echo " イメージ       : $IMAGE"
 echo " west update    : $([ $NEED_UPDATE -eq 1 ] && echo '実行' || echo 'スキップ（キャッシュ利用）')"
 [ "$LOGGING" -eq 1 ] && echo " logging        : 有効（CONFIG_ZMK_USB_LOGGING=y / *-logging.uf2）"
 [ "$RESET" -eq 1 ]   && echo " reset          : 有効（CONFIG_ZMK_SETTINGS_RESET_ON_START=y / *_RESET.uf2）"
+# Not the source path: a GIF's file name usually names its subject.
+[ -n "$SPRITE" ]     && echo " sprite         : $(wc -c <"$SPRITE" | tr -d ' ') byte GIF（prospector のみ / prospector-sprite*.uf2）"
 echo " ビルド対象:"
 for row in "${SHIELDS[@]}"; do
   printf '   - %s / %s\n' "${row%%	*}" "${row##*	}"
@@ -207,12 +244,30 @@ docker run --rm \
   -e TARGETS="$TARGETS" \
   -e LOGGING="$LOGGING" \
   -e RESET="$RESET" \
+  -e SPRITE="${SPRITE:+/workspace/.sprite/sprite.gif}" \
   "$IMAGE" bash -c '
 set -e
 git config --global --add safe.directory "*"  # bind mount の uid 不一致対策(Linux)
 if [ "$NEED_UPDATE" -eq 1 ]; then
   echo "=== west init/update ==="
   [ -d .west ] || west init -l config
+  # Take the patches applied below back out first: west update refuses to check
+  # out a revision that changes a file a patch modified (zmk 9ebbeff0 ->
+  # 5b51501f touched app/src/split/bluetooth/Kconfig, 2026-09-27). They are
+  # applied again right after the update. Reverse order of application. Only a
+  # patch the working tree carries and HEAD does not (the index equals HEAD:
+  # patches go on without --index); one that upstream merged stays put.
+  # Same tree list as the patch loop below.
+  for tree in zmk zephyr; do
+    [ -e "/workspace/$tree/.git" ] || continue
+    for p in $(LC_ALL=C ls -r /workspace/patches/"$tree"/*.patch 2>/dev/null); do
+      if git -C /workspace/"$tree" apply --reverse --check "$p" >/dev/null 2>&1 &&
+         ! git -C /workspace/"$tree" apply --reverse --check --cached "$p" >/dev/null 2>&1; then
+        git -C /workspace/"$tree" apply --reverse "$p"
+        echo "=== UNPATCH $tree: $(basename "$p")"
+      fi
+    done
+  done
   west update
 fi
 # out-of-tree パッチを適用する(冪等)。
@@ -221,7 +276,8 @@ fi
 # ときは west の path、例 modules/<name>）。
 # west update で巻き戻されても再適用されるよう毎ビルド実行する。順序は
 # tree の列挙順、tree 内は LC_COLLATE 依存にしたくないので C ロケールでソート。
-# tree を足したら .github/workflows/zmk-build.yml の同じループも合わせること。
+# tree を足したら .github/workflows/zmk-build.yml の同じループと、上の west update
+# 前の UNPATCH ループも合わせること。
 for tree in zmk zephyr; do
   if compgen -G "/workspace/patches/$tree/*.patch" > /dev/null; then
     for p in $(LC_ALL=C ls /workspace/patches/"$tree"/*.patch); do
@@ -251,8 +307,12 @@ for t in $TARGETS; do
   # imprint_<dev><SUFFIX>.uf2 を探すため）。別 build dir で焼いて製品ビルドの
   # cmake キャッシュと混ざらないようにする。EXTRA は実シールド据置の追加 Kconfig。
   EXTRA=""; SUFFIX=""
+  # --sprite: prospector only. A Kconfig string needs the quotes inside the value.
+  if [ -n "$SPRITE" ] && [ "$SH" = prospector ]; then
+    EXTRA="-DCONFIG_BEACON_SPRITE_GIF=\"$SPRITE\""; SUFFIX="-sprite"
+  fi
   # --logging: USB-CDC ログを有効化。成果物 -logging。
-  if [ "$LOGGING" = "1" ]; then EXTRA="-DCONFIG_ZMK_USB_LOGGING=y"; SUFFIX="-logging"; fi
+  if [ "$LOGGING" = "1" ]; then EXTRA="$EXTRA -DCONFIG_ZMK_USB_LOGGING=y"; SUFFIX="$SUFFIX-logging"; fi
   # --reset: 実シールドのまま起動時 NVS 消去を有効化（bond/設定を wipe）。ZMK 標準の
   # settings_reset シールドの本体機構（CONFIG_ZMK_SETTINGS_RESET_ON_START → SYS_INIT で
   # zmk_settings_erase）だけを実シールドへ載せる。シールドごと settings_reset に差し替える

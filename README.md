@@ -70,6 +70,7 @@ imprint_dongle は Cyboard 上流入り済み、Prospector Dongle の shield は
 ./scripts/build-zmk.sh imprint         # imprint の 3 ターゲット（prospector を除く）
 ./scripts/build-zmk.sh imprint_left    # シールド指定
 ./scripts/build-zmk.sh prospector     # Prospector Dongle のみ
+./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # GIF アニメ入り（手元専用）
 ./scripts/build-zmk.sh --update        # 依存を最新化（west update）
 ./scripts/build-zmk.sh --clean         # キャッシュ破棄
 ```
@@ -127,6 +128,15 @@ BLE 広告で流す状態から左右半体の電池を表示する。受信す�
 zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー無し・touch 未配線）
 向け: 明るさ固定 80%・touch 無し。`config/prospector.conf` はこの manifest の都合
 （`CONFIG_ZMK_RGB_UNDERGLOW=n`、[CLAUDE.md](CLAUDE.md) 参照）だけを足す。
+
+GIF アニメ（手元専用）: `./scripts/build-zmk.sh prospector --sprite assets/<name>.gif`
+で電池表示の上に GIF を載せた `firmware/prospector-sprite.uf2` を作り、
+`./scripts/flash-prospector.sh firmware/prospector-sprite.uf2` で焼く。GIF は
+git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
+入らないので、それを焼くとアニメは消える。打鍵が速いほど速く動き、最後の打鍵から
+30〜36 秒で止まる（ZMK の WPM が数えるのは文字キーだけで、`&vkey` とレイヤーキーは
+数えない。Imprint Dongle が WPM を送る版であること）。使える GIF の条件は zmk-beacon の
+README。
 
 ### リリース
 

@@ -7,3 +7,10 @@
 # Python
 __pycache__/
 *.pyc
+
+# Personal files for local builds (assets/README.md): only that README is
+# committed. The GIF pattern also catches a sprite copied anywhere else, in any
+# case (core.ignorecase is false on this case-sensitive volume).
+/assets/*
+!/assets/README.md
+*.[gG][iI][fF]

@@ -70,6 +70,7 @@ Cyboard module; pinning is not possible — see [CLAUDE.md](CLAUDE.md)).
 ./scripts/build-zmk.sh imprint         # the 3 imprint targets (without prospector)
 ./scripts/build-zmk.sh imprint_left    # a specific shield
 ./scripts/build-zmk.sh prospector     # the Prospector Dongle only
+./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # with a GIF animation (local only)
 ./scripts/build-zmk.sh --update        # refresh deps (west update)
 ./scripts/build-zmk.sh --clean         # drop the cached workspace
 ```
@@ -138,6 +139,17 @@ zmk-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
 sensor, touch panel unwired): fixed 80% brightness, no touch.
 `config/prospector.conf` only adds what this manifest needs
 (`CONFIG_ZMK_RGB_UNDERGLOW=n`, see [CLAUDE.md](CLAUDE.md)).
+
+GIF animation (local builds only):
+`./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` builds
+`firmware/prospector-sprite.uf2` with the GIF above the battery readings;
+flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
+Keep the GIF in the git-ignored `assets/` and never commit it. The CI / release
+`prospector.uf2` has no animation, so flashing it removes the sprite. The
+sprite runs faster the faster you type and stops 30-36 s after the last typed
+key (ZMK's WPM counts keycode keys only, not `&vkey` or layer keys; the
+Imprint Dongle must run an image that sends the WPM). zmk-beacon's README
+lists which GIFs work.
 
 ### Release
 

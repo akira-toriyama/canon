@@ -186,6 +186,19 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   chord's report and the Prospector's `--` moved the same way (projects t-eray).
   If the Prospector shows the halves swapped after a reset, re-pair with the left
   half powered on first. Source read 2026-09-25 (ZMK main 9ebbeff0).
+- **The Prospector Dongle's GIF sprite is a local-only build of a personal
+  file**: `./scripts/build-zmk.sh prospector --sprite <gif>` embeds the GIF
+  (zmk-beacon `CONFIG_BEACON_SPRITE_GIF`) into `firmware/prospector-sprite.uf2`;
+  flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
+  The user keeps the GIF in `assets/` of the main checkout, whose rules are in
+  [assets/README.md](assets/README.md) (`.gitignore`: `/assets/*` except that
+  README, and `*.[gG][iI][fF]` anywhere; each file's source URL goes in the ignored
+  `assets/SOURCES.md`). A worktree gets only the README, so pass the main
+  checkout's absolute path. This repository is public: never commit
+  the GIF or anything made from it (frames, C arrays, previews), never name its
+  subject in commits, PRs or docs, and never feed it to CI or a release. The
+  CI / release `prospector.uf2` carries no sprite, so flashing it (the default
+  of `flash-prospector.sh`) removes the sprite from the device.
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。
@@ -211,7 +224,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - ローカル: `./scripts/build-zmk.sh`（Docker。依存は `~/.cache/zmk-canon`
   に永続化、冪等。`--update` / `--clean`、シールド指定可＝サブセット（例
   `imprint_left` だけ）。出力 `firmware/`＝
-  gitignore 済）。詳細は [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
+  gitignore 済）。`--sprite <gif>` builds `prospector-sprite.uf2` with a GIF
+  sprite (local only; see the sprite item under 壊しやすい点)。詳細は
+  [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
   に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）を
