@@ -213,6 +213,23 @@ git config --global --add safe.directory "*"  # bind mount の uid 不一致対�
 if [ "$NEED_UPDATE" -eq 1 ]; then
   echo "=== west init/update ==="
   [ -d .west ] || west init -l config
+  # Take the patches applied below back out first: west update refuses to check
+  # out a revision that changes a file a patch modified (zmk 9ebbeff0 ->
+  # 5b51501f touched app/src/split/bluetooth/Kconfig, 2026-09-27). They are
+  # applied again right after the update. Reverse order of application. Only a
+  # patch the working tree carries and HEAD does not (the index equals HEAD:
+  # patches go on without --index); one that upstream merged stays put.
+  # Same tree list as the patch loop below.
+  for tree in zmk zephyr; do
+    [ -e "/workspace/$tree/.git" ] || continue
+    for p in $(LC_ALL=C ls -r /workspace/patches/"$tree"/*.patch 2>/dev/null); do
+      if git -C /workspace/"$tree" apply --reverse --check "$p" >/dev/null 2>&1 &&
+         ! git -C /workspace/"$tree" apply --reverse --check --cached "$p" >/dev/null 2>&1; then
+        git -C /workspace/"$tree" apply --reverse "$p"
+        echo "=== UNPATCH $tree: $(basename "$p")"
+      fi
+    done
+  done
   west update
 fi
 # out-of-tree パッチを適用する(冪等)。
@@ -221,7 +238,8 @@ fi
 # ときは west の path、例 modules/<name>）。
 # west update で巻き戻されても再適用されるよう毎ビルド実行する。順序は
 # tree の列挙順、tree 内は LC_COLLATE 依存にしたくないので C ロケールでソート。
-# tree を足したら .github/workflows/zmk-build.yml の同じループも合わせること。
+# tree を足したら .github/workflows/zmk-build.yml の同じループと、上の west update
+# 前の UNPATCH ループも合わせること。
 for tree in zmk zephyr; do
   if compgen -G "/workspace/patches/$tree/*.patch" > /dev/null; then
     for p in $(LC_ALL=C ls /workspace/patches/"$tree"/*.patch); do
