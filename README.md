@@ -84,6 +84,13 @@ imprint_dongle は Cyboard 上流入り済み、Prospector Dongle の shield は
 `scripts/flash-watch.sh` が `/Volumes` を監視して順に自動コピーする
 （assimilator-bt 1台目→左 / 2台目→右 / XIAO BLE→dongle）。3台焼けたら終了。
 
+Imprint Dongle（2026-09-27 以降の image）は、リセットのダブルタップの代わりに CDC
+ポートを 1200 baud で開いてもブートローダへ入る（Prospector Dongle と同じ仕組み。
+1200 baud 対応前の image から上げる初回だけダブルタップ）。Claude Code が焼くときは
+ポートを製品名 `Imprint Dongle` で探し、マウントした `XIAO-SENSE` の USB location /
+serial が Imprint Dongle のものだと確かめてから `cp -X` する。`flash-watch.sh` /
+`flash-reset.sh` の実行中はどちらのポートも 1200 baud で開かない。
+
 NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset` で
 `*_RESET.uf2` を作り `scripts/flash-reset.sh`。再ペアリング復旧手順は
 [docs/dongle-roadmap.md](docs/dongle-roadmap.md)。

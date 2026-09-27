@@ -216,12 +216,13 @@ if [ "$NEED_UPDATE" -eq 1 ]; then
   west update
 fi
 # out-of-tree パッチを適用する(冪等)。
-# `patches/<tree>/*.patch` を /workspace/<tree> に当てる（tree = zmk / zephyr /
-# modules/prospector-zmk-module。patches/ 側は west の path をそのまま写す＝対応表不要）。
+# `patches/<tree>/*.patch` を /workspace/<tree> に当てる（tree = zmk / zephyr。
+# patches/ 側は west の path をそのまま写す＝対応表不要。module の tree を足す
+# ときは west の path、例 modules/<name>）。
 # west update で巻き戻されても再適用されるよう毎ビルド実行する。順序は
 # tree の列挙順、tree 内は LC_COLLATE 依存にしたくないので C ロケールでソート。
 # tree を足したら .github/workflows/zmk-build.yml の同じループも合わせること。
-for tree in zmk zephyr modules/prospector-zmk-module; do
+for tree in zmk zephyr; do
   if compgen -G "/workspace/patches/$tree/*.patch" > /dev/null; then
     for p in $(LC_ALL=C ls /workspace/patches/"$tree"/*.patch); do
       name=$(basename "$p")

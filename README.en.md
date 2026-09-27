@@ -88,6 +88,15 @@ once all three are done. To wipe NVS first, build `*_RESET.uf2` with
 `./scripts/build-zmk.sh imprint --reset` and use `scripts/flash-reset.sh`; the
 re-pairing procedure is in [docs/dongle-roadmap.md](docs/dongle-roadmap.md).
 
+The Imprint Dongle (images from 2026-09-27 on) also enters the bootloader when
+its CDC port is opened at 1200 baud, the Prospector Dongle's mechanism, so a
+reset double-tap is needed only the first time, coming from an image without
+that entry. When Claude Code flashes it, it finds the port by the product string
+`Imprint Dongle` and copies with `cp -X` only after checking that the mounted
+`XIAO-SENSE` carries the Imprint Dongle's USB location and serial. Never open
+either dongle's port at 1200 baud while `flash-watch.sh` / `flash-reset.sh`
+runs.
+
 ### Prospector Dongle (companion status display)
 
 Flashing `prospector.uf2` onto a
