@@ -129,12 +129,14 @@ zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー�
 向け: 明るさ固定 80%・touch 無し。`config/prospector.conf` はこの manifest の都合
 （`CONFIG_ZMK_RGB_UNDERGLOW=n`、[CLAUDE.md](CLAUDE.md) 参照）だけを足す。
 
-GIF アニメ（手元専用）: `./scripts/build-zmk.sh prospector --sprite assets/<name>.gif`
-で電池表示の上に GIF を載せた `firmware/prospector-sprite.uf2` を作り、
+画面は下端の HP バー 1 本（左右半体の電池の平均。50% 未満で黄、20% 未満で赤、
+`CONFIG_BEACON_READINGS_HP_BAR=y`）と、その上の GIF アニメ。GIF アニメ（手元専用）:
+`./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` で HP バーの上の領域いっぱいに
+GIF を載せた `firmware/prospector-sprite.uf2` を作り（`CONFIG_BEACON_SPRITE_FILL=y`）、
 `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2` で焼く。GIF は
 git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
-入らないので、それを焼くとアニメは消える。アニメは常に GIF 本来の 1.5 倍の速さで動き、
-キーボードとは連動しない。使える GIF の条件は zmk-beacon の README。
+入らないので、それを焼くとアニメは消え、HP バーだけになる。アニメは常に GIF 本来の
+1.5 倍の速さで動き、キーボードとは連動しない。使える GIF の条件は zmk-beacon の README。
 
 ### リリース
 

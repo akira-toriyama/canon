@@ -252,13 +252,28 @@ no BLE slot consumed on either side.
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ### sprite
-The animated GIF the [[Prospector Dongle]] can show above the battery
-readings: zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`, built only locally with
+The animated GIF the [[Prospector Dongle]] can show above the [[HP bar]]:
+zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`, built only locally with
 `scripts/build-zmk.sh prospector --sprite <gif>` (`prospector-sprite.uf2`)
-from a personal GIF that is never committed. It always plays at 150 % of
-the GIF's own tempo, with no link to the keyboard.
+from a personal GIF that is never committed. With `CONFIG_BEACON_SPRITE_FILL=y`
+(canon's conf) it fills the space above the HP bar, 2 px in from the edges,
+scaled to fit whole factor or not. It always plays at 150 % of the GIF's own
+tempo, with no link to the keyboard.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (the file, not
   the on-screen animation), スプライト画像
+
+### HP bar
+The [[Prospector Dongle]]'s battery readings since 2026-09-28: one
+battle-screen style bar, `HP` and a bar in a dark box along the bottom of the
+screen, whose length is the mean of both halves' batteries (the one half that
+has a reading when the other has none; an empty track when neither has).
+Green, yellow under 50 %, red under 20 %; a grey `HP` when no status
+advertisement arrived in the last minute. zmk-beacon's
+`CONFIG_BEACON_READINGS_HP_BAR=y` in [`config/prospector.conf`](../config/prospector.conf);
+the alternative is the digits (`CONFIG_BEACON_READINGS_DIGITS`, each half's
+percentage in the bottom corners).
+- **Don't call it:** battery bar, life bar, health bar, gauge, HP ゲージ,
+  体力バー
 
 ---
 
