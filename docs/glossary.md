@@ -256,9 +256,9 @@ no BLE slot consumed on either side.
 The animated GIF the [[Prospector Dongle]] can show above the battery
 readings: zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`, built only locally with
 `scripts/build-zmk.sh prospector --sprite <gif>` (`prospector-sprite.uf2`)
-from a personal GIF that is never committed. It runs faster with the WPM in
-the [[status advertisement]] and stops 30 s after the last payload with WPM
-above 0 (ZMK's WPM counts keycode keys only).
+from a personal GIF that is never committed. It always plays at the GIF's
+own tempo and runs faster with the WPM in the [[status advertisement]] (ZMK's
+WPM counts keycode keys only).
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (the file, not
   the on-screen animation), スプライト画像
 

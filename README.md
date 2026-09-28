@@ -133,10 +133,10 @@ GIF アニメ（手元専用）: `./scripts/build-zmk.sh prospector --sprite ass
 で電池表示の上に GIF を載せた `firmware/prospector-sprite.uf2` を作り、
 `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2` で焼く。GIF は
 git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
-入らないので、それを焼くとアニメは消える。打鍵が速いほど速く動き、最後の打鍵から
-30〜36 秒で止まる（ZMK の WPM が数えるのは文字キーだけで、`&vkey` とレイヤーキーは
-数えない。Imprint Dongle が WPM を送る版であること）。使える GIF の条件は zmk-beacon の
-README。
+入らないので、それを焼くとアニメは消える。アニメは常に GIF 本来の速さで動き、打鍵中は
+速いほど速くなり、打鍵が止まると 1〜6 秒で元の速さに戻る（ZMK の WPM が数えるのは
+文字キーだけで、`&vkey` とレイヤーキーは数えない。Imprint Dongle が WPM を送る版で
+あること）。使える GIF の条件は zmk-beacon の README。
 
 ### リリース
 
