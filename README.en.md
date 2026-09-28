@@ -146,10 +146,8 @@ GIF animation (local builds only):
 flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
 Keep the GIF in the git-ignored `assets/` and never commit it. The CI / release
 `prospector.uf2` has no animation, so flashing it removes the sprite. The
-sprite always plays at the GIF's own tempo, runs faster the faster you type,
-and returns to its own tempo 1-6 s after the last typed key (ZMK's WPM counts
-keycode keys only, not `&vkey` or layer keys; the Imprint Dongle must run an
-image that sends the WPM). zmk-beacon's README lists which GIFs work.
+sprite always plays at 150 % of the GIF's own tempo, with no link to the
+keyboard. zmk-beacon's README lists which GIFs work.
 
 ### Release
 

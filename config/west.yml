@@ -43,7 +43,7 @@ manifest:
     # its rsync --delete sync.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: 76314c6b8044940ad397f8cb513c73de5cd25d5e
+      revision: 3500c2266a65b55fca8592a92714dc833a83cb7d
       path: modules/zmk-beacon
   self:
     path: config
