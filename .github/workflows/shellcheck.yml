@@ -1,9 +1,10 @@
 name: ShellCheck
 
-# shell スクリプト（Docker ビルド等）を静的検査。
-# shellcheck は GitHub Ubuntu runner に同梱のため追加依存なし。
+# Lints every tracked shell script with the shellcheck the Ubuntu runner ships.
 on:
+  # push only on main: a PR branch is checked once, through pull_request.
   push:
+    branches: [main]
     paths:
       - "**/*.sh"
       - "**/*.bash"
@@ -31,8 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           files=$(git ls-files '*.sh' '*.bash')
-          echo "対象:"; echo "$files"
-          # shebang からシェルを判定する。git ls-files の改行区切りリストを
-          # 引数に展開する意図的な word-split（ファイル名に空白は使わない前提）。
+          echo "Checking:"; echo "$files"
+          # Each file's shell comes from its shebang. The word split of the
+          # newline-separated list is intended (no file name has a space).
           # shellcheck disable=SC2086
           shellcheck $files
