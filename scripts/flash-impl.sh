@@ -42,7 +42,7 @@ cat >&2 <<'BANNER'
    • Left, then right into the bootloader (one board: the mount order decides
      left and right; the dongle, a XIAO, is told apart by itself)
    • If they do not connect, try procedure A first (re-plug the dongle, no
-     computer needed) → docs/recovery.md
+     computer needed) → docs/dongle-roadmap.md
 BANNER
 if [ "$MODE" = "reset" ]; then
   cat >&2 <<'BANNER'
