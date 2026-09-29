@@ -1,11 +1,10 @@
-// behaviors { } ブロックの中身。imprint.keymap から #include して使う。
-// マクロ (HOLD_TAP_HP200) は keymap_defines.h で定義。
+// The keymap's behaviors, included in its behaviors { } node. The generator
+// macros are in behavior_macros.h.
 
-    // ==== IME hold-tap (combos.dtsi の ime_kana / ime_eiji 経由で発火) ====
+    // The IME hold-taps of combo_kana / combo_eiji (combos.dtsi).
     HOLD_TAP_HP200(ime_kana, &kana)
     HOLD_TAP_HP200(ime_eiji, &eiji)
 
-    // ==== letter / arrow mod-morph ====
     #include "letter_morphs.dtsi"
     #include "arrow_behaviors.dtsi"
 
@@ -17,4 +16,3 @@
         compatible = "zmk,behavior-vkey";
         #binding-cells = <1>;
     };
-

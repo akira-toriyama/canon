@@ -1,78 +1,64 @@
 #pragma once
 
+// Binding aliases and behavior-generating macros of imprint.keymap, which
+// includes this header; keymap-drawer's preprocess expands them as well.
+
 #include "layers.h"
 #include "keypos.h"
 
-// ====================================================================
-// keymap で使う binding alias と behavior 生成マクロ
-// ====================================================================
-
-// --------------------------------------------------------------------
-// keycode / binding alias
-// --------------------------------------------------------------------
-// 和英 (macOS LANGUAGE_*)
+// macOS input source keys.
 #define EIJI LANGUAGE_2
 #define KANA LANGUAGE_1
 
-// 親指下段 (TD = Thumb Down)。mod-tap: hold=修飾子 / tap=キー
+// Lower thumb row (TD = thumb down): mod-taps, hold = modifier, tap = key.
 #define TD_LL &mt LEFT_SHIFT RETURN
 #define TD_LM &mt LEFT_COMMAND BACKSPACE
 #define TD_RM &mt LEFT_ALT ESCAPE
 #define TD_RR &mt LEFT_CONTROL SPACE
 
-// DEFAULT_LAYER 左親指列で使う momentary layer 呼出。
-// NAME : SYMBOL1 / SYMBOL2 / NUMBER / FUNCTION
+// Momentary layer keys in the left half of the base layer's row 4.
+// NAME: SYMBOL1 / SYMBOL2 / NUMBER / FUNCTION
 #define MO_LAYER(NAME) &mo NAME##_LAYER
 
-// 親指上段 (TU = Thumb Upper)。layer 起動 (+ LL/LM は修飾子も同時 hold)。
-#define TU_LL &t_ll_ctrl       // T_LL_LAYER + LCtrl hold (macros.dtsi)
-#define TU_LM &t_lm_alt        // T_LM_LAYER + LAlt  hold (macros.dtsi)
-#define TU_RM &mo T_RM_LAYER   // T_RM_LAYER のみ
-#define TU_RR &mo T_RR_LAYER   // T_RR_LAYER のみ
+// Upper thumb row (TU = thumb up): layer keys; LL and LM also hold a modifier.
+#define TU_LL &t_ll_ctrl       // T_LL_LAYER + LCtrl held (macros.dtsi)
+#define TU_LM &t_lm_alt        // T_LM_LAYER + LAlt held (macros.dtsi)
+#define TU_RM &mo T_RM_LAYER
+#define TU_RR &mo T_RR_LAYER
 
-// トラックボールでスクロールするための input-processors 共通設定。
-//   - zip_xy_scaler 3 64                     : 感度を 1/3 にしてスクロールを遅くする
-//   - zip_xy_to_scroll_mapper                 : カーソル移動でなくスクロール出力にする
-//   - zip_scroll_transform Y_INVERT           : ボール上方向 = ビュー上方向 (top of trackball = view up)
+// Input processors of the left trackball, which always scrolls:
+//   zip_xy_scaler 3 64: motion times 3/64, for slow scrolling
+//   zip_xy_to_scroll_mapper: scroll instead of moving the pointer
+//   zip_scroll_transform Y_INVERT: rolling the ball up scrolls the view up
 #define TRACKBALL_SCROLL_PROCESSORS \
       <&zip_xy_scaler 3 64>, \
       <&zip_xy_to_scroll_mapper>, \
       <&zip_scroll_transform INPUT_TRANSFORM_Y_INVERT>
 
-// --------------------------------------------------------------------
-// keymap 構造マクロ (bindings = < > 内で使う。keymap-drawer も preprocess 展開)
-// --------------------------------------------------------------------
-
-// 1 row 12 キーすべて &none (arrow レイヤーの上 3 段など)
+// Rows of &none for the layers' bindings = < >.
 #define ROW_NONE \
   &none &none &none &none &none &none   &none &none &none &none &none &none
 
-// 親指 2 段: 上段 = 全 &none / 下段 = TD_* (sub-layer 共通)
+// Both thumb rows of the sub-layers: the upper row empty, the lower row the
+// TD_* mod-taps.
 #define THUMB_TD \
   &none &none &none   &none &none &none \
   TD_LL TD_LM &none   &none TD_RM TD_RR
 
-// 親指 2 段すべて &none (T_*_LAYER 共通)
 #define THUMB_NONE \
   &none &none &none   &none &none &none \
   &none &none &none   &none &none &none
 
-// row4 (5+5) すべて &none
+// Row 4, 5 keys per half.
 #define ROW4_NONE \
   &none &none &none &none &none   &none &none &none &none &none
 
-// sub-layer 共通 footer: row4 全 &none + THUMB_TD (NUMBER/SYMBOL*/FUNCTION)
+// NUMBER / SYMBOL* / FUNCTION layers.
 #define FOOTER_TD   ROW4_NONE THUMB_TD
-// T_*_LAYER 共通 footer: row4 全 &none + 親指全 &none
+// T_*_LAYER.
 #define FOOTER_NONE ROW4_NONE THUMB_NONE
 
-// --------------------------------------------------------------------
-// behavior 生成マクロ
-// --------------------------------------------------------------------
-
-// シンプルな hold-tap (flavor=hold-preferred / tapping-term-ms=200ms / hold=&kp)。
-// name        : 生成する behavior 名
-// tap_binding : tap 時の binding (&kp / &kana / &eiji 等)
+// hold-tap, hold-preferred, 200 ms: hold = &kp, tap = tap_binding (&kana, ...).
 #define HOLD_TAP_HP200(name, tap_binding) \
     name: name { \
       compatible = "zmk,behavior-hold-tap"; \
@@ -82,20 +68,15 @@
       bindings = <&kp>, <tap_binding>; \
     };
 
-// 矢印 mod-morph + 対応 hold-tap の 1 ペアを生成。
-// name : ベース名 (例: ar_up → ar_up と ar_up_ht を生成)
-// LAYER, KEY : hold 時に潜るレイヤーと tap 時の出力キー
-// P1, P2     : hold-trigger-key-positions に追加する 2 つの矢印キー位置
-//
-// mod-morph の分岐 (Ctrl/Alt ローリングタップ救済):
-//   - 修飾子なし / Shift / Cmd 押下 → name##_ht (hold-tap)。
-//     tap=矢印 / hold=矢印サブレイヤー (LArr/RArr/UArr/DArr、中身は HOME/END/
-//     PgUp/PgDn)。Shift+HOME 等の
-//     範囲選択を維持するため Shift/Cmd ではサブレイヤーを残す。
-//   - Ctrl / Alt 押下 → &kp KEY を即時送出 (keep-mods で Ctrl/Alt を保持)。
-//     hold-tap は tap を「キーのリリース時」に送るため、ctrl↓ left↓ ctrl↑
-//     left↑ のロールでは矢印送出時に既に ctrl が離れ Left 単独になる。
-//     即時 &kp で押下時点に送ることで Ctrl+矢印 が成立する。
+// An arrow key: the mod-morph `name` over the hold-tap `name##_ht`.
+//   LAYER, KEY: the sub-layer the hold enters and the arrow the tap sends
+//   P1, P2: two other arrow keys, added to hold-trigger-key-positions
+// With no modifier, Shift or Cmd it is the hold-tap: tap = the arrow, hold =
+// the sub-layer (LArr / RArr / UArr / DArr: Home / End / PgUp / PgDn), kept
+// under Shift and Cmd so that Shift+Home and the like select. With Ctrl or Alt
+// held it sends &kp KEY at the press (keep-mods keeps Ctrl / Alt): a hold-tap
+// sends its tap at the release, so in the roll ctrl down, left down, ctrl up,
+// left up the arrow would go out after Ctrl was released, as a bare Left.
 #define ARROW_BEHAVIOR(name, LAYER, KEY, P1, P2) \
     name##_ht: name##_ht { \
       compatible = "zmk,behavior-hold-tap"; \
@@ -115,10 +96,9 @@
       keep-mods = <(MOD_LCTL|MOD_LALT)>; \
     };
 
-// al_a 〜 al_z 系 letter mod-morph を生成。
-// Shift 未押下 → 素のキー / Shift 押下 → eiji_macro 経由で英語入力モードへ切替えてから大文字出力。
-// name   : 生成する behavior 名 (例: al_a)
-// letter : 出力キー (例: A)
+// A letter key (al_a .. al_z): the letter, or with Shift eiji_macro (EIJI,
+// then the letter), so that Shift+letter types a Latin capital in any input
+// mode.
 #define LETTER_MORPH(name, letter) \
     name: name { \
       compatible = "zmk,behavior-mod-morph"; \
@@ -128,10 +108,9 @@
       keep-mods = <(MOD_LSFT)>; \
     };
 
-// EIJI 切替 → 指定キー press → pause → release (long-press でリピート可能)。
-// name : 生成する behavior 名 (例: en_0 / en_under)
-// key  : 出力キー (例: N0 / UNDERSCORE)
-// 注: keymap-drawer 上の表示は keymap_drawer.config.yaml の raw_binding_map で設定する。
+// EIJI, then key held until the release, so that it repeats (en_0,
+// en_under, ...). keymap-drawer labels them through raw_binding_map in
+// keymap_drawer.config.yaml, generated from eiji_macros.dtsi.
 #define EN_MACRO(name, key) \
     name: name { \
       compatible = "zmk,behavior-macro"; \
@@ -139,10 +118,7 @@
       bindings = <&macro_tap &kp EIJI>, <&macro_press &kp key>, <&macro_pause_for_release>, <&macro_release &kp key>; \
     };
 
-// 親指上段 (TU) 用 behavior 生成。
-//
-// TU_MOD : LAYER 起動 + MOD を同時 hold する macro (TU_LL/TU_LM 実体)。
-//   name : 生成名 / LAYER : 潜るレイヤー / MOD : hold する修飾子
+// Upper thumb key that holds LAYER and MOD together (TU_LL, TU_LM).
 #define TU_MOD(name, LAYER, MOD) \
     name: name { \
       compatible = "zmk,behavior-macro"; \

@@ -1,8 +1,7 @@
 #pragma once
 
-// ====================================================================
-// キー位置 (combo の key-positions / hold-trigger-key-positions 用)
-// ====================================================================
+// Key positions (indices into the matrix transform) for combos and
+// hold-trigger-key-positions.
 #define KEY_POSITION_LL 52
 #define KEY_POSITION_LM 53
 #define KEY_POSITION_RM 56

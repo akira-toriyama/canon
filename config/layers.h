@@ -1,8 +1,7 @@
 #pragma once
 
-// ====================================================================
-// レイヤー index
-// ====================================================================
+// Layer indices. ZMK numbers the layers in the order of the keymap's layer
+// nodes, so this list follows imprint.keymap.
 #define DEFAULT_LAYER 0
 #define NUMBER_LAYER 1
 #define SYMBOL1_LAYER 2
