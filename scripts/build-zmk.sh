@@ -9,6 +9,9 @@
 #   ./scripts/build-zmk.sh imprint_dongle --logging
 #   ./scripts/build-zmk.sh imprint --reset
 #   ./scripts/build-zmk.sh prospector --sprite assets/<name>.gif
+#   ./scripts/build-zmk.sh prospector --beacon ../zmk-beacon
+#   ./scripts/build-zmk.sh prospector --kconfig CONFIG_LV_USE_SYSMON=y \
+#     --kconfig CONFIG_LV_USE_PERF_MONITOR=y --tag perf
 #   ./scripts/build-zmk.sh --update          # west update first
 #   ./scripts/build-zmk.sh --clean           # delete the workspace and exit
 #
@@ -22,26 +25,36 @@
 #                     the GIF's file name (assets/sprite-name.sh). Sprite GIFs are
 #                     personal files: never committed, never in CI or a release,
 #                     and this script prints neither the GIF's path nor the name.
+#   --beacon <dir>    build against the zmk-beacon checkout <dir>, its working
+#                     tree as it is, instead of the revision config/west.yml pins.
+#   --kconfig CONFIG_NAME=VALUE
+#                     one more Kconfig line for every target, merged after
+#                     config/<shield>.conf and the sprite's.
+#                     Repeatable. CONFIG_BEACON_SPRITE_* go only through --sprite.
+#   --tag <name>      appended to the build directory and the image name.
 #   --update          west update before building: moves zmk@main, the
 #                     zmk-keyboards branch and every module to the manifest.
 #   --clean           delete the workspace and exit.
 # --reset combines with neither --logging nor --sprite.
 #
-# Images: firmware/<shield>[-sprite][-logging][_RESET].uf2 (git-ignored),
-# copied once every target of the run has built.
+# Images: firmware/<shield>[-sprite][-logging][_RESET][-<tag>].uf2 (git-ignored),
+# copied once every target of the run has built. The run ends with one line
+# per image (sha256, FLASH and RAM use) and the revisions it built from.
 #
 # Workspace: $ZMK_WS/cfgrepo is the west topdir (manifest config/west.yml). West's
 # clones (zmk/, zephyr/, modules/, ...) and build/<name>/ (build.log included)
 # stay between runs; each run syncs config/, patches/, scripts/ and build.yaml
-# into it and clears the per-run input .sprite/. west update runs on the first
-# build, when zmk/app is missing, or with --update. The steps inside the
-# container are scripts/zmk-west.sh, which CI runs too.
+# into it and clears the per-run inputs .sprite/, .kconfig/ and .beacon/.
+# west update runs on the first build, when zmk/app is missing, or with
+# --update. Every build without --beacon first checks out modules/zmk-beacon
+# at its pin (that project only), so a pin bump needs no --update. The steps
+# inside the container are scripts/zmk-west.sh, which CI runs too.
 #
 # Environment: ZMK_WS (default ~/.cache/zmk-canon), ZMK_IMAGE (default
 # zmkfirmware/zmk-build-arm:stable).
 set -euo pipefail
 
-# A relative --sprite path is the caller's.
+# Relative --sprite and --beacon paths are the caller's.
 CALLER_DIR="$PWD"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
@@ -54,6 +67,10 @@ LOGGING=0
 RESET=0
 SPRITE=""
 SPRITE_NAME=""
+BEACON=""
+BEACON_REV=""
+TAG=""
+KCONFIG=()
 ARGS=()
 
 die() {
@@ -75,9 +92,14 @@ while [ $# -gt 0 ]; do
     --update) FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
     --reset) RESET=1 ;;
-    --sprite)
+    --sprite | --beacon | --kconfig | --tag)
       if [ $# -eq 0 ] || [ -z "$1" ]; then die 2 "$arg needs a value"; fi
-      SPRITE="$1"
+      case "$arg" in
+        --sprite) SPRITE="$1" ;;
+        --beacon) BEACON="$1" ;;
+        --kconfig) KCONFIG+=("$1") ;;
+        --tag) TAG="$1" ;;
+      esac
       shift
       ;;
     -h | --help)
@@ -103,6 +125,25 @@ if [ -n "$SPRITE" ]; then
   if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
   SPRITE_NAME="$("$REPO/assets/sprite-name.sh" "$SPRITE")"
 fi
+if [ -n "$BEACON" ]; then
+  case "$BEACON" in /*) ;; *) BEACON="$CALLER_DIR/$BEACON" ;; esac
+  [ -d "$BEACON" ] || die 2 "--beacon: $BEACON is not a directory"
+  BEACON="$(cd "$BEACON" && pwd)"
+  if ! grep -Eq '^name:[[:space:]]*zmk-beacon[[:space:]]*$' "$BEACON/zephyr/module.yml" 2>/dev/null; then
+    die 2 "--beacon: $BEACON/zephyr/module.yml does not declare name: zmk-beacon"
+  fi
+  BEACON_REV="$(git -C "$BEACON" describe --always --dirty 2>/dev/null || echo 'no git revision')"
+fi
+for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
+  case "$kv" in
+    *$'\n'*) die 2 "--kconfig takes one line" ;;
+    CONFIG_BEACON_SPRITE_*) die 2 "--kconfig: CONFIG_BEACON_SPRITE_* go only through --sprite" ;;
+    CONFIG_?*=?*) ;;
+    *) die 2 "--kconfig takes CONFIG_NAME=VALUE, not $kv" ;;
+  esac
+  case "${kv%%=*}" in *[!A-Za-z0-9_]*) die 2 "--kconfig: not a Kconfig symbol: ${kv%%=*}" ;; esac
+done
+case "$TAG" in *[!A-Za-z0-9._-]*) die 2 "--tag takes letters, digits, '.', '_' and '-'" ;; esac
 
 # Targets as board<TAB>shield. The groups come from build.yaml's shield names,
 # never from a list here: all = every target, imprint = the imprint* shields.
@@ -136,16 +177,21 @@ fi
 
 # For the target in row ("board<TAB>shield"), sets BOARD, SHIELD, NAME
 # (<shield><suffix>: the build directory and the image name), SUFFIX and
-# CMAKE_ARGS.
+# CMAKE_ARGS. Kconfig fragments merge in list order after config/<shield>.conf,
+# and -DCONFIG_* after every fragment.
 plan() {
+  local conf=()
   BOARD="${1%%	*}"
   SHIELD="${1##*	}"
   SUFFIX=""
   CMAKE_ARGS=()
-  # Merged after config/<shield>.conf.
   if [ -n "$SPRITE" ] && [ "$SHIELD" = prospector ]; then
-    CMAKE_ARGS+=(-DEXTRA_CONF_FILE=/workspace/.sprite/sprite.conf)
+    conf+=(/workspace/.sprite/sprite.conf)
     SUFFIX="$SUFFIX-sprite"
+  fi
+  if [ ${#KCONFIG[@]} -gt 0 ]; then conf+=(/workspace/.kconfig/extra.conf); fi
+  if [ ${#conf[@]} -gt 0 ]; then
+    CMAKE_ARGS+=("-DEXTRA_CONF_FILE=$(IFS=';' && echo "${conf[*]}")")
   fi
   if [ "$LOGGING" -eq 1 ]; then
     CMAKE_ARGS+=(-DCONFIG_ZMK_USB_LOGGING=y)
@@ -155,6 +201,11 @@ plan() {
     CMAKE_ARGS+=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y)
     SUFFIX="${SUFFIX}_RESET"
   fi
+  # Zephyr keys modules by the name in zephyr/module.yml and takes extra
+  # modules after west's projects (zephyr_module.py parse_modules), so this
+  # one replaces modules/zmk-beacon.
+  if [ -n "$BEACON" ]; then CMAKE_ARGS+=(-DZMK_EXTRA_MODULES=/workspace/.beacon); fi
+  if [ -n "$TAG" ]; then SUFFIX="$SUFFIX-$TAG"; fi
   NAME="$SHIELD$SUFFIX"
 }
 
@@ -166,8 +217,8 @@ fi
 # drops a file removed from the repository, which the build would still read.
 mkdir -p "$CFG"
 rsync -a --delete "$REPO/config" "$REPO/patches" "$REPO/scripts" "$REPO/build.yaml" "$CFG/"
-# The per-run input, written below only when this run has --sprite.
-rm -rf "$CFG/.sprite"
+# The per-run inputs, written below only for the options of this run.
+rm -rf "$CFG/.sprite" "$CFG/.kconfig" "$CFG/.beacon"
 
 # The container sees only the workspace, so the GIF is copied in under a fixed
 # name. Its path and name reach the build in a Kconfig fragment
@@ -182,6 +233,15 @@ if [ -n "$SPRITE" ]; then
     echo "CONFIG_BEACON_SPRITE_NAME=\"$SPRITE_NAME\""
   } >"$CFG/.sprite/sprite.conf"
 fi
+if [ ${#KCONFIG[@]} -gt 0 ]; then
+  mkdir -p "$CFG/.kconfig"
+  printf '%s\n' "${KCONFIG[@]}" >"$CFG/.kconfig/extra.conf"
+fi
+# Without the checkout's git data, Claude Code state and built images.
+if [ -n "$BEACON" ]; then
+  mkdir -p "$CFG/.beacon"
+  rsync -a --exclude '/.git' --exclude '/.claude/' --exclude '/firmware/' "$BEACON/" "$CFG/.beacon/"
+fi
 
 NEED_UPDATE=0
 if [ ! -d "$CFG/.west" ] || [ ! -d "$CFG/zmk/app" ] || [ "$FORCE_UPDATE" -eq 1 ]; then
@@ -192,11 +252,17 @@ echo "=========================================="
 echo " workspace   : $CFG"
 echo " image       : $IMAGE"
 echo " west update : $([ "$NEED_UPDATE" -eq 1 ] && echo yes || echo 'no (cached; --update forces it)')"
+if [ -n "$BEACON" ]; then
+  echo " zmk-beacon  : $BEACON @ $BEACON_REV (--beacon, overrides the pin in config/west.yml)"
+else
+  echo " zmk-beacon  : the revision config/west.yml pins"
+fi
 if [ "$LOGGING" -eq 1 ]; then echo " logging     : CONFIG_ZMK_USB_LOGGING=y"; fi
 if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
 if [ -n "$SPRITE" ]; then
   echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, a name of ${#SPRITE_NAME} characters (prospector only; neither printed)"
 fi
+if [ ${#KCONFIG[@]} -gt 0 ]; then echo " kconfig     : ${KCONFIG[*]}"; fi
 echo " targets     :"
 for row in "${TARGETS[@]}"; do
   plan "$row"
@@ -211,6 +277,7 @@ in_container() {
 }
 
 if [ "$NEED_UPDATE" -eq 1 ]; then in_container update; fi
+if [ -z "$BEACON" ]; then in_container pin zmk-beacon; fi
 in_container patch
 for row in "${TARGETS[@]}"; do
   plan "$row"
@@ -218,10 +285,31 @@ for row in "${TARGETS[@]}"; do
 done
 
 mkdir -p "$REPO/firmware"
+for row in "${TARGETS[@]}"; do
+  plan "$row"
+  cp "$CFG/build/$NAME/zephyr/zmk.uf2" "$REPO/firmware/$NAME.uf2"
+done
+
+# FLASH and RAM from the linker's memory table in build.log; left out rather
+# than failing the run when the table is missing.
 echo
 echo "images:"
 for row in "${TARGETS[@]}"; do
   plan "$row"
-  cp "$CFG/build/$NAME/zephyr/zmk.uf2" "$REPO/firmware/$NAME.uf2"
-  ls -lh "$REPO/firmware/$NAME.uf2"
+  sha="$(shasum -a 256 "$REPO/firmware/$NAME.uf2" | cut -c1-12)"
+  mem="$(awk '
+    $1 == "FLASH:" { f = "FLASH " $2 " " $3 " / " $4 " " $5 " " $6 }
+    $1 == "RAM:"   { r = "RAM " $2 " " $3 " / " $4 " " $5 " " $6 }
+    END { print f (f != "" && r != "" ? "  " : "") r }
+  ' "$CFG/build/$NAME/build.log" 2>/dev/null || true)"
+  echo "  firmware/$NAME.uf2  $sha  $mem"
 done
+zmk_rev="$(git -C "$CFG/zmk" log -1 --format='%h %cs' 2>/dev/null || true)"
+keyboards_rev="$(git -C "$CFG/zmk-keyboards" log -1 --format='%h' 2>/dev/null || true)"
+if [ -n "$BEACON" ]; then
+  beacon_rev="$BEACON @ $BEACON_REV (--beacon)"
+else
+  beacon_rev="$(git -C "$CFG/modules/zmk-beacon" log -1 --format='%h' 2>/dev/null || true)"
+  beacon_rev="${beacon_rev:-?} (pin)"
+fi
+echo "revisions: zmk ${zmk_rev:-?}, zmk-keyboards ${keyboards_rev:-?}, zmk-beacon $beacon_rev"
