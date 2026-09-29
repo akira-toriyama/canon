@@ -21,7 +21,8 @@
 #                     opens the port) and ZMK at INFO level
 #                     (CONFIG_ZMK_LOGGING_MINIMAL=y: at DEBUG the Imprint Dongle's
 #                     boot overflows the 8 KiB log buffer before the log thread
-#                     starts, and DEBUG lines carry keycodes). For DEBUG add
+#                     starts, and DEBUG lines carry keycodes). ZMK's split
+#                     battery and connection lines are DEBUG only: for them add
 #                     --kconfig CONFIG_ZMK_LOGGING_MINIMAL=n.
 #   --reset           CONFIG_ZMK_SETTINGS_RESET_ON_START=y on the real shield: the
 #                     image erases the settings, BLE bonds included, at every
@@ -33,18 +34,23 @@
 #                     and this script prints neither the GIF's path nor the name.
 #   --beacon <dir>    build against the zmk-beacon checkout <dir>, its working
 #                     tree as it is, instead of the revision config/west.yml pins.
+#                     The images carry -beacon.
 #   --kconfig CONFIG_NAME=VALUE
 #                     one more Kconfig line for every target, merged after
 #                     config/<shield>.conf and the sprite and logging lines.
-#                     Repeatable. CONFIG_BEACON_SPRITE_* go only through --sprite.
+#                     Repeatable; the images carry -kconfig. CONFIG_BEACON_SPRITE_*
+#                     go only through --sprite, and nothing that turns the
+#                     display off combines with --sprite.
 #   --tag <name>      appended to the build directory and the image name.
 #   --update          west update before building: moves zmk@main, the
 #                     zmk-keyboards branch and every module to the manifest.
 #   --clean           delete the workspace and exit.
 # --reset combines with neither --logging nor --sprite.
 #
-# Images: firmware/<shield>[-sprite][-logging][_RESET][-<tag>].uf2 (git-ignored),
-# copied once every target of the run has built. The run ends with one line
+# Images: firmware/<shield>[-sprite][-logging][-kconfig][-beacon][_RESET][-<tag>].uf2
+# (git-ignored), copied once every target of the run has built. A bare
+# <shield>.uf2 or <shield>_RESET.uf2, which flash-watch.sh, flash-reset.sh and
+# `flash-dongle.sh <device>` take, is therefore always a pinned build. The run ends with one line
 # per image (sha256, FLASH and RAM use) and the revisions it built from.
 #
 # Workspace: $ZMK_WS/cfgrepo is the west topdir (manifest config/west.yml). West's
@@ -149,11 +155,22 @@ if [ -n "$BEACON" ]; then
     die 2 "--beacon: $BEACON/zephyr/module.yml does not declare name: zmk-beacon"
   fi
   BEACON_REV="$(git -C "$BEACON" describe --always --dirty 2>/dev/null || echo 'no git revision')"
+  # Kconfig quotes the value it was given for an undefined symbol, and the
+  # sprite's name is private: a zmk-beacon before 0a64fc9 (or one that renamed
+  # the symbol) would print it on the way to failing.
+  if [ -n "$SPRITE" ] && ! grep -Eq '^[[:space:]]*config[[:space:]]+BEACON_SPRITE_NAME[[:space:]]*$' "$BEACON/Kconfig" 2>/dev/null; then
+    die 2 "--beacon: $BEACON/Kconfig defines no BEACON_SPRITE_NAME, so Kconfig would print the sprite's name; build this checkout without --sprite"
+  fi
 fi
 for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
   case "$kv" in
     *$'\n'*) die 2 "--kconfig takes one line" ;;
     CONFIG_BEACON_SPRITE_*) die 2 "--kconfig: CONFIG_BEACON_SPRITE_* go only through --sprite" ;;
+    CONFIG_ZMK_DISPLAY=* | CONFIG_ZMK_DISPLAY_*)
+      # The sprite needs the custom status screen; Kconfig would print the
+      # name it could then not take.
+      if [ -n "$SPRITE" ]; then die 2 "--kconfig: ${kv%%=*} does not combine with --sprite"; fi
+      ;;
     CONFIG_?*=?*) ;;
     *) die 2 "--kconfig takes CONFIG_NAME=VALUE, not $kv" ;;
   esac
@@ -175,7 +192,10 @@ for arg in "${ARGS[@]}"; do
       [ -n "$rows" ] || die 1 "group $arg matches no shield in build.yaml"
       while IFS= read -r row; do TARGETS+=("$row"); done <<<"$rows"
       ;;
-    *:*) TARGETS+=("${arg%%:*}	${arg##*:}") ;;
+    *:*)
+      case "$arg" in :* | *:) die 2 "pass <board>:<shield> with both parts, not $arg" ;; esac
+      TARGETS+=("${arg%%:*}	${arg##*:}")
+      ;;
     *)
       board="$(printf '%s\n' "$PAIRS" | awk -F'\t' -v s="$arg" '$2 == s { print $1; exit }')"
       [ -n "$board" ] || die 1 "shield $arg is not in build.yaml (pass <board>:<shield> to build it anyway)"
@@ -210,18 +230,24 @@ plan() {
     conf+=(/workspace/.kconfig/logging.conf)
     SUFFIX="$SUFFIX-logging"
   fi
-  if [ ${#KCONFIG[@]} -gt 0 ]; then conf+=(/workspace/.kconfig/extra.conf); fi
+  if [ ${#KCONFIG[@]} -gt 0 ]; then
+    conf+=(/workspace/.kconfig/extra.conf)
+    SUFFIX="$SUFFIX-kconfig"
+  fi
   if [ ${#conf[@]} -gt 0 ]; then
     CMAKE_ARGS+=("-DEXTRA_CONF_FILE=$(IFS=';' && echo "${conf[*]}")")
+  fi
+  # Zephyr keys modules by the name in zephyr/module.yml and takes extra
+  # modules after west's projects (zephyr_module.py parse_modules), so this
+  # one replaces modules/zmk-beacon.
+  if [ -n "$BEACON" ]; then
+    CMAKE_ARGS+=(-DZMK_EXTRA_MODULES=/workspace/.beacon)
+    SUFFIX="$SUFFIX-beacon"
   fi
   if [ "$RESET" -eq 1 ]; then
     CMAKE_ARGS+=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y)
     SUFFIX="${SUFFIX}_RESET"
   fi
-  # Zephyr keys modules by the name in zephyr/module.yml and takes extra
-  # modules after west's projects (zephyr_module.py parse_modules), so this
-  # one replaces modules/zmk-beacon.
-  if [ -n "$BEACON" ]; then CMAKE_ARGS+=(-DZMK_EXTRA_MODULES=/workspace/.beacon); fi
   if [ -n "$TAG" ]; then SUFFIX="$SUFFIX-$TAG"; fi
   NAME="$SHIELD$SUFFIX"
 }
