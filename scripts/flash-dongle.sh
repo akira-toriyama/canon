@@ -29,7 +29,8 @@
 # A bare device name means firmware/<device>.uf2 of this repository; any other
 # argument is an image path, from any directory. The payload decides the
 # device, and the file name must agree: <device>.uf2, <device>-*.uf2 (a build
-# variant such as -logging or -sprite) or <device>_RESET.uf2. The name keeps
+# variant such as -logging or -sprite), <device>_RESET.uf2 or
+# <device>_RESET-*.uf2 (a tagged reset build). The name keeps
 # out images that carry a product string but no 1200 baud entry (the
 # probe-*.uf2 spikes carry "Imprint Dongle"): they boot, and then strand the
 # next flash. An imprint_dongle*.uf2 built before 2026-09-27 lacks the entry
@@ -39,9 +40,11 @@
 # hash and the copy all read one snapshot of the image, so a build that
 # rewrites it meanwhile cannot slip another image past them.
 #
-# Refuses to start while /Volumes/XIAO-SENSE is mounted or while
-# flash-watch.sh / flash-reset.sh run (both dongles mount as XIAO-SENSE, and
-# those scripts copy imprint_dongle.uf2 onto any XIAO-SENSE mount). Right
+# Refuses to start while another flash-dongle.sh runs (one lock for either
+# dongle, taken before any check or wait), while /Volumes/XIAO-SENSE is
+# mounted, or while flash-watch.sh / flash-reset.sh run (both dongles mount as
+# XIAO-SENSE, and those scripts copy imprint_dongle.uf2 onto any XIAO-SENSE
+# mount; flash-impl.sh takes the same lock). Right
 # before the copy it checks for those scripts again, and step 3's identity
 # check stands in for the mount check.
 #
@@ -77,7 +80,8 @@ dongle() { python3 "$REPO/scripts/dongle.py" "$@"; }
 run_bounded() {
   local limit_ms=$(($1 * 1000)) err="$2" pid start
   shift 2
-  "$@" 2>"$err" &
+  # 9>&-: a child left in uninterruptible sleep must not keep the run lock.
+  "$@" 2>"$err" 9>&- &
   pid=$!
   start=$(now_ms)
   while kill -0 "$pid" 2>/dev/null; do
@@ -133,9 +137,17 @@ UF2="$UF2_DIR/$UF2_BASE"
 { [ -n "$UF2_DIR" ] && [ -f "$UF2" ]; } || die "$UF2_PATH not found$BUILD_HINT"
 
 [ "$(uname -s)" = Darwin ] || die "macOS only (ioreg, stty -f, /Volumes)"
-for tool in ioreg stty df pgrep python3; do
+for tool in ioreg stty df pgrep python3 lockf; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool not found"
 done
+
+# One run at a time, whichever dongle: both bootloaders mount as XIAO-SENSE,
+# and the mount check below cannot see a sibling run's touch until its volume
+# mounts about 2.5 s later. A fixed path, not $TMPDIR, so that every session
+# shares it; the kernel drops the lock when the last holder of fd 9 closes it.
+LOCK="/tmp/flash-dongle-$(id -u).lock"
+exec 9>>"$LOCK" || die "cannot open $LOCK"
+lockf -s -t 0 9 || die "another flash-dongle.sh or flash-watch.sh / flash-reset.sh run holds $LOCK: flash one dongle at a time"
 
 TMP="$(mktemp -d -t flash-dongle)" || die "mktemp failed"
 trap 'rm -rf "$TMP"' EXIT
@@ -147,8 +159,8 @@ image="$(dongle image "$SNAPSHOT" 2>"$ERR")" \
   || refuse "$(sed 's/^dongle\.py: //' "$ERR")"
 IFS=$'\x1f' read -r DEVICE PRODUCT SHA256 <<<"$image"
 case "$UF2_BASE" in
-  "$DEVICE".uf2|"$DEVICE"-*.uf2|"$DEVICE"_RESET.uf2) ;;
-  *) refuse "its payload is the $PRODUCT's, so its name must be $DEVICE.uf2, $DEVICE-*.uf2 or ${DEVICE}_RESET.uf2 (probe and spike images carry the product string without the 1200 baud entry and would strand the next flash)" ;;
+  "$DEVICE".uf2|"$DEVICE"-*.uf2|"$DEVICE"_RESET.uf2|"$DEVICE"_RESET-*.uf2) ;;
+  *) refuse "its payload is the $PRODUCT's, so its name must be $DEVICE.uf2, $DEVICE-*.uf2, ${DEVICE}_RESET.uf2 or ${DEVICE}_RESET-*.uf2 (probe and spike images carry the product string without the 1200 baud entry and would strand the next flash)" ;;
 esac
 case "$UF2_BASE" in
   *_RESET*) [ "$RESET" -eq 1 ] || refuse "a *_RESET* image wipes the bonds on every boot; pass --reset to flash it anyway (re-pairing the whole keyboard is flash-reset.sh's job)" ;;
