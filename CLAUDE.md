@@ -192,20 +192,31 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
   The user keeps the GIF in `assets/` of the main checkout, whose rules are in
   [assets/README.md](assets/README.md) (`.gitignore`: `/assets/*` except that
-  README, and `*.[gG][iI][fF]` anywhere; each file's source URL goes in the ignored
-  `assets/SOURCES.md`). A worktree gets only the README, so pass the main
-  checkout's absolute path. This repository is public: never commit
-  the GIF or anything made from it (frames, C arrays, previews), never name its
-  subject in commits, PRs or docs, and never feed it to CI or a release. The
-  CI / release `prospector.uf2` carries no sprite, so flashing it (the default
-  of `flash-prospector.sh`) removes the sprite from the device. The screen's
+  README and `sprite-name.sh`, and `*.[gG][iI][fF]` anywhere; each file's
+  source URL goes in the ignored `assets/SOURCES.md`). A worktree gets only
+  the committed two, so pass the main checkout's absolute path. This
+  repository is public: never commit the GIF or anything made from it
+  (frames, C arrays, previews), never name its subject in commits, PRs or
+  docs, and never feed it to CI or a release. The sprite's name under the HP
+  bar is the subject too: [assets/sprite-name.sh](assets/sprite-name.sh)
+  derives it from the GIF's file name (extension dropped, trimmed, first
+  letter upper-cased; the user's rule, projects t-er81) and the build passes
+  it as zmk-beacon's `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
+  (`$CFG/.sprite/sprite.conf`, `EXTRA_CONF_FILE`; as `-DCONFIG_...` it showed
+  in west's message on a failed configure step, reproduced 2026-09-29),
+  printing only its length.
+  The CI / release `prospector.uf2` carries no sprite and no name, so
+  flashing it (the default of `flash-prospector.sh`) removes both from the
+  device and the HP bar's box shrinks from 46 px to 28 px. The screen's
   layout is chosen in [config/prospector.conf](config/prospector.conf):
   `CONFIG_BEACON_SPRITE_FILL=y` (the sprite fills the space above the
-  readings, 2 px in from the edges) and `CONFIG_BEACON_READINGS_HP_BAR=y` (one
-  HP bar, the mean of both halves, instead of the digits in the corners);
-  both are zmk-beacon options and the terms are in
-  [docs/glossary.md](docs/glossary.md) (`sprite`, `HP bar`). The user's picks
-  of 2026-09-28 (projects t-dzxf).
+  readings, 2 px in from the edges; 180x180 for a 90x90 px GIF above a named
+  HP bar) and `CONFIG_BEACON_READINGS_HP_BAR=y` (one HP bar, the mean of
+  both halves with the value on the bar and the sprite's name under it,
+  instead of the digits in the corners); both are zmk-beacon options and the
+  terms are in [docs/glossary.md](docs/glossary.md) (`sprite`, `sprite
+  name`, `HP bar`). The user's picks of 2026-09-28 (projects t-dzxf) and
+  2026-09-28/29 (t-er81, layout M of twelve trials).
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。

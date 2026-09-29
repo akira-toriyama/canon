@@ -28,7 +28,12 @@
 #   are the user's personal files: they live in the git-ignored assets/ (or
 #   anywhere outside the repository), are never committed, and never reach CI
 #   or a release. The GIF is copied into the workspace ($CFG/.sprite/) because
-#   the container only sees $CFG. Exclusive with --reset.
+#   the container only sees $CFG. The name under the HP bar comes from the
+#   GIF's file name through assets/sprite-name.sh (CONFIG_BEACON_SPRITE_NAME).
+#   Both go to the build in the Kconfig fragment $CFG/.sprite/sprite.conf
+#   (EXTRA_CONF_FILE), not as -DCONFIG_...: a failed configure step makes west
+#   print the cmake command line, and the name, like the GIF's path, names the
+#   subject, so this script prints only its length. Exclusive with --reset.
 #
 # 仕組み:
 #   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
@@ -61,6 +66,7 @@ FORCE_UPDATE=0
 LOGGING=0
 RESET=0
 SPRITE=""
+SPRITE_NAME=""
 
 # --- 引数処理 -------------------------------------------------------------
 SHIELDS=()
@@ -93,6 +99,7 @@ fi
 if [ -n "$SPRITE" ]; then
   case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
   [ -f "$SPRITE" ] || { echo "GIF が見つかりません: $SPRITE" >&2; exit 2; }
+  SPRITE_NAME="$("$REPO/assets/sprite-name.sh" "$SPRITE")"
 fi
 
 # build.yaml の include: リストから "board<TAB>shield" 行を全て出力する。
@@ -202,10 +209,14 @@ rm -f "$CFG/zephyr/module.yml"
 # rc 128 で落ちる（~/.cache/zmk-canon に実在、2026-09-26）。ディレクトリは触らない。
 if [ -f "$CFG/.git" ]; then rm -f "$CFG/.git"; fi
 # The rsync above deleted the previous run's copy, so a build without --sprite
-# leaves no GIF in the workspace.
+# leaves no GIF or fragment in the workspace. Kconfig strings keep their quotes.
 if [ -n "$SPRITE" ]; then
   mkdir -p "$CFG/.sprite"
   cp "$SPRITE" "$CFG/.sprite/sprite.gif"
+  {
+    echo 'CONFIG_BEACON_SPRITE_GIF="/workspace/.sprite/sprite.gif"'
+    echo "CONFIG_BEACON_SPRITE_NAME=\"$SPRITE_NAME\""
+  } >"$CFG/.sprite/sprite.conf"
 fi
 
 # --- west init/update が必要か判定 ----------------------------------------
@@ -223,6 +234,7 @@ echo " west update    : $([ $NEED_UPDATE -eq 1 ] && echo '実行' || echo 'ス�
 [ "$RESET" -eq 1 ]   && echo " reset          : 有効（CONFIG_ZMK_SETTINGS_RESET_ON_START=y / *_RESET.uf2）"
 # Not the source path: a GIF's file name usually names its subject.
 [ -n "$SPRITE" ]     && echo " sprite         : $(wc -c <"$SPRITE" | tr -d ' ') byte GIF（prospector のみ / prospector-sprite*.uf2）"
+[ -n "$SPRITE" ]     && echo " sprite name    : ${#SPRITE_NAME} glyphs（assets/sprite-name.sh。題材名なので表示しない）"
 echo " ビルド対象:"
 for row in "${SHIELDS[@]}"; do
   printf '   - %s / %s\n' "${row%%	*}" "${row##*	}"
@@ -244,7 +256,7 @@ docker run --rm \
   -e TARGETS="$TARGETS" \
   -e LOGGING="$LOGGING" \
   -e RESET="$RESET" \
-  -e SPRITE="${SPRITE:+/workspace/.sprite/sprite.gif}" \
+  -e SPRITE_CONF="${SPRITE:+/workspace/.sprite/sprite.conf}" \
   "$IMAGE" bash -c '
 set -e
 git config --global --add safe.directory "*"  # bind mount の uid 不一致対策(Linux)
@@ -306,13 +318,14 @@ for t in $TARGETS; do
   # 成果物名は常に元の shield 名ベース（flash-impl.sh が device ごとに
   # imprint_<dev><SUFFIX>.uf2 を探すため）。別 build dir で焼いて製品ビルドの
   # cmake キャッシュと混ざらないようにする。EXTRA は実シールド据置の追加 Kconfig。
-  EXTRA=""; SUFFIX=""
-  # --sprite: prospector only. A Kconfig string needs the quotes inside the value.
-  if [ -n "$SPRITE" ] && [ "$SH" = prospector ]; then
-    EXTRA="-DCONFIG_BEACON_SPRITE_GIF=\"$SPRITE\""; SUFFIX="-sprite"
+  EXTRA=(); SUFFIX=""
+  # --sprite: prospector only. The fragment (GIF path + name) merges after
+  # config/prospector.conf.
+  if [ -n "$SPRITE_CONF" ] && [ "$SH" = prospector ]; then
+    EXTRA+=("-DEXTRA_CONF_FILE=$SPRITE_CONF"); SUFFIX="-sprite"
   fi
   # --logging: USB-CDC ログを有効化。成果物 -logging。
-  if [ "$LOGGING" = "1" ]; then EXTRA="$EXTRA -DCONFIG_ZMK_USB_LOGGING=y"; SUFFIX="$SUFFIX-logging"; fi
+  if [ "$LOGGING" = "1" ]; then EXTRA+=(-DCONFIG_ZMK_USB_LOGGING=y); SUFFIX="$SUFFIX-logging"; fi
   # --reset: 実シールドのまま起動時 NVS 消去を有効化（bond/設定を wipe）。ZMK 標準の
   # settings_reset シールドの本体機構（CONFIG_ZMK_SETTINGS_RESET_ON_START → SYS_INIT で
   # zmk_settings_erase）だけを実シールドへ載せる。シールドごと settings_reset に差し替える
@@ -320,10 +333,10 @@ for t in $TARGETS; do
   # おり、shield を外すと定義が消えて assimilator-bt の参照が未定義になり cmake 失敗する。
   # 成果物名は元 shield + _RESET
   # （imprint_left / imprint_right は別シールド＝分割の左右半なので内容も異なる）。
-  if [ "$RESET" = "1" ]; then EXTRA="-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y"; SUFFIX="_RESET"; fi
+  if [ "$RESET" = "1" ]; then EXTRA=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y); SUFFIX="_RESET"; fi
   echo "=== BUILD $BOARD / $SH$SUFFIX ==="
   west build -p -s zmk/app -d "build/$SH$SUFFIX" -b "$BOARD" -- \
-    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config $EXTRA
+    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config "${EXTRA[@]}"
   cp "build/$SH$SUFFIX/zephyr/zmk.uf2" "/workspace/output/$SH$SUFFIX.uf2"
   echo "=== DONE $SH$SUFFIX ==="
 done
