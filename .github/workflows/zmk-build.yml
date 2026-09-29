@@ -64,8 +64,11 @@ jobs:
           # drop the persisted checkout token. t-yaxa
           persist-credentials: false
 
+      # Treeless: commits only, trees and blobs come with the checkout (what
+      # ZMK's own workflow fetches). The unpatch half of update has nothing to
+      # do on a fresh checkout.
       - name: West init + update (ZMK @ main)
-        run: scripts/zmk-west.sh update
+        run: scripts/zmk-west.sh update --fetch-opt=--filter=tree:0
 
       - name: Apply out-of-tree patches (zmk, zephyr)
         run: scripts/zmk-west.sh patch
