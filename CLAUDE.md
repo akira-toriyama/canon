@@ -148,7 +148,11 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `cp -X` by hand (README). Reflashing an unchanged image copies in about 3 s
   against about 24 s for a new one: bootloader 0.6.1 skips pages whose
   contents already match (`src/flash_nrf5x.c`) and resets only after every
-  block arrived, so the short copy is not a truncated one.
+  block arrived, so the short copy is not a truncated one. macOS can also
+  fail to mount the bootloader's volume (2026-09-29, twice on the Prospector
+  Dongle: a write to its FAT failed and the mass storage driver gave up);
+  the bootloader then stays until a replug, and `flash-dongle.sh` says which
+  of these it saw.
 - **Opening the Prospector Dongle's serial port at 1200 baud reboots it into the
   UF2 bootloader** (`CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on by default in
   zmk-beacon's shield; the same code first ran as a canon patch on t-ogura's

@@ -829,6 +829,19 @@ def cmd_find(args):
     return 0
 
 
+def cmd_at(args):
+    try:
+        location = int(args.location, 16)
+    except ValueError:
+        raise Failure("not a USB location: %r (0x02114000, as find prints it)" % args.location, 2)
+    for root in ioreg("-p", "IOUSB", "-l"):
+        for node, usb in walk(root):
+            if node is usb and node.get("locationID") == location:
+                dev = usb_device(node)
+                print(US.join([dev.product, dev.serial, str(dev.session)]))
+    return 0
+
+
 def cmd_owner(args):
     disk = mounted_disk(args.mountpoint)
     if disk is None:
@@ -918,6 +931,11 @@ def parser():
                                     "device with the dongle's product string (none: no output)")
     s.add_argument("device", choices=DEVICES)
     s.set_defaults(func=cmd_find)
+
+    s = sub.add_parser("at", help="plumbing: PRODUCT US SERIAL US SESSION of the USB device at LOCATION, "
+                                  "whatever it is (a dongle's bootloader too; none: no output)")
+    s.add_argument("location")
+    s.set_defaults(func=cmd_at)
 
     s = sub.add_parser("owner", help="plumbing: DISK US PRODUCT US SERIAL US SESSION US LOCATION of the USB "
                                      "device behind the disk mounted at MOUNTPOINT (empty when none)")
