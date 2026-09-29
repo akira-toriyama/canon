@@ -5,6 +5,7 @@
 #   XIAO BLE mount           → imprint_dongle.uf2
 # Exit when all three are flashed.
 #
-# 共通実装は flash-impl.sh（NVS リセット版は flash-reset.sh）。
-# --yes / -y で確認スキップ（コピペ一発復旧・Claude・CI 用）。非対話でも自動スキップ。
+# The body is flash-impl.sh (the NVS reset variant is flash-reset.sh).
+# --yes / -y skips the confirmation (one-paste recovery, Claude, CI), as does
+# running without a TTY.
 exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "" "flashed (device will reboot)" "" normal "$@"

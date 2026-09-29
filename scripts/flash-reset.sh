@@ -10,8 +10,9 @@
 #   ① flash *_RESET.uf2 (this script) → wipes on boot → ② flash the normal
 #   firmware (./scripts/flash-watch.sh, removes the wipe-on-boot) → pair fresh.
 #
-# 先に成果物を作る: `./scripts/build-zmk.sh imprint --reset`
-#   → firmware/imprint_{left,right,dongle}_RESET.uf2 を生成。
-# 共通実装は flash-impl.sh（通常版は flash-watch.sh）。
-# --yes / -y で確認スキップ（コピペ一発復旧・Claude・CI 用）。非対話でも自動スキップ。
+# Build the images first: `./scripts/build-zmk.sh imprint --reset` writes
+# firmware/imprint_{left,right,dongle}_RESET.uf2.
+# The body is flash-impl.sh (the normal variant is flash-watch.sh).
+# --yes / -y skips the confirmation (one-paste recovery, Claude, CI), as does
+# running without a TTY.
 exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "_RESET" "NVS reset firmware flashed" " (NVS wiped)" reset "$@"
