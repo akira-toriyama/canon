@@ -17,6 +17,7 @@ on:
       - config/imprint.keymap
       - config/vkey-aliases.toml
       - scripts/gen-vkey-aliases.py
+      - .github/workflows/verify-vkey-sync.yml
   workflow_dispatch:
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions

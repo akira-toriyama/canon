@@ -17,6 +17,7 @@ on:
       - config/eiji_macros.dtsi
       - keymap_drawer.config.yaml
       - scripts/gen-eiji-drawer-map.py
+      - .github/workflows/verify-eiji-sync.yml
   workflow_dispatch:
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions

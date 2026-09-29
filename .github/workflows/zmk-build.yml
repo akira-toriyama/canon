@@ -10,9 +10,8 @@ name: ZMK Build
 #   between west update and west build); ZMK's workflow builds them unpatched,
 #   and the imprint keymap's &vkey, a patched behavior, does not resolve there.
 # - the fleet's zizmor policy (.github/zizmor.yml) hash-pins every third-party
-#   `uses:`, so a moving @main ref would fail the gate and a commit pin would
-#   be moved by Dependabot to a release tag older than the zmk@main the
-#   manifest follows.
+#   `uses:`, so ZMK's workflow could be called at a commit SHA only, never at
+#   @main.
 # - the main ruleset's required checks are named
 #   `build / Build (<board>, <shield>)`: the caller's job id `build` and the
 #   job name below. Keep both.
