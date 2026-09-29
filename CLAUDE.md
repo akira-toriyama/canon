@@ -211,16 +211,16 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   printing only its length.
   The CI / release `prospector.uf2` carries no sprite and no name, so
   flashing it (`./scripts/flash-dongle.sh prospector`) removes both from the
-  device and the HP bar's box shrinks from 46 px to 28 px. The screen's
-  layout is chosen in [config/prospector.conf](config/prospector.conf):
-  `CONFIG_BEACON_SPRITE_FILL=y` (the sprite fills the space above the
-  readings, 2 px in from the edges; 180x180 for a 90x90 px GIF above a named
-  HP bar) and `CONFIG_BEACON_READINGS_HP_BAR=y` (one HP bar, the mean of
-  both halves with the value on the bar and the sprite's name under it,
-  instead of the digits in the corners); both are zmk-beacon options and the
-  terms are in [docs/glossary.md](docs/glossary.md) (`sprite`, `sprite
-  name`, `HP bar`). The user's picks of 2026-09-28 (projects t-dzxf) and
-  2026-09-28/29 (t-er81, layout M of twelve trials).
+  device and the HP bar's box shrinks from 46 px to 28 px. The layout is
+  zmk-beacon's only screen since its #19: the sprite fills the space above the
+  HP bar, 2 px in from the edges (180x180 for a 90x90 px GIF above a named HP
+  bar), and the HP bar shows the mean of both halves with the value on the
+  bar and the sprite's name under it; the terms are in
+  [docs/glossary.md](docs/glossary.md) (`sprite`, `sprite name`, `HP bar`).
+  The user's picks of 2026-09-28 (projects t-dzxf) and 2026-09-28/29 (t-er81,
+  layout M of twelve trials). A `dongle.py shot` of a sprite build shows the
+  sprite and its name: it writes outside the repository, and the PNG never
+  goes into a commit, a PR or an issue.
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`
   （draw-keymap の bot が生成・コミット）、`config/imprint.json`（ツールデータ）。
@@ -264,8 +264,12 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   location, serial, who holds the port); `python3 scripts/dongle.py log
   <prospector|imprint_dongle> --seconds N` reads a `--logging` image at 115200
   and exits by itself (key-event lines dropped unless `--raw`; never write raw
-  logs into the repository). Never open a dongle port at 1200 baud (bootloader)
-  or 2400 baud (reserved).
+  logs into the repository); `python3 scripts/dongle.py shot --out <file>`
+  writes a PNG of the Prospector Dongle's screen (zmk-beacon's
+  `CONFIG_BEACON_SCREEN_DUMP`, any image built with it) and refuses while a log
+  reader holds the port. The rate is a command: 1200 baud reboots a dongle into
+  its bootloader and 2400 starts the screen dump, so never open a dongle port
+  at either rate by hand.
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
   に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）を
