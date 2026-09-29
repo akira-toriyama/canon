@@ -228,7 +228,15 @@ index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/b
   [`patches/zmk/README.md`](../patches/zmk/README.md)）。有効化は
   [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) の
   `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_{FETCHING,HID}=y`。
-- 計測: `python3 scripts/dongle.py log imprint_dongle --seconds N --grep …`（[`scripts/dongle.py`](../scripts/dongle.py)。`--logging` ビルドの dongle ログから残量行だけを抽出）。
+- Measuring: each report's level (`Peripheral <slot> battery level <n>`, from
+  the patch) and the halves' connects and disconnects are ZMK LOG_DBG lines,
+  which a plain `--logging` image (ZMK at INFO) compiles out. Build
+  `./scripts/build-zmk.sh imprint_dongle --logging --kconfig CONFIG_ZMK_LOGGING_MINIMAL=n`
+  and read it with `python3 scripts/dongle.py log imprint_dongle --seconds N
+  --grep '(?i)battery level|connected|disconnected'` (the full filter of the
+  removed battery-log.py is in the message of the commit that removed it). On a
+  plain `--logging` image the only battery line is zmk-beacon's once-a-minute
+  broadcaster line: `--grep 'battery [0-9]+/[0-9]+'`, N of 60 or more.
 - **Don't call it:** BAS, battery service, battery notification, 電池通知, 残量通知, バッテリーレポート
 
 ### status advertisement

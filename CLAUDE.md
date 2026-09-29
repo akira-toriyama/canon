@@ -107,7 +107,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `boards/shields/imprint_dongle/Kconfig.defconfig` → `ZMK_KEYBOARD_NAME` →
   `USB_DEVICE_PRODUCT`). Do not override `CONFIG_ZMK_KEYBOARD_NAME` for the
   dongle in `config/`, and if upstream renames it, change chord's `productName`
-  in the same change.
+  and `DEVICES` in [scripts/dongle.py](scripts/dongle.py) in the same change
+  (flash-dongle.sh checks images and finds the dongle by that string, and
+  `dongle.py list` / `log` find it the same way).
 - **The Cyboard module defaults `ZMK_RGB_UNDERGLOW=y` for every build in the
   manifest**: `boards/shields/imprint/Kconfig.defconfig` in `zmk-keyboards` puts
   that default outside its `if SHIELD_…` guard, so a target with no
@@ -136,8 +138,9 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   either dongle with `scripts/flash-dongle.sh <image.uf2 | prospector |
   imprint_dongle>` (`--dry-run` shows the plan, `--wait N` waits for a dongle a
   KVM switch hid). It takes the device from the USB product string inside the
-  image, refuses to start while either runs or while `XIAO-SENSE` is already
-  mounted, checks both again before the copy, and copies only when the disk
+  image, refuses to start while another flash-dongle.sh runs (one lock for
+  both dongles, which flash-impl.sh takes too), while either runs or while
+  `XIAO-SENSE` is already mounted, checks both again before the copy, and copies only when the disk
   behind `XIAO-SENSE` belongs to the USB device at that dongle's `locationID` (the
   bootloader enumerates with the app's `locationID` and USB serial, both taken
   from the port and the chip: seen on hardware 2026-09-26). The first image
@@ -249,8 +252,12 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - Debugging builds: `--beacon <zmk-beacon checkout>` builds against a local
   zmk-beacon instead of the pin (never edit the cached clone: every other build
   checks it out at the pin first); `--kconfig CONFIG_X=V` and `--tag <name>`
-  make variant images; `--logging` images carry a 4 KiB CDC ring at ZMK's INFO
-  level. Each run ends with the images' sha256, FLASH and RAM, and the
+  make variant images. `--beacon` and `--kconfig` images carry `-beacon` /
+  `-kconfig`, so a bare `<shield>.uf2`, which flash-watch.sh, flash-reset.sh
+  and `flash-dongle.sh <device>` take, is always a pinned build. `--logging`
+  images carry a 4 KiB CDC ring at ZMK's INFO level; ZMK's split battery and
+  connection lines are DEBUG only (`--kconfig CONFIG_ZMK_LOGGING_MINIMAL=n`).
+  Each run ends with the images' sha256, FLASH and RAM, and the
   revisions built. The steps inside the container are
   [scripts/zmk-west.sh](scripts/zmk-west.sh), which CI runs too.
 - Devices: `python3 scripts/dongle.py list` shows both dongles (port, USB
