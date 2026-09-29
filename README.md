@@ -135,8 +135,12 @@ zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー�
 GIF を載せた `firmware/prospector-sprite.uf2` を作り（`CONFIG_BEACON_SPRITE_FILL=y`）、
 `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2` で焼く。GIF は
 git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
-入らないので、それを焼くとアニメは消え、HP バーだけになる。アニメは常に GIF 本来の
-1.5 倍の速さで動き、キーボードとは連動しない。使える GIF の条件は zmk-beacon の README。
+入らないので、それを焼くとアニメは消え、HP バーだけになる。アニメは打鍵が無い間は GIF
+本来の 0.75 倍の速さで動き続け、キーを押している間は（左右どちらの半体でも、どのキーでも）
+打鍵に合わせて動く: 1 打鍵ごとに 8 コマぶんを溜め、描画のたびに 1 コマ、続けて打つほど
+1 描画で飛ばすコマが増えて速くなる。最後の打鍵から 0.2 秒で残りを捨ててそのコマから元の
+速さに戻る（0.2 秒は広告間隔と同じなので、単発の 1 打鍵では 3〜4 コマ動いて戻る）。
+使える GIF の条件は zmk-beacon の README。
 
 ### リリース
 

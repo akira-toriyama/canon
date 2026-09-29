@@ -235,16 +235,17 @@ index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/b
 The BLE advertisement the [[Imprint Dongle]] broadcasts for the
 [[Prospector Dongle]]: a 26-byte payload in manufacturer data (both halves'
 battery levels, the highest active layer's index and the first 4 bytes of its
-`display-name`) on a second, legacy, non-connectable advertising set next to
-ZMK's own connectable one, every 200 ms. Connectionless: no pairing, no bond,
-no BLE slot consumed on either side.
+`display-name`, and a count of key presses modulo 256 that steps the
+[[sprite]]) on a second, legacy, non-connectable advertising set next to
+ZMK's own connectable one, every 200 ms and right after a key press.
+Connectionless: no pairing, no bond, no BLE slot consumed on either side.
 - Producer: zmk-beacon's `src/status_broadcaster.c` on the `imprint_dongle`
   build (`CONFIG_BEACON_STATUS_BROADCAST=y` and `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`
   in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf); peripheral
   builds compile it out). Until 2026-09-27 the producer was t-ogura's
   `prospector-zmk-module` v2.2.3, riding ZMK's scan response. Consumer:
-  zmk-beacon's shield `prospector`, which reads only both halves' battery
-  bytes (`src/status_observer.c` there).
+  zmk-beacon's shield `prospector`, which reads both halves' battery bytes
+  and the key press counter (`src/status_observer.c` there).
 - Payload layout: `src/status_payload.h` in zmk-beacon, shared by both ends
   (the module's v2.2.3 layout kept byte for byte; its `layer_name[4]` is why
   [[layer]] limits `display-name` to 4 ASCII characters). A new layout is a
@@ -257,8 +258,14 @@ zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`, built only locally with
 `scripts/build-zmk.sh prospector --sprite <gif>` (`prospector-sprite.uf2`)
 from a personal GIF that is never committed. With `CONFIG_BEACON_SPRITE_FILL=y`
 (canon's conf) it fills the space above the HP bar, 2 px in from the edges,
-scaled to fit whole factor or not. It always plays at 150 % of the GIF's own
-tempo, with no link to the keyboard.
+scaled to fit whole factor or not. While nobody types it plays at 75 % of
+the GIF's own tempo; while the keyboard is typed on it runs on the key
+presses instead (either half, any key: eight frames queued per press,
+stepped one per render and skipped as presses pile up), and 0.2 s after the
+last press arrived the frames still queued are dropped and the tempo
+resumes; as that equals the advertising interval, a lone press shows three
+or four frames (the user's picks on hardware 2026-09-29, t-7c05; 150 % with
+no keyboard link from 09-28).
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (the file, not
   the on-screen animation), スプライト画像
 
