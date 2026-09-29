@@ -134,7 +134,7 @@ cmd_build() {
   shift 3
   # An empty shield would make $dir build/ itself, and the rm below would
   # take every cached build with it.
-  [ -n "$board" ] && [ -n "$shield" ] || usage
+  if [ -z "$board" ] || [ -z "$shield" ]; then usage; fi
   dir="build/$shield$suffix"
   trust_workspace
   # Registers Zephyr in the CMake user package registry for zmk/app's
