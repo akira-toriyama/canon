@@ -1,21 +1,18 @@
 #include "ext_power_off.dtsi"
 
-// Phase 5b: 左半分のトラックボール forward を dongle へ。
-//
-// dongle 構成では左は peripheral 役。upstream imprint.dtsi（zephyr-4.1・
-// Cyboard#19 以降）が dongle 構成向けの input-split 送信ノード
-// trackball_central_split@1 を disabled 既定で持つので、enable して
-// 左の物理 PMW3610 (trackball_central) を device に指すだけでよい。
-// 受信側 proxy（同 reg=1・device 無し）と listener は upstream
-// imprint_dongle shield が dongle build 側で定義する。
+// The left trackball goes to the Imprint Dongle: the left half is a split
+// peripheral, and upstream imprint.dtsi carries the sending input-split node
+// trackball_central_split@1, disabled by default. Enable it and point it at
+// the left PMW3610 (trackball_central). The upstream imprint_dongle shield
+// defines the receiving proxy (same reg 1, no device) and its listener.
 &trackball_central_split {
     status = "okay";
     device = <&trackball_central>;
 };
 
-// 右用 forward ノードは imprint.dtsi で enabled 既定かつ device 無し。
-// peripheral build では enabled な input-split 全ノードに device が必須
-// (ZMK input_split.c の BUILD_ASSERT) のため、左 build では明示 disable する。
+// The right half's node is enabled in imprint.dtsi without a device, and a
+// peripheral build needs a device on every enabled input-split node
+// (BUILD_ASSERT in ZMK's input_split.c), so the left build disables it.
 &trackball_peripheral_split {
     status = "disabled";
 };

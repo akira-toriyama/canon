@@ -1,5 +1,5 @@
-// 右半体の user overlay。中身は共有 dtsi 1 本だけだが、このファイルが要る:
-// ZMK は shield ごとに user overlay を 1 本しか採用しないので、左右で共通の
-// config/imprint.overlay にまとめると imprint_left.overlay が採用されなくなり、
-// 左のトラックボール forward 設定が丸ごと落ちる。
+// Only the shared dtsi, but the file has to exist: ZMK takes the first user
+// overlay that matches the shield, and config/imprint.overlay (the "imprint"
+// prefix) would come before imprint_left.overlay, so one overlay shared by
+// both halves would silently drop the left trackball's forwarding.
 #include "ext_power_off.dtsi"

@@ -1,12 +1,9 @@
-// Dongle 用 user overlay。shield 本体は upstream (Cyboard zmk-keyboards
-// zephyr-4.1) の boards/shields/imprint_dongle/。
-//
-// upstream dongle shield は standalone（imprint.dtsi を include しない）で、
-// 既定 transform は function-row variant (imprint_function_row_full_bottom_row)。
-// canon の keymap (config/imprint.keymap が shield 名 fallback で dongle build
-// にも使われる) は chosen で letters-only transform を参照するため、その
-// ノード定義をここで補う。map は upstream imprint.dtsi の
-// imprint_letters_only_full_bottom_row (keymap_transform_8) と同一。
+// The upstream imprint_dongle shield (zmk-keyboards, zephyr-4.1) is standalone:
+// it does not include imprint.dtsi, and its default transform is the
+// function-row one. config/imprint.keymap, which this build also uses (the
+// "imprint" prefix of the shield name), chooses the letters-only transform, so
+// its node is defined here as a copy of imprint_letters_only_full_bottom_row
+// (keymap_transform_8) in upstream imprint.dtsi.
 
 #include <dt-bindings/zmk/matrix_transform.h>
 
@@ -26,19 +23,13 @@ RC(1,5) RC(1,4) RC(1,3) RC(1,2) RC(1,1)                                         
     };
 };
 
-// The dongle has no battery, but the xiao_ble board wires zmk,battery to its
-// voltage divider, and an unloaded divider reads a bogus level (100% on USB
-// power in the advertisement decoded 2026-09-26; 47% seen earlier). The
-// Prospector module (CENTRAL_SIDE="AUX") copies the central's own reading into
-// the Aux1 slot of the status advertisement. Until 2026-09-26 the Prospector
-// Dongle ran t-ogura's prospector_scanner, whose YADS and Operator layouts drew
-// every slot > 0, so the ghost showed as a third battery; its zmk-beacon
-// screen reads the halves' bytes only.
-// Without a chosen node ZMK's battery.c bails out with -ENODEV and keeps
-// reporting 0, which every consumer treats as "absent". Nothing reads the
-// dongle's own level: chord's vendor report 0x21 carries the halves only,
-// and USB HID has no battery path. Disabling vbatt also drops the divider's
-// ADC channel and its power GPIO from the build.
+// The dongle has no battery, but ZMK's xiao_ble board points zmk,battery at
+// its voltage divider, which reads a meaningless level with no cell attached.
+// Nothing reads the dongle's own level: chord's vendor report 0x21 and
+// zmk-beacon's status advertisement carry the halves' levels only (peripheral
+// battery events), and USB HID has no battery path. Without the chosen node
+// ZMK's battery.c finds no battery device and never samples; disabling vbatt
+// also drops the divider's ADC channel and power GPIO from the build.
 / {
     chosen {
         /delete-property/ zmk,battery;
