@@ -1,29 +1,26 @@
 name: Release
 
-# main へ push（PR マージ）されると、glyph が最後の v* タグ以降の main を
-# squash-safe に歩き（各マージポイントを PR に展開して pre-squash commit を
-# 分類）、次版とリリースノートを 1 回の walk で算出して「ローリングドラフト」
-# GitHub Release を upsert する。タグは作らない（GitHub がドラフト Publish 時に
-# 生成）。同一次版のドラフトは内容・target を上書き更新し、別版の自動ドラフトは
-# glyph が破棄して常に 1 本に保つ。よって main にマージするほど「次リリース
-# 下書き」が育ち、未公開のうちはタグ・版が増殖しない。公開は手動
-# （GitHub UI で内容確認のうえ Publish。publish 時に初めてタグ生成）。
-# workflow_dispatch + dry_run=true は版算出+ノート+ビルドのみ＝ドラフトを
-# 作らず版も消費しない完全プレビュー。規約: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
+# On every push to main, glyph walks main since the last v* tag squash-safe
+# (each merge expanded to its PR's commits), computes the next version and the
+# notes in one walk, and upserts one rolling DRAFT release; no tag is created
+# (GitHub creates it when the draft is published). A draft for the same
+# version is updated in place and glyph deletes an automatic draft for another
+# version, so there is at most one. Publishing is manual, after a look at the
+# draft in the GitHub UI. workflow_dispatch with dry_run=true computes the
+# version and notes and builds, without writing a draft or using up a version.
+# Convention: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
 #
-# firmware ビルドは通常 CI と同じ reusable (.github/workflows/zmk-build.yml) に
-# 一本化している。以前は release.yml が独自に west+patch+build を持っていたが、
-# build.yml 側と重複して drift し（dongle の board 名 xiao_ble/nrf52840/zmk が
-# slash を含むための SHIELD 解析破綻 + canon ローカル shield の BOARD_ROOT 欠落）
-# release だけ壊れた。ビルド定義を 1 つに集約してこの種の drift を構造的に防ぐ。
-# job 構成: version（verdict + draft upsert）→ build（reusable）→ draft（成果物添付）。
+# The firmware comes from the same reusable build as CI
+# (.github/workflows/zmk-build.yml): a second build definition here drifted
+# from it once and broke only the release.
+# Jobs: version (verdict + draft upsert) -> build (reusable) -> draft (assets).
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "プレビューのみ（ドラフトを作らず artifact だけ）"
+        description: "Preview only: build and write the notes, but no draft release"
         type: boolean
         default: false
 
@@ -39,12 +36,11 @@ permissions:
   contents: read
 
 jobs:
-  # 次版算出 + リリースノート + ローリングドラフト upsert（glyph release）。
-  # firmware ビルド (build) と成果物添付 (draft) はこの出力 release==true の
-  # ときだけ走る。
+  # Next version + notes + rolling draft upsert (glyph release). build and
+  # draft run only when this job outputs release == true.
   version:
     runs-on: ubuntu-latest
-    # glyph release がドラフトを upsert する（dry run では書かない）。
+    # glyph release upserts the draft (a dry run writes nothing).
     permissions:
       contents: write
     outputs:
@@ -53,24 +49,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # glyph はタグと walk range をローカル git から読むので全履歴が要る。
+          # glyph reads the tags and the walk range from the local git: full history.
           fetch-depth: 0
-          # 書き込みは全て glyph/gh + GH_TOKEN 経由で git push はしない —
-          # checkout token を .git/config に残さない (zizmor artipacked)。t-yaxa
+          # Every write goes through glyph/gh with GH_TOKEN, never git push —
+          # keep the checkout token out of .git/config (zizmor artipacked). t-yaxa
           persist-credentials: false
 
-      # glyph 本体は自前の composite install（checksum + provenance 検証つき）
-      # で導入。action の pin と binary の version は同じ tag に揃える。
+      # glyph comes from its own composite install (checksum + provenance
+      # verified). The action pin and the binary version stay on the same tag.
       - uses: akira-toriyama/glyph/.github/actions/install@v4.2.0
         with:
           version: v4.2.0
           token: ${{ github.token }}
 
-      # 1 回の walk で次版と notes を一緒に出す（bump / notes を別々に呼ぶと
-      # walk が 2 回になり、間にマージが着地すると版と notes がズレうる）。
-      # dry run でなければ同じ呼び出しがローリングドラフトを upsert する。
-      # exit 1 は一様な soft no-release（リリース対象なし）— 成功の no-op に
-      # 畳む。none verdict では glyph が残存ドラフトも削除して収束させる。
+      # One walk yields both the version and the notes (separate bump and
+      # notes calls would walk twice, and a merge landing in between could
+      # split them). Unless this is a dry run, the same call upserts the
+      # rolling draft. Exit 1 is the uniform soft no-release (nothing to
+      # release), folded into a successful no-op; on a none verdict glyph also
+      # deletes a leftover draft.
       - name: Compose the verdict and upsert the rolling DRAFT
         id: verdict
         env:
@@ -87,7 +84,7 @@ jobs:
           cat "$RUNNER_TEMP/verdict.err" >&2
           if [ "$status" -eq 1 ]; then
             reason="$(jq -r '.reason // empty' "$RUNNER_TEMP/verdict.json" 2>/dev/null || true)"
-            echo "::notice::${reason:-リリース対象の変更が無いため何もしません。}"
+            echo "::notice::${reason:-Nothing to release: no change since the last release moves the version.}"
             echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -100,8 +97,8 @@ jobs:
           echo "tag=$tag"     >> "$GITHUB_OUTPUT"
           echo "verdict: $tag (draft $(jq -r .action "$RUNNER_TEMP/verdict.json"))"
 
-      # dry run のプレビューと draft job の summary 用に notes を artifact 化
-      # （ドラフト本文そのものは glyph が直接書いている）。
+      # The notes as an artifact, for the dry-run preview and the draft job's
+      # summary (glyph writes the draft body itself).
       - name: Upload release notes
         if: steps.verdict.outputs.release == 'true'
         uses: actions/upload-artifact@v7
@@ -109,10 +106,9 @@ jobs:
           name: release-notes
           path: RELEASE_NOTES.md
 
-  # firmware ビルドは通常 CI と同一の reusable に委譲（重複/drift 解消）。
-  # zmk-build.yml が build.yaml を唯一のソースに matrix を生成し、patch を
-  # 適用して全ターゲット (imprint_left/right/dongle + prospector) を build し
-  # <shield> 名の artifact を上げる。draft job がそれを DL してリリースへ添付する。
+  # The reusable build derives its matrix from build.yaml, applies the
+  # patches, builds every target and uploads one <shield> artifact each; the
+  # draft job downloads them.
   build:
     needs: version
     if: needs.version.outputs.release == 'true'
@@ -129,14 +125,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      # この job は checkout しない（成果物 DL のみ）。gh は通常 git remote から
-      # repo を特定するが .git が無いと "not a git repository" で落ちるため、
-      # GH_REPO で明示する（gh release / gh api 全コマンドがこれで動く）。
+      # No checkout in this job, and gh finds the repository from a git
+      # remote otherwise ("not a git repository").
       GH_REPO: ${{ github.repository }}
       VERSION: ${{ needs.version.outputs.version }}
+      # The only files a release may carry: canon is public, so a target that
+      # joins build.yaml reaches a release only once it is listed here. The
+      # imprint's three images and the Prospector Dongle's companion image
+      # share one manifest, one patch set and one draft (t-tbaf, 2026-09-25).
+      ASSETS: imprint_left.uf2 imprint_right.uf2 imprint_dongle.uf2 prospector.uf2
     steps:
-      # build (reusable) と version が上げた artifact を全部回収。
-      # download-artifact は <path>/<artifact名>/<file> 構造で展開する。
+      # Every artifact of build and version, as dist/<artifact>/<file>.
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -145,80 +144,68 @@ jobs:
       - name: Collect firmware + notes
         run: |
           set -euo pipefail
+          read -ra assets <<<"$ASSETS"
           mkdir -p out
-          # canon は PUBLIC repo。リリース資産は imprint の 3 ターゲット + companion の
-          # prospector だけを明示 allowlist で集める（glob 禁止＝将来 build.yaml に
-          # 無関係なターゲットが混ざっても公開資産へ漏れない）。
-          # prospector.uf2 (Prospector Dongle, the companion display) ships with
-          # the imprint three: same manifest, same patches, same draft (t-tbaf, 2026-09-25).
-          for f in imprint_left imprint_right imprint_dongle prospector; do
-            cp "dist/$f/$f.uf2" "out/$f.uf2"
+          for a in "${assets[@]}"; do
+            cp "dist/${a%.uf2}/$a" "out/$a"
           done
-          # allowlist 外の uf2 が来ていたら（＝build.yaml 変更の取りこぼし）中止。
-          if [ -n "$(find dist -name '*.uf2' \
-                       ! -name 'imprint_left.uf2' \
-                       ! -name 'imprint_right.uf2' \
-                       ! -name 'imprint_dongle.uf2' \
-                       ! -name 'prospector.uf2' -print -quit)" ]; then
-            echo "::error::allowlist 外の uf2 を検出したためリリース添付を中止"
-            exit 1
-          fi
+          # An image outside the list means build.yaml changed without it: stop.
+          while IFS= read -r f; do
+            case " $ASSETS " in
+              *" ${f##*/} "*) ;;
+              *)
+                echo "::error::${f#dist/} is not in the release asset list (ASSETS); nothing was attached"
+                exit 1
+                ;;
+            esac
+          done < <(find dist -name '*.uf2')
           cp dist/release-notes/RELEASE_NOTES.md out/RELEASE_NOTES.md
-          echo "収集した成果物:"; ls -l out
+          echo "Collected:"; ls -l out
 
-      # dry_run（workflow_dispatch のみ）: ドラフトを作らず、ビルド成果物と
-      # ノートを 1 つの preview artifact にまとめて上げる（版を消費しない＝
-      # 完全プレビュー）。
+      # dry_run (workflow_dispatch only): one preview artifact with the images
+      # and the notes instead of a draft, so no version is used up.
       - name: Upload preview (dry run)
         if: github.event.inputs.dry_run == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: release-preview-${{ needs.version.outputs.version }}
-          path: |
-            out/imprint_left.uf2
-            out/imprint_right.uf2
-            out/imprint_dongle.uf2
-            out/prospector.uf2
-            out/RELEASE_NOTES.md
+          path: out/
 
       - name: Dry-run summary
         if: github.event.inputs.dry_run == 'true'
         run: |
           {
-            echo "## Dry run: ${VERSION}（ドラフトは未作成）"
+            echo "## Dry run: ${VERSION} (no draft written)"
             echo
             echo '```'
             cat out/RELEASE_NOTES.md
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # 通常実行（push:main / 手動 dry_run でない）: version job で glyph が
-      # upsert 済みのドラフトへ成果物を添付し、allowlist 外の残存資産を剪定
-      # する。公開済み Release には一切触れない。
+      # A normal run (push to main, or a dispatch without dry_run): attach the
+      # images to the draft the version job upserted and prune every other
+      # asset. A published release is never touched.
       - name: Attach firmware to the rolling DRAFT
         if: github.event.inputs.dry_run != 'true'
         run: |
           set -euo pipefail
-          # 資産は明示列挙（glob 禁止）。canon は PUBLIC なので、公開 Release へ
-          # 上げてよいのは imprint の 3 ターゲット + prospector だけ。
-          assets="out/imprint_left.uf2 out/imprint_right.uf2 out/imprint_dongle.uf2 out/prospector.uf2"
-          # shellcheck disable=SC2086
-          gh release upload "$VERSION" $assets --clobber
-          # --clobber は同名資産を上書きするだけで、allowlist 外の古い資産
-          # （過去ビルドの非 imprint uf2 等）は消さない。ドラフトに残ると
-          # Publish した瞬間に公開されるので、毎回明示的に剪定する。
+          read -ra assets <<<"$ASSETS"
+          gh release upload "$VERSION" "${assets[@]/#/out/}" --clobber
+          # --clobber replaces assets of the same name but keeps the others
+          # (an old image of a target no longer listed), which publishing the
+          # draft would make public: delete them every time.
           while IFS= read -r a; do
             [ -z "$a" ] && continue
-            echo "::notice::ドラフト $VERSION から allowlist 外の資産 $a を削除"
+            case " $ASSETS " in *" $a "*) continue ;; esac
+            echo "::notice::Deleting $a from draft $VERSION: not in the release asset list"
             gh release delete-asset "$VERSION" "$a" --yes
-          done < <(gh release view "$VERSION" --json assets \
-            --jq '.assets[].name | select(. != "imprint_left.uf2" and . != "imprint_right.uf2" and . != "imprint_dongle.uf2" and . != "prospector.uf2")')
+          done < <(gh release view "$VERSION" --json assets --jq '.assets[].name')
 
           url="$(gh release view "$VERSION" --json url --jq .url)"
-          echo "::notice::ドラフト Release ${VERSION} へ成果物を添付（未公開・タグ未生成）。内容確認のうえ手動 Publish: ${url}"
+          echo "::notice::Firmware attached to draft release ${VERSION} (not published, no tag yet). Review it, then publish by hand: ${url}"
           {
-            echo "## Draft Release ${VERSION} に成果物を添付（未公開）"
+            echo "## Firmware attached to draft release ${VERSION} (not published)"
             echo
-            echo "main にマージするほどこの下書きが育ちます。"
-            echo "内容を確認のうえ手動で Publish（その時点でタグ生成）: ${url}"
+            echo "The draft grows with every merge to main."
+            echo "Review it, then publish by hand (that creates the tag): ${url}"
           } >> "$GITHUB_STEP_SUMMARY"

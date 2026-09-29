@@ -1,13 +1,11 @@
-// combos { } ブロック内に #include して使う
-// 左親指 2 キー同時押し = かな / 右親指 2 キー同時押し = 英数。
-// hold=修飾子・tap=IME 切替 の hold-tap (ime_kana/ime_eiji) 経由。
+// The keymap's combos, included in its combos { } node. The two lower thumb
+// keys of a hand together: tap = input source (left kana, right English),
+// hold = a modifier pair, through the ime_kana / ime_eiji hold-taps.
 
-    // 左親指 (LL+LM) → かな入力へ
     combo_kana {
       key-positions = <KEY_POSITION_LL KEY_POSITION_LM>;
       bindings = <&ime_kana LS(LEFT_COMMAND) KANA>;
     };
-    // 右親指 (RM+RR) → 英数入力へ
     combo_eiji {
       key-positions = <KEY_POSITION_RM KEY_POSITION_RR>;
       bindings = <&ime_eiji LC(LALT) EIJI>;

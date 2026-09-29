@@ -88,8 +88,8 @@ imprint_dongle は Cyboard 上流入り済み、Prospector Dongle の shield は
 Imprint Dongle（2026-09-27 以降の image）は、リセットのダブルタップの代わりに CDC
 ポートを 1200 baud で開いてもブートローダへ入る（Prospector Dongle と同じ仕組み。
 1200 baud 対応前の image から上げる初回だけダブルタップ）。Claude Code が焼くときは
-ポートを製品名 `Imprint Dongle` で探し、マウントした `XIAO-SENSE` の USB location /
-serial が Imprint Dongle のものだと確かめてから `cp -X` する。`flash-watch.sh` /
+`./scripts/flash-dongle.sh imprint_dongle`（ポートを製品名 `Imprint Dongle` で探し、マウントした
+`XIAO-SENSE` の USB location が Imprint Dongle のものだと確かめてから `cp -X` する）。`flash-watch.sh` /
 `flash-reset.sh` の実行中はどちらのポートも 1200 baud で開かない。
 
 NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset` で
@@ -111,7 +111,7 @@ BLE 広告で流す状態から左右半体の電池を表示する。受信す�
 
 焼き方（`flash-watch.sh` は使わない）:
 
-- 通常は `./scripts/flash-prospector.sh`（既定 `firmware/prospector.uf2`）。
+- 通常は `./scripts/flash-dongle.sh prospector`（`firmware/prospector.uf2`）。
   ポートを 1200 baud で開いてブートローダへ入れ、`cp -X` し、再列挙まで待つ
   （2026-09-26 実機で 2 回連続成功、1 回 8 秒前後）。表示が正しいかは目視で確認する。
 - 1200 baud 対応前の版（USB 給電のみ）から上げる初回と、スクリプトが失敗したときは手動:
@@ -123,7 +123,7 @@ BLE 広告で流す状態から左右半体の電池を表示する。受信す�
 **Imprint Dongle と同じ `XIAO-SENSE` ブートローダ**なので、2 台を同時にブートローダへ
 入れない。`flash-watch.sh` / `flash-reset.sh` は XIAO を見ると `imprint_dongle.uf2` を
 焼くため、実行中は Prospector Dongle をブートローダに入れず、ポートを 1200 baud で
-開かない（`flash-prospector.sh` はその間は起動を拒否する）。
+開かない（`flash-dongle.sh` はその間は起動を拒否する）。
 
 zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー無し・touch 未配線）
 向け: 明るさ固定 80%・touch 無し。`config/prospector.conf` はこの manifest の都合
@@ -133,7 +133,7 @@ zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー�
 `CONFIG_BEACON_READINGS_HP_BAR=y`）と、その上の GIF アニメ。GIF アニメ（手元専用）:
 `./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` で HP バーの上の領域いっぱいに
 GIF を載せた `firmware/prospector-sprite.uf2` を作り（`CONFIG_BEACON_SPRITE_FILL=y`）、
-`./scripts/flash-prospector.sh firmware/prospector-sprite.uf2` で焼く。GIF は
+`./scripts/flash-dongle.sh firmware/prospector-sprite.uf2` で焼く。GIF は
 git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
 入らないので、それを焼くとアニメは消え、HP バーだけになる。アニメは打鍵が無い間は GIF
 本来の 0.75 倍の速さで動き続け、キーを押している間は（左右どちらの半体でも、どのキーでも）

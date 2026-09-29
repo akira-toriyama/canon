@@ -92,9 +92,10 @@ re-pairing procedure is in [docs/dongle-roadmap.md](docs/dongle-roadmap.md).
 The Imprint Dongle (images from 2026-09-27 on) also enters the bootloader when
 its CDC port is opened at 1200 baud, the Prospector Dongle's mechanism, so a
 reset double-tap is needed only the first time, coming from an image without
-that entry. When Claude Code flashes it, it finds the port by the product string
-`Imprint Dongle` and copies with `cp -X` only after checking that the mounted
-`XIAO-SENSE` carries the Imprint Dongle's USB location and serial. Never open
+that entry. Claude Code flashes it with `./scripts/flash-dongle.sh imprint_dongle`, which
+finds the port by the product string `Imprint Dongle` and copies with `cp -X`
+only after checking that the mounted `XIAO-SENSE` carries the Imprint Dongle's
+USB location. Never open
 either dongle's port at 1200 baud while `flash-watch.sh` / `flash-reset.sh`
 runs.
 
@@ -115,8 +116,8 @@ without a reading; grey `--` when nothing arrived for a minute).
 
 Flashing (not with `flash-watch.sh`):
 
-- Normally `./scripts/flash-prospector.sh` (default
-  `firmware/prospector.uf2`): it opens the port at 1200 baud to enter
+- Normally `./scripts/flash-dongle.sh prospector`
+  (`firmware/prospector.uf2`): it opens the port at 1200 baud to enter
   the bootloader, copies with `cp -X` and waits for the device to re-enumerate
   (two runs in a row on hardware 2026-09-26, about 8 s each). Check the
   display yourself.
@@ -133,7 +134,7 @@ Flashing (not with `flash-watch.sh`):
 both dongles into bootloader at the same time, and never put the Prospector
 Dongle into bootloader or open its port at 1200 baud while `flash-watch.sh` /
 `flash-reset.sh` is running (those copy `imprint_dongle.uf2` onto any XIAO
-mount; `flash-prospector.sh` refuses to start then).
+mount; `flash-dongle.sh` refuses to start then).
 
 zmk-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
 sensor, touch panel unwired): fixed 80% brightness, no touch.
@@ -143,7 +144,7 @@ sensor, touch panel unwired): fixed 80% brightness, no touch.
 GIF animation (local builds only):
 `./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` builds
 `firmware/prospector-sprite.uf2` with the GIF above the battery readings;
-flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
+flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
 Keep the GIF in the git-ignored `assets/` and never commit it. The CI / release
 `prospector.uf2` has no animation, so flashing it removes the sprite. The
 sprite always plays at 150 % of the GIF's own tempo, with no link to the

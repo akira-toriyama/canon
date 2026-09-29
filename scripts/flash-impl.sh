@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# flash-watch.sh / flash-reset.sh の共通実装。
-# /Volumes/ を監視し UF2 ブートローダのマウントを検出して順に firmware を copy:
+# The body of flash-watch.sh and flash-reset.sh: watch /Volumes for UF2
+# bootloader mounts and copy the firmware in order:
 #   1st assimilator-bt mount → imprint_left<SUFFIX>.uf2
 #   2nd assimilator-bt mount → imprint_right<SUFFIX>.uf2
 #   XIAO BLE mount           → imprint_dongle<SUFFIX>.uf2
-# 3 台すべて書き込んだら終了する。
+# Exits once all three are written. Any XIAO mount gets the Imprint Dongle's
+# image, the Prospector Dongle's too: flash that one with flash-dongle.sh, and
+# never while this runs.
 #
-# 引数:
-#   $1 SUFFIX         firmware ファイル名の suffix（通常 "" / NVS リセット "_RESET"）
-#   $2 DONE_NOTE      各デバイス完了行の文言（例 "flashed (device will reboot)"）
-#   $3 ALL_DONE_NOTE  最終 ALL DONE 行の末尾に付ける文言（例 " (NVS wiped)"）
-#   $4 MODE           "normal"（通常焼き）/ "reset"（NVS 全消去・追加警告つき）
-#   以降 [--yes|-y]   確認をスキップ（コピペ一発復旧 / Claude / CI 用）
+# Arguments:
+#   $1 SUFFIX         firmware file name suffix ("" normal / "_RESET" NVS reset)
+#   $2 DONE_NOTE      text of each device's done line (e.g. "flashed (device will reboot)")
+#   $3 ALL_DONE_NOTE  appended to the final ALL DONE line (e.g. " (NVS wiped)")
+#   $4 MODE           "normal" / "reset" (wipes NVS, with an extra warning)
+#   then [--yes|-y]   skip the confirmation (one-paste recovery, Claude, CI)
 #
-# 安全 banner は毎回必ず出す。確認プロンプトは「タイプ不要（Enter のみ）」で、
-# --yes 指定時 or 非対話（非 TTY = Claude/CI）時は自動スキップしてハングしない。
+# The safety banner prints on every run. The confirmation takes Enter alone
+# (nothing to type) and is skipped with --yes or without a TTY on stdin
+# (Claude, CI), so it never hangs.
 
 set -u
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
@@ -32,31 +35,39 @@ for _arg in "$@"; do
   esac
 done
 
-# ── 安全 banner（誰が叩いても必ず出る。詳細復旧は docs/dongle-roadmap.md） ──
 cat >&2 <<'BANNER'
 ============================================================
- ⚠ imprint フラッシュ — 必ず確認
-   • ブートローダ = リセット "ダブルタップ"（シングルは再起動だけ＝bond は消えない）
-   • 左→右の順でブートローダへ（同じ基板＝マウント順で左右決定。dongle=XIAO は自動判別）
-   • 繋がらない時の復旧は手順A（ドングル抜き挿し・PC 不要）優先 → docs/dongle-roadmap.md
+ ⚠ imprint flash: read this first
+   • Bootloader = reset "double-tap" (a single tap only reboots; the bonds stay)
+   • Left, then right into the bootloader (one board: the mount order decides
+     left and right; the dongle, a XIAO, is told apart by itself)
+   • If they do not connect, try procedure A first (re-plug the dongle, no
+     computer needed) → docs/dongle-roadmap.md
 BANNER
 if [ "$MODE" = "reset" ]; then
   cat >&2 <<'BANNER'
-   ⚠⚠ これは NVS 全消去（bond/設定が全デバイスで消える）。消去後に通常版を焼き、
-      手順A（子機を先に広告 → 最後にドングル）で再ペアリングすること。
+   ⚠⚠ This wipes NVS (bonds and settings, on every device). Then flash the
+      normal images and re-pair with procedure A (the halves advertise
+      first, the dongle comes last).
 BANNER
 fi
 echo "============================================================" >&2
 
-# 確認（--yes / 非対話 はスキップ＝コピペ一発・Claude・CI で詰まらない。タイプ不要）
 if [ "$YES" -ne 1 ] && [ -t 0 ]; then
   if [ "$MODE" = "reset" ]; then
-    printf '%s' " NVS 全消去を実行します。Enter で続行 / Ctrl-C で中止 > " >&2
+    printf '%s' " This wipes NVS. Enter to go on / Ctrl-C to stop > " >&2
   else
-    printf '%s' " Enter で続行 / Ctrl-C で中止 > " >&2
+    printf '%s' " Enter to go on / Ctrl-C to stop > " >&2
   fi
   read -r || exit 130
 fi
+
+# The lock flash-dongle.sh takes: while this runs, that script cannot touch a
+# dongle into the bootloader, and this cannot start in the middle of its flash
+# (it would copy imprint_dongle.uf2 onto the volume being written).
+LOCK="/tmp/flash-dongle-$(id -u).lock"
+exec 9>>"$LOCK" || { echo "cannot open $LOCK" >&2; exit 1; }
+lockf -s -t 0 9 || { echo "flash-dongle.sh is flashing a dongle ($LOCK is held): run this afterwards" >&2; exit 1; }
 
 LEFT_DONE=0
 RIGHT_DONE=0
@@ -78,7 +89,7 @@ while true; do
     info=$(cat "$current/INFO_UF2.TXT" 2>/dev/null)
     name=$(basename "$current")
     echo "[$(ts)] DETECT mount=$name"
-    # shellcheck disable=SC2001  # 行頭インデント追加は sed が読みやすい
+    # shellcheck disable=SC2001  # indenting every line is clearest with sed
     echo "$info" | sed 's/^/         /'
 
     target=""

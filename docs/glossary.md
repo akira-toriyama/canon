@@ -102,7 +102,7 @@ only: it shows both halves' battery from the [[Imprint Dongle]]'s
 2026-09-26; before that it ran t-ogura's `prospector_scanner` shield). Over
 USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
 (no HID), and opening that port at 1200 baud reboots it into the UF2
-bootloader for `scripts/flash-prospector.sh` (both seen on hardware
+bootloader for `scripts/flash-dongle.sh` (both seen on hardware
 2026-09-26). It does not replace the Imprint Dongle.
 - Config: [`config/prospector.conf`](../config/prospector.conf) (canon's
   additions only); the shield's own defaults live in zmk-beacon, pinned by
@@ -204,7 +204,7 @@ AUTO-GENERATED ブロックを生成、`verify-eiji-sync.yml` が CI で厳密�
 `0x21` も同居）で送る [[behavior]]。`&vkey <id>` を press で
 id・release で 0 を送り、[[host bridge]]（chord）が IOHIDManager で受けて action に
 マップする。[[keymap]] は `&vkey` ノードを
-[`config/vkey_behavior.dtsi`](../config/vkey_behavior.dtsi) から `#include` する。
+[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) に置く。
 - 単一ソース: `&vkey <id>`（[`config/imprint.keymap`](../config/imprint.keymap)）から
   [`scripts/gen-vkey-aliases.py`](../scripts/gen-vkey-aliases.py) が
   [`config/vkey-aliases.toml`](../config/vkey-aliases.toml) を生成（id 帯 `0x01` /
@@ -228,7 +228,15 @@ index。NVS リセットで振り直し。ソース確認 2026-09-25: `app/src/b
   [`patches/zmk/README.md`](../patches/zmk/README.md)）。有効化は
   [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) の
   `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_{FETCHING,HID}=y`。
-- 計測: [`scripts/battery-log.py`](../scripts/battery-log.py)（`--logging` ビルドの dongle ログから残量行だけを抽出）。
+- Measuring: each report's level (`Peripheral <slot> battery level <n>`, from
+  the patch) and the halves' connects and disconnects are ZMK LOG_DBG lines,
+  which a plain `--logging` image (ZMK at INFO) compiles out. Build
+  `./scripts/build-zmk.sh imprint_dongle --logging --kconfig CONFIG_ZMK_LOGGING_MINIMAL=n`
+  and read it with `python3 scripts/dongle.py log imprint_dongle --seconds N
+  --grep '(?i)battery level|connected|disconnected'` (the full filter of the
+  removed battery-log.py is in the message of the commit that removed it). On a
+  plain `--logging` image the only battery line is zmk-beacon's once-a-minute
+  broadcaster line: `--grep 'battery [0-9]+/[0-9]+'`, N of 60 or more.
 - **Don't call it:** BAS, battery service, battery notification, 電池通知, 残量通知, バッテリーレポート
 
 ### status advertisement

@@ -61,7 +61,7 @@ dongle = BLE central / 左右 = peripheral。bond が残った子機は「昔の
 **非対称**になると沈黙する（`security failed (err 2)` / slot 予約失敗）。だから「リセット連打」
 では永遠に直らない（同じ NVS を読み直すだけ）。`flash-watch.sh` / `flash-reset.sh` は imprint
 専用（XIAO を見ると `imprint_dongle` を焼く）＝**ist（別 repo の受信ドングル）や Prospector Dongle の
-XIAO には使わない**（Prospector Dongle は `flash-prospector.sh`、初回と失敗時は README の手順で
+XIAO には使わない**（Prospector Dongle は `flash-dongle.sh prospector`、初回と失敗時は README の手順で
 `cp -X` 手動。ブートローダ volume も同じ `XIAO-SENSE` なので 2 台を同時にブートローダへ入れない）。
 
 ### 自動回復（既に有効）と検討した予防策
@@ -144,7 +144,7 @@ canon 内の作業は「PR マージまでの中継」として運用する。
   を repo 管理化、`scripts/build-zmk.sh` がビルド時に冪等適用する。
   詳細は [`patches/zmk/README.md`](../patches/zmk/README.md)。
   upstream(C案)がマージされたら本 patch ディレクトリごと畳む。
-- **Phase 6: RGB**: `config/imprint_dongle.conf` の `ZMK_RGB_UNDERGLOW=n`
+- **Phase 6: RGB**: `config/imprint.conf` の `ZMK_RGB_UNDERGLOW=n`
   を見直し。dongle に LED 無しなので peripheral 側のみ復活が現実的。
   ユーザー個人は RGB を常時 off で運用しており実機検証手段が無いため
   優先度低。
@@ -183,11 +183,6 @@ canon 内の作業は「PR マージまでの中継」として運用する。
   flush delay の Kconfig 化付きで上流提案中。対応 patch:
   [`patches/zmk/usb-hid-prime-on-ready.patch`](../patches/zmk/usb-hid-prime-on-ready.patch)。
   関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
-- **(オプション) xiao_ble の MPU_ALLOW_FLASH_WRITE 警告**: xiao_ble の
-  defconfig が NVS 必須設定を含んでおらず、user-config 側で個別に
-  揃える必要がある。これは Zephyr 側の問題寄りなので、ZMK で
-  ドキュメント追加するか、ZMK board variant (`xiao_ble//zmk`) 側で
-  defconfig を補強するかが議論ポイント。
 
 ## ZMK source patch (out-of-tree)
 
@@ -217,7 +212,11 @@ canon 内の作業は「PR マージまでの中継」として運用する。
 - `xiao_ble` の Zephyr defconfig は flash/NVS 関連 Kconfig を含まない。
   `MPU_ALLOW_FLASH_WRITE=y` が無いと NVS 書き込みが silent fail し、bond
   保存が壊れる。assimilator-bt 側には board defconfig で入っているので
-  気付きにくい。
+  気付きにくい。This is the plain Zephyr `xiao_ble` board: canon builds
+  `xiao_ble/nrf52840/zmk`, whose ZMK
+  `app/boards/seeed/xiao_ble/xiao_ble_zmk_defconfig` sets
+  MPU_ALLOW_FLASH_WRITE, NVS, SETTINGS_NVS, FLASH, FLASH_MAP and
+  FLASH_PAGE_LAYOUT, so `config/imprint_dongle.conf` does not.
 - ZMK は board variant 機構(Zephyr 4.1〜)を導入済み。素の `xiao_ble` で
   なく **`xiao_ble/nrf52840/zmk`** を build.yaml で指定する必要がある。
   指定しないと CI が "Missing ZMK Compat" でエラー終了する。

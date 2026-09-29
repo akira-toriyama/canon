@@ -1,15 +1,12 @@
-# canon = 自分の ZMK ファーム repo。1 製品 3 ターゲット + companion 1 ターゲット:
-#   imprint (キーボード): assimilator-bt + imprint_left / imprint_right
-#                        / xiao_ble/nrf52840/zmk + imprint_dongle
-#   prospector (Prospector Dongle): xiao_ble/nrf52840/zmk + prospector
-#                        (shield from the zmk-beacon module). BLE observer that
-#                        displays the Imprint Dongle's status advertisement.
-#                        Not a split central; never pairs or advertises.
-# このファイルが board/shield 一覧の唯一のソース＝「all」ビルド（CI 通常ビルド
-# .github/workflows/build.yml と Release ビルド release.yml が共通参照する）。
-# 追加・改名時はここを編集するだけで両方追従する。サブセットはローカル
-# build-zmk.sh の shield 指定で。
-# west.yml の特殊事情（@main 固定不可・HWv2 依存）は CLAUDE.md を参照。
+# The one list of build targets: the CI and release builds
+# (.github/workflows/zmk-build.yml) and scripts/build-zmk.sh read it. The
+# release attaches only the images on the allowlist in release.yml, so a
+# target added or renamed here goes there too.
+#   imprint (the keyboard): imprint_left / imprint_right on assimilator-bt, and
+#     the Imprint Dongle, imprint_dongle on xiao_ble/nrf52840/zmk
+#   prospector (the Prospector Dongle): zmk-beacon's shield on
+#     xiao_ble/nrf52840/zmk, a BLE observer of the Imprint Dongle's status
+#     advertisement; not a split central, it never pairs or advertises
 ---
 include:
   - board: assimilator-bt

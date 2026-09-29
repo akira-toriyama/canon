@@ -1,16 +1,15 @@
-// EIJI 切替 → 数字 / 記号キー用の専用 behavior 群
-// macros { } ブロック内に #include して使う
-// EN_MACRO マクロは keymap_defines.h で定義
+// One EN_MACRO (behavior_macros.h) per digit and symbol, included at the end
+// of macros.dtsi, inside the keymap's macros { } node.
 //
-// ─── このファイルは「手書きの単一ソース」───────────────
-// 反映先（生成物）: keymap_drawer.config.yaml の raw_binding_map > en_*
-// 生成スクリプト : scripts/gen-eiji-drawer-map.py（stdlib のみ）
-// 同期検証 (CI) : .github/workflows/verify-eiji-sync.yml
-//
-// 追加・削除・リネーム時はこのファイルを編集し、上記スクリプトを再実行する。
-// 各行末の `disp:[X]` が keymap-drawer 上の表示文字（唯一のソース）。
+// The single source of the en_* keymap-drawer labels: the `disp:[X]` at the
+// end of each line is the label, and scripts/gen-eiji-drawer-map.py copies
+// them into the AUTO-GENERATED block of keymap_drawer.config.yaml, the section
+// comments below as its headings (the script finds a section comment by its
+// "(<NAME>_LAYER)" ending). .github/workflows/verify-eiji-sync.yml checks the
+// block against this file: after adding, removing or renaming a line, rerun
+// the script.
 
-    // EIJI 切替 → 数字キー（NUMBER_LAYER 用）
+    // EIJI, then a digit (NUMBER_LAYER)
     EN_MACRO(en_0, N0)  // disp:[0]
     EN_MACRO(en_1, N1)  // disp:[1]
     EN_MACRO(en_2, N2)  // disp:[2]
@@ -22,7 +21,7 @@
     EN_MACRO(en_8, N8)  // disp:[8]
     EN_MACRO(en_9, N9)  // disp:[9]
 
-    // EIJI 切替 → 記号キー（SYMBOL1_LAYER 用）
+    // EIJI, then a symbol (SYMBOL1_LAYER)
     EN_MACRO(en_under, UNDERSCORE)     // disp:[_]
     EN_MACRO(en_pipe,  PIPE)           // disp:[|]
     EN_MACRO(en_amp,   AMPERSAND)      // disp:[&]
@@ -40,7 +39,7 @@
     EN_MACRO(en_slash, SLASH)          // disp:[/]
     EN_MACRO(en_bsl,   BACKSLASH)      // disp:[\]
 
-    // EIJI 切替 → 記号キー（SYMBOL2_LAYER 用）
+    // EIJI, then a symbol (SYMBOL2_LAYER)
     EN_MACRO(en_caret,  CARET)         // disp:[^]
     EN_MACRO(en_lt,     LESS_THAN)     // disp:[<]
     EN_MACRO(en_gt,     GREATER_THAN)  // disp:[>]

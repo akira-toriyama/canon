@@ -87,8 +87,8 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   検証する。マーカー間を手編集しない。変更は dtsi を直し
   `python3 scripts/gen-eiji-drawer-map.py` を再実行（stdlib のみ）。
 - **単一ソース規約（vkey alias）**: [config/imprint.keymap](config/imprint.keymap) の
-  `&vkey <id>` が唯一のソース。keymap は `&vkey` behavior ノードを
-  [config/vkey_behavior.dtsi](config/vkey_behavior.dtsi) から `#include` する。
+  `&vkey <id>` が唯一のソース。The `&vkey` behavior node lives in
+  [config/imprint_behaviors.dtsi](config/imprint_behaviors.dtsi).
   生成物 [config/vkey-aliases.toml](config/vkey-aliases.toml)
   （host bridge [`chord`](https://github.com/akira-toriyama/chord) の `[v-key-aliases]` へ貼る用）は
   [scripts/gen-vkey-aliases.py](scripts/gen-vkey-aliases.py) が keymap を走査して id を復号し生成、
@@ -107,14 +107,17 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `boards/shields/imprint_dongle/Kconfig.defconfig` → `ZMK_KEYBOARD_NAME` →
   `USB_DEVICE_PRODUCT`). Do not override `CONFIG_ZMK_KEYBOARD_NAME` for the
   dongle in `config/`, and if upstream renames it, change chord's `productName`
-  in the same change.
+  and `DEVICES` in [scripts/dongle.py](scripts/dongle.py) in the same change
+  (flash-dongle.sh checks images and finds the dongle by that string, and
+  `dongle.py list` / `log` find it the same way).
 - **The Cyboard module defaults `ZMK_RGB_UNDERGLOW=y` for every build in the
   manifest**: `boards/shields/imprint/Kconfig.defconfig` in `zmk-keyboards` puts
   that default outside its `if SHIELD_…` guard, so a target with no
   `zmk,underglow` chosen node fails in `rgb_underglow.c` with `#error`. Every
   non-imprint target needs `CONFIG_ZMK_RGB_UNDERGLOW=n` in its conf
-  ([config/prospector.conf](config/prospector.conf) has it, as does
-  `imprint_dongle.conf`). Measured 2026-09-25 on the first Prospector build.
+  ([config/prospector.conf](config/prospector.conf) has it; `config/imprint.conf`
+  covers imprint_left, imprint_right and imprint_dongle, because ZMK reads the
+  conf of every shield-name prefix). Measured 2026-09-25 on the first Prospector build.
 - **The Imprint Dongle builds with `CONFIG_BT_EXT_ADV`** (selected by
   `CONFIG_BEACON_STATUS_BROADCAST`) and needs `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`
   in [config/imprint_dongle.conf](config/imprint_dongle.conf): the status
@@ -132,10 +135,13 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   `flash-watch.sh` / `flash-reset.sh` copy `imprint_dongle.uf2` onto any XIAO
   mount**: never put the Prospector Dongle into its bootloader while either is
   running, and never have both dongles in bootloader at the same time. Flash
-  `prospector.uf2` with `scripts/flash-prospector.sh`, which refuses to
-  start while either runs or while `XIAO-SENSE` is already mounted, checks both
-  again before the copy, and copies only when the disk behind `XIAO-SENSE`
-  belongs to the USB device at the Prospector Dongle's USB `locationID` (the
+  either dongle with `scripts/flash-dongle.sh <image.uf2 | prospector |
+  imprint_dongle>` (`--dry-run` shows the plan, `--wait N` waits for a dongle a
+  KVM switch hid). It takes the device from the USB product string inside the
+  image, refuses to start while another flash-dongle.sh runs (one lock for
+  both dongles, which flash-impl.sh takes too), while either runs or while
+  `XIAO-SENSE` is already mounted, checks both again before the copy, and copies only when the disk
+  behind `XIAO-SENSE` belongs to the USB device at that dongle's `locationID` (the
   bootloader enumerates with the app's `locationID` and USB serial, both taken
   from the port and the chip: seen on hardware 2026-09-26). The first image
   with the 1200 baud entry, and any run the script fails, go on by double-tap +
@@ -150,24 +156,22 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   Script-only flashes on hardware 2026-09-26: two with the patch, four with
   zmk-beacon images; bootloader 0.6.1, about 2.5 s from the touch to the
   mounted volume). Any program that sets
-  that rate does it, not only `flash-prospector.sh` (Arduino-style uploaders,
+  that rate does it, not only `flash-dongle.sh` (Arduino-style uploaders,
   a serial monitor at 1200), so never do it while `flash-watch.sh` /
   `flash-reset.sh` run: they
   would copy `imprint_dongle.uf2` onto it. Find the port by the USB product
   string `Prospector Dongle` (the contract between `CONFIG_USB_DEVICE_PRODUCT`
-  in zmk-beacon's `boards/shields/prospector/prospector.conf` and `PRODUCT` in
-  the script), never by VID/PID (the Imprint Dongle's pair) or by a
+  in zmk-beacon's `boards/shields/prospector/prospector.conf` and `DEVICES` in
+  [scripts/dongle.py](scripts/dongle.py)), never by VID/PID (the Imprint Dongle's pair) or by a
   `/dev/cu.usbmodem*` name (derived from the USB location, e.g. `211201` for
   location `0x02112000`, ioreg 2026-09-26). Since 2026-09-27 the Imprint
   Dongle's CDC port has the same handler (`CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD=y`
   in [config/imprint_dongle.conf](config/imprint_dongle.conf); the product
-  image carries that port even without logging). Flash it the same way: find
-  the port by the product string `Imprint Dongle` (on this Mac location
-  `0x02112000`, serial `E49630484A277DFD`, ioreg 2026-09-27), touch 1200, wait
-  for `XIAO-SENSE`, and `cp -X` only when the disk behind it carries that
-  location and serial (the bootloader keeps both). Right after the mount
-  `diskutil info` can still answer "Could not find disk": retry until it names
-  the disk (seen once on 2026-09-27). The first image with the entry, coming
+  image carries that port even without logging). Flash it with
+  `./scripts/flash-dongle.sh imprint_dongle`: the same guarded steps, with the
+  owner check done by df + ioreg rather than `diskutil info`, which can answer
+  "Could not find disk" right after the mount (seen once on 2026-09-27). The
+  bootloader keeps the app's USB location and serial. The first image with the entry, coming
   from a product image without it, goes on by double-tap. Measured 2026-09-27
   with the t-eray images: touch to mount 2.4-2.6 s, copy 9.5-12.2 s,
   re-enumeration 0.7-1.3 s.
@@ -189,7 +193,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
 - **The Prospector Dongle's GIF sprite is a local-only build of a personal
   file**: `./scripts/build-zmk.sh prospector --sprite <gif>` embeds the GIF
   (zmk-beacon `CONFIG_BEACON_SPRITE_GIF`) into `firmware/prospector-sprite.uf2`;
-  flash it with `./scripts/flash-prospector.sh firmware/prospector-sprite.uf2`.
+  flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
   The user keeps the GIF in `assets/` of the main checkout, whose rules are in
   [assets/README.md](assets/README.md) (`.gitignore`: `/assets/*` except that
   README and `sprite-name.sh`, and `*.[gG][iI][fF]` anywhere; each file's
@@ -206,7 +210,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   in west's message on a failed configure step, reproduced 2026-09-29),
   printing only its length.
   The CI / release `prospector.uf2` carries no sprite and no name, so
-  flashing it (the default of `flash-prospector.sh`) removes both from the
+  flashing it (`./scripts/flash-dongle.sh prospector`) removes both from the
   device and the HP bar's box shrinks from 46 px to 28 px. The screen's
   layout is chosen in [config/prospector.conf](config/prospector.conf):
   `CONFIG_BEACON_SPRITE_FILL=y` (the sprite fills the space above the
@@ -245,6 +249,23 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   gitignore 済）。`--sprite <gif>` builds `prospector-sprite.uf2` with a GIF
   sprite (local only; see the sprite item under 壊しやすい点)。詳細は
   [scripts/build-zmk.sh](scripts/build-zmk.sh) 冒頭。
+- Debugging builds: `--beacon <zmk-beacon checkout>` builds against a local
+  zmk-beacon instead of the pin (never edit the cached clone: every other build
+  checks it out at the pin first); `--kconfig CONFIG_X=V` and `--tag <name>`
+  make variant images. `--beacon` and `--kconfig` images carry `-beacon` /
+  `-kconfig`, so a bare `<shield>.uf2`, which flash-watch.sh, flash-reset.sh
+  and `flash-dongle.sh <device>` take, is always a pinned build. `--logging`
+  images carry a 4 KiB CDC ring at ZMK's INFO level; ZMK's split battery and
+  connection lines are DEBUG only (`--kconfig CONFIG_ZMK_LOGGING_MINIMAL=n`).
+  Each run ends with the images' sha256, FLASH and RAM, and the
+  revisions built. The steps inside the container are
+  [scripts/zmk-west.sh](scripts/zmk-west.sh), which CI runs too.
+- Devices: `python3 scripts/dongle.py list` shows both dongles (port, USB
+  location, serial, who holds the port); `python3 scripts/dongle.py log
+  <prospector|imprint_dongle> --seconds N` reads a `--logging` image at 115200
+  and exits by itself (key-event lines dropped unless `--raw`; never write raw
+  logs into the repository). Never open a dongle port at 1200 baud (bootloader)
+  or 2400 baud (reserved).
 - CI: PR / push:main で [build.yml](.github/workflows/build.yml)。実体は
   **canon ローカルの reusable [zmk-build.yml](.github/workflows/zmk-build.yml)**
   に委譲し、`patches/zmk/*`（vkey 等）と `patches/zephyr/*`（usb-hid-country-code）を

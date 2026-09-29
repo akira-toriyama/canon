@@ -1,11 +1,12 @@
 name: Verify vkey aliases sync
 
-# config/imprint.keymap の &vkey <id> を単一ソースとし、生成物
-# config/vkey-aliases.toml（chord の [v-key-aliases] へ貼る用）がそこから生成された
-# 状態と一致するか、id が全て正しく復号できるかを検証する。キーマップ↔alias の
-# id 二重管理を排除する（eiji パターンと同型）。
+# config/imprint.keymap's &vkey <id> is the single source: the generated
+# config/vkey-aliases.toml (pasted into chord's [v-key-aliases]) must equal
+# what scripts/gen-vkey-aliases.py generates from it, and every id must decode.
 on:
+  # push only on main: a PR branch is checked once, through pull_request.
   push:
+    branches: [main]
     paths:
       - config/imprint.keymap
       - config/vkey-aliases.toml
@@ -16,6 +17,7 @@ on:
       - config/imprint.keymap
       - config/vkey-aliases.toml
       - scripts/gen-vkey-aliases.py
+      - .github/workflows/verify-vkey-sync.yml
   workflow_dispatch:
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions
@@ -31,8 +33,6 @@ jobs:
         with:
           # Verify-only, never pushes — drop the persisted checkout token. t-yaxa
           persist-credentials: false
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.x"
+      # The runner's python3 (stdlib only; the script needs 3.8+).
       - name: Check vkey aliases are in sync
         run: python3 scripts/gen-vkey-aliases.py --check

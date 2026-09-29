@@ -1,9 +1,12 @@
 name: Verify eiji map sync
 
-# config/eiji_macros.dtsi を単一ソースとし、keymap_drawer.config.yaml の
-# en_* ブロックがそこから生成された状態と一致するかを検証する。
+# config/eiji_macros.dtsi is the single source: the en_* block of
+# keymap_drawer.config.yaml must equal what scripts/gen-eiji-drawer-map.py
+# generates from it.
 on:
+  # push only on main: a PR branch is checked once, through pull_request.
   push:
+    branches: [main]
     paths:
       - config/eiji_macros.dtsi
       - keymap_drawer.config.yaml
@@ -14,6 +17,7 @@ on:
       - config/eiji_macros.dtsi
       - keymap_drawer.config.yaml
       - scripts/gen-eiji-drawer-map.py
+      - .github/workflows/verify-eiji-sync.yml
   workflow_dispatch:
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions
@@ -29,8 +33,6 @@ jobs:
         with:
           # Verify-only, never pushes — drop the persisted checkout token. t-yaxa
           persist-credentials: false
-      - uses: actions/setup-python@v7.0.0
-        with:
-          python-version: "3.x"
+      # The runner's python3 (stdlib only; the script needs 3.8+).
       - name: Check eiji_* mapping is in sync
         run: python3 scripts/gen-eiji-drawer-map.py --check

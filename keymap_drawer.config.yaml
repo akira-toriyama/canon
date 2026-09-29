@@ -1,9 +1,9 @@
 parse_config:
-  # config/keymap_defines.h で定義した #define を展開させる
+  # Expand the keymap's macros (config/behavior_macros.h and its includes).
   preprocess: true
-  # `&kp X` 用に頻出キーの表示名を上書き
+  # Labels of the keycodes in `&kp X`.
   zmk_keycode_map:
-    # 修飾子
+    # Modifiers
     LEFT_SHIFT: ⇧
     RIGHT_SHIFT: ⇧
     LEFT_CONTROL: ⌃
@@ -16,7 +16,7 @@ parse_config:
     RIGHT_COMMAND: ⌘
     LEFT_GUI: ⌘
     RIGHT_GUI: ⌘
-    # 編集系（フル/短縮 alias 両方）
+    # Editing keys, full and short aliases
     RETURN: ⏎
     RET: ⏎
     ENTER: ⏎
@@ -30,7 +30,7 @@ parse_config:
     SPACE: ␣
     INSERT: Ins
     INS: Ins
-    # 矢印
+    # Arrows and navigation
     UP_ARROW: ↑
     DOWN_ARROW: ↓
     LEFT_ARROW: ←
@@ -39,7 +39,7 @@ parse_config:
     END: ⤓
     PAGE_UP: ⇞
     PAGE_DOWN: ⇟
-    # NumPad 数字 (KP_NUMBER_* alias は本リポでは未使用なので省略)
+    # Keypad digits (the KP_NUMBER_* aliases are unused here)
     KP_N0: '0'
     KP_N1: '1'
     KP_N2: '2'
@@ -50,7 +50,7 @@ parse_config:
     KP_N7: '7'
     KP_N8: '8'
     KP_N9: '9'
-    # NumPad 記号
+    # Keypad symbols
     KP_PLUS: +
     KP_MINUS: '-'
     KP_ASTERISK: '*'
@@ -58,26 +58,27 @@ parse_config:
     KP_DOT: .
     KP_EQUAL: '='
     KP_ENTER: ⏎
-    # システム/特殊
+    # System and special keys
     NON_US_BACKSLASH: \
     NON_US_HASH: '#'
     K_APPLICATION: ☰
     APPLICATION: ☰
     PRINTSCREEN: PrtSc
     PAUSE_BREAK: Pause
-    # macOS の IME 切替 (base 最上段両端の &kp EIJI / &kp KANA が出力。
-    # combo_kana / combo_eiji 側は hold-tap 経由なので raw_binding_map で描画)
+    # macOS input source keys: &kp EIJI / &kp KANA at the ends of the base
+    # layer's top row. The combos go through hold-taps and are labelled in
+    # raw_binding_map.
     LANGUAGE_1: かな
     LANGUAGE_2: 英数
-  # 自作 macro / mod-morph の include 元
+  # Include path of the keymap's own headers and dtsi files.
   zmk_additional_includes:
     - config
   zmk_combos: {}
-  # `&kp` 以外の binding の表示名。
-  # &en_* ブロックは config/eiji_macros.dtsi から自動生成 (下記マーカー間)。
-  # scripts/gen-eiji-drawer-map.py / CI verify-eiji-sync.yml で同期を担保。
+  # Labels of bindings other than &kp. The &en_* entries between the markers
+  # are generated from config/eiji_macros.dtsi by
+  # scripts/gen-eiji-drawer-map.py (CI: verify-eiji-sync.yml).
   raw_binding_map:
-    # ポインティング / システム
+    # Pointing and system
     "&mkp MB1": 🖱L
     "&mkp MB2": 🖱R
     "&mkp MB3": 🖱M
@@ -87,7 +88,7 @@ parse_config:
     "&msc SCRL_DOWN": ⤋
     "&bootloader": ⚙ boot
     # === AUTO-GENERATED (scripts/gen-eiji-drawer-map.py from config/eiji_macros.dtsi) — do not edit ===
-    # EIJI 切替 → 数字キー（NUMBER_LAYER 用）
+    # EIJI, then a digit (NUMBER_LAYER)
     "&en_0":      '0'
     "&en_1":      '1'
     "&en_2":      '2'
@@ -99,7 +100,7 @@ parse_config:
     "&en_8":      '8'
     "&en_9":      '9'
 
-    # EIJI 切替 → 記号キー（SYMBOL1_LAYER 用）
+    # EIJI, then a symbol (SYMBOL1_LAYER)
     "&en_under":  '_'
     "&en_pipe":   '|'
     "&en_amp":    '&'
@@ -117,7 +118,7 @@ parse_config:
     "&en_slash":  '/'
     "&en_bsl":    '\'
 
-    # EIJI 切替 → 記号キー（SYMBOL2_LAYER 用）
+    # EIJI, then a symbol (SYMBOL2_LAYER)
     "&en_caret":  '^'
     "&en_lt":     '<'
     "&en_gt":     '>'
@@ -135,10 +136,10 @@ parse_config:
     "&en_lbrc":   '{'
     "&en_rbrc":   '}'
     # === END AUTO-GENERATED ===
-    # combo (ime_kana/ime_eiji の tap binding として呼ばれる)
+    # The taps of the ime_kana / ime_eiji hold-taps (the combos)
     "&kana": かな
     "&eiji": 英数
-  # keymap-drawer 上での修飾子の表記（mod-morph hold 中の keep-mods など）。
+  # Labels of the modifiers in modifier functions such as LS(LEFT_COMMAND).
   modifier_fn_map:
     left_ctrl: Ctl+
     right_ctrl: Ctl+
@@ -152,15 +153,17 @@ parse_config:
     mod_combiner: "{mod_1}{mod_2}"
 
 draw_config:
-  # 親指クラスタが横長なので、列をきつく詰めない
+  # Key size. With a physical layout (config/imprint.json) keymap-drawer takes
+  # key_h for the width too; key_w only sizes generated layouts (ortho_layout,
+  # cols_thumbs_notation).
   key_w: 56
   key_h: 56
   combo_w: 28
   combo_h: 22
-  # combo 数が少ないので、別エリアでなく該当レイヤーへオーバーレイ
+  # Few combos: draw them on their layer, not in separate diagrams.
   separate_combo_diagrams: false
-  # hold-tap の頭に "▼" を付ける等、見やすさ向上
+  # Curve radius of the combo dendrons.
   arc_radius: 6
-  # SVG 内のフォント
+  # Fonts of the SVG text; Hiragino Sans and Yu Gothic cover the kana labels.
   svg_extra_style: |
     text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
