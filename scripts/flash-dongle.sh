@@ -1,27 +1,43 @@
 #!/usr/bin/env bash
-# Flash the Prospector Dongle from the Mac alone, without a reset double-tap:
-#   1. check the image carries the USB product string "Prospector Dongle", then
-#      find the one USB device with that product string, its USB location and
-#      its /dev/cu.* port (ioreg)
+# Flash the Imprint Dongle or the Prospector Dongle from the Mac alone, without
+# a reset double-tap:
+#   1. the image names the device: its UF2 payload holds exactly one of the
+#      dongles' USB product strings, and its file name agrees; then find the
+#      one USB device with that product string, its USB location, serial and
+#      /dev/cu.* port (scripts/dongle.py holds the product strings and the
+#      ioreg lookups)
 #   2. set that port to 1200 baud (stty) → the firmware reboots into the UF2
 #      bootloader (CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD, zmk-beacon)
 #   3. wait for /Volumes/XIAO-SENSE and check that its disk belongs to the USB
-#      device at the Prospector Dongle's USB location
+#      device at the dongle's USB location
 #   4. cp -X the .uf2 → the volume disappears once the bootloader has taken the
 #      image and rebooted
-#   5. wait for "Prospector Dongle" to enumerate again with its /dev/cu.* port
+#   5. wait for the product string to enumerate again with its /dev/cu.* port
 #
-#   ./scripts/flash-prospector.sh              # firmware/prospector.uf2
-#   ./scripts/flash-prospector.sh firmware/prospector-logging.uf2
+#   ./scripts/flash-dongle.sh prospector        # firmware/prospector.uf2
+#   ./scripts/flash-dongle.sh imprint_dongle    # firmware/imprint_dongle.uf2
+#   ./scripts/flash-dongle.sh firmware/prospector-sprite.uf2
+#   ./scripts/flash-dongle.sh --dry-run ../zmk-beacon/firmware/prospector.uf2
 #
-# Only firmware/prospector.uf2 or firmware/prospector-*.uf2 (a build variant
-# such as -logging; the prospector_scanner*.uf2 names are the t-ogura builds
-# before 2026-09-26) whose payload holds the product string
-# is accepted: any other image (the USB power-only one that predates the
-# 1200 baud handler, a renamed imprint_dongle.uf2) never enumerates as
-# "Prospector Dongle", so the next run could not find it. Re-enumeration shows
-# that such an image booted, not which one: the display is the user's check.
-# The first image with the handler goes on by double-tap + cp -X (README).
+#   --dry-run  run every check up to the 1200 baud touch, print the plan, exit 0
+#   --wait N   first poll up to N s for the dongle with its port (a KVM switch
+#              hides both dongles from this Mac)
+#   --reset    accept a *_RESET* image: it wipes the dongle's bonds on every
+#              boot, so flash the normal image right after (re-pairing the
+#              whole keyboard is flash-reset.sh's job)
+#
+# A bare device name means firmware/<device>.uf2 of this repository; any other
+# argument is an image path, from any directory. The payload decides the
+# device, and the file name must agree: <device>.uf2, <device>-*.uf2 (a build
+# variant such as -logging or -sprite) or <device>_RESET.uf2. The name keeps
+# out images that carry a product string but no 1200 baud entry (the
+# probe-*.uf2 spikes carry "Imprint Dongle"): they boot, and then strand the
+# next flash. An imprint_dongle*.uf2 built before 2026-09-27 lacks the entry
+# too. Re-enumeration shows that an image booted, not which one: the display
+# (Prospector Dongle) or typing (Imprint Dongle) is the user's check. The first
+# image with the entry goes on by double-tap + cp -X (README). The checks, the
+# hash and the copy all read one snapshot of the image, so a build that
+# rewrites it meanwhile cannot slip another image past them.
 #
 # Refuses to start while /Volumes/XIAO-SENSE is mounted or while
 # flash-watch.sh / flash-reset.sh run (both dongles mount as XIAO-SENSE, and
@@ -29,118 +45,30 @@
 # before the copy it checks for those scripts again, and step 3's identity
 # check stands in for the mount check.
 #
-# Exit status: 0 image copied, bootloader volume released and a
-# "Prospector Dongle" back on USB with its port / 1 failed / 2 usage.
+# Exit status: 0 image copied, bootloader volume released and the dongle back
+# on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage.
 
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)" || exit 1
 
-# Contract with CONFIG_USB_DEVICE_PRODUCT in zmk-beacon's
-# boards/shields/prospector/prospector.conf (pinned in config/west.yml).
-PRODUCT="Prospector Dongle"
 VOL="/Volumes/XIAO-SENSE"
 STTY_TIMEOUT_S=5
 BOOT_TIMEOUT_S=20
 COPY_TIMEOUT_S=120
 WRITE_TIMEOUT_S=120
 ENUM_TIMEOUT_S=30
-STRANDED="The Prospector Dongle may be left in its bootloader: finish it by hand (double-tap + cp -X, README) or unplug it before flash-watch.sh or flash-reset.sh runs."
+USAGE="usage: flash-dongle.sh [--dry-run] [--wait SECONDS] [--reset] <image.uf2 | prospector | imprint_dongle>"
+STRANDED=""
 
 ts() { date +%H:%M:%S; }
 say() { echo "[$(ts)] $*"; }
 die() { echo "[$(ts)] ERROR $*" >&2; exit 1; }
 die_touched() { die "$* $STRANDED"; }
+refuse() { echo "refusing $UF2_ARG: $*" >&2; exit 2; }
 now_ms() { python3 -c 'import time; print(int(time.time() * 1000))'; }
 secs() { awk -v a="$1" -v b="$2" 'BEGIN { printf "%.1fs", (b - a) / 1000 }'; }
-
-# ioreg lookups, one line per hit, fields split by US (0x1f; a tab would
-# collapse empty fields under IFS). A USB device prints as
-#   product US serial US sessionID US locationID
-# with product and serial the descriptor strings (kUSB*String; "USB Product
-# Name" is macOS's sanitised copy, "-" becomes "_").
-#   product NAME  every USB device whose product string is NAME (IOUSB plane:
-#                 no class subtrees, so it stays fast behind USB disks)
-#   ports SESSION the /dev/cu.* paths whose nearest USB device ancestor has
-#                 that sessionID, space separated
-#   disk BSDNAME  the USB device that is the nearest ancestor of that IOMedia
-# -t prints each match with its ancestors, so the nearest IOUSBHostDevice on
-# the path is the device the port or disk belongs to.
-ioq() {
-  python3 - "$1" "$2" <<'PY'
-import plistlib, subprocess, sys
-
-def ioreg(*args):
-    raw = subprocess.run(["ioreg", "-a", *args], capture_output=True, check=True).stdout
-    roots = plistlib.loads(raw) if raw.strip() else []
-    return roots if isinstance(roots, list) else [roots]
-
-def children(node):
-    kids = node.get("IORegistryEntryChildren", [])
-    return [kids] if isinstance(kids, dict) else kids  # -t: a lone child is a dict
-
-def walk(node, usb=None):
-    if node.get("IOObjectClass") == "IOUSBHostDevice":
-        usb = node
-    yield node, usb
-    for kid in children(node):
-        yield from walk(kid, usb)
-
-def device(dev):
-    return "\x1f".join([str(dev.get("kUSBProductString", "")),
-                        str(dev.get("kUSBSerialNumberString", "")),
-                        str(dev.get("sessionID", "")),
-                        "0x%08x" % dev.get("locationID", 0)])
-
-cmd, arg = sys.argv[1], sys.argv[2]
-lines = []
-if cmd == "product":
-    for root in ioreg("-p", "IOUSB", "-l"):
-        for node, usb in walk(root):
-            if node is usb and node.get("kUSBProductString") == arg:
-                lines.append(device(node))
-elif cmd == "ports":
-    ports = set()
-    for root in ioreg("-r", "-t", "-c", "IOSerialBSDClient", "-l"):
-        for node, usb in walk(root):
-            if "IOCalloutDevice" in node and usb is not None and str(usb.get("sessionID")) == arg:
-                ports.add(node["IOCalloutDevice"])
-    if ports:
-        lines.append(" ".join(sorted(ports)))
-elif cmd == "disk":
-    for root in ioreg("-r", "-t", "-c", "IOMedia", "-l"):
-        for node, usb in walk(root):
-            if node.get("BSD Name") == arg and usb is not None:
-                lines.append(device(usb))
-else:
-    sys.exit("ioq: unknown query " + cmd)
-for line in dict.fromkeys(lines):
-    print(line)
-PY
-}
-
-# Exit 0 when the UF2's payload holds $2, 1 when not, 2 when $1 is no UF2.
-# Payloads are joined in target-address order, so a string that straddles two
-# blocks still matches.
-uf2_holds() {
-  python3 - "$1" "$2" <<'PY'
-import struct, sys
-
-data = open(sys.argv[1], "rb").read()
-if not data or len(data) % 512:
-    sys.exit(2)
-chunks = {}
-for off in range(0, len(data), 512):
-    block = data[off:off + 512]
-    magic0, magic1, _flags, addr, size = struct.unpack_from("<5I", block)
-    (magic_end,) = struct.unpack_from("<I", block, 508)
-    if (magic0, magic1, magic_end) != (0x0A324655, 0x9E5D5157, 0x0AB16F30) or size > 476:
-        sys.exit(2)
-    chunks[addr] = block[32:32 + size]
-image = b"".join(chunks[a] for a in sorted(chunks))
-sys.exit(0 if sys.argv[2].encode() in image else 1)
-PY
-}
+dongle() { python3 "$REPO/scripts/dongle.py" "$@"; }
 
 # Runs "$@" for at most $1 s with its stderr in file $2. BOUNDED_RC gets the
 # exit status, or 124 once it had to be killed. A process that survives SIGKILL
@@ -166,78 +94,114 @@ run_bounded() {
   BOUNDED_RC=$?
 }
 
-# The /dev node mounted exactly at $1 (diskN or diskNsM), empty when $1 is not
-# a mount point (df then names the enclosing file system).
-mounted_disk() {
-  df -P "$1" 2>/dev/null | awk -v m="$1" 'NR == 2 && $NF == m { sub(/^\/dev\//, "", $1); print $1 }'
-}
-
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
+DRY_RUN=0
+RESET=0
+WAIT_S=0
 UF2_ARG=""
-for arg in "$@"; do
-  case "$arg" in
+while [ $# -gt 0 ]; do
+  case "$1" in
     -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "${BASH_SOURCE[0]}"; exit 0 ;;
-    -*) echo "unknown option: $arg" >&2; exit 2 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --reset) RESET=1 ;;
+    --wait)
+      [[ "${2:-}" =~ ^[0-9]+$ ]] || { echo "--wait takes a whole number of seconds" >&2; exit 2; }
+      WAIT_S=$((10#$2))
+      shift ;;
+    -*) echo "unknown option: $1" >&2; exit 2 ;;
     *)
-      [ -z "$UF2_ARG" ] || { echo "at most one .uf2 path" >&2; exit 2; }
-      UF2_ARG="$arg" ;;
+      [ -z "$UF2_ARG" ] || { echo "exactly one image or device" >&2; exit 2; }
+      UF2_ARG="$1" ;;
   esac
+  shift
 done
+[ -n "$UF2_ARG" ] || { echo "$USAGE" >&2; exit 2; }
 
-# Resolved against the caller's cwd, then pinned to <repo>/firmware and to a
-# regular file, so that neither ../ nor a symlink can smuggle in
-# imprint_dongle.uf2.
-UF2_ARG="${UF2_ARG:-$REPO/firmware/prospector.uf2}"
-UF2_DIR="$(cd "$(dirname "$UF2_ARG")" 2>/dev/null && pwd -P)" || UF2_DIR=""
-UF2_BASE="$(basename "$UF2_ARG")"
-case "$UF2_BASE" in
-  prospector.uf2|prospector-*.uf2) ;;
-  *) echo "refusing $UF2_ARG: only firmware/prospector.uf2 or firmware/prospector-*.uf2 goes onto the Prospector Dongle" >&2; exit 2 ;;
+BUILD_HINT=""
+case "$UF2_ARG" in
+  prospector|imprint_dongle)
+    UF2_PATH="$REPO/firmware/$UF2_ARG.uf2"
+    BUILD_HINT=" (build it: ./scripts/build-zmk.sh $UF2_ARG)" ;;
+  *) UF2_PATH="$UF2_ARG" ;;
 esac
-[ "$UF2_DIR" = "$REPO/firmware" ] \
-  || { echo "refusing $UF2_ARG: not in $REPO/firmware" >&2; exit 2; }
+UF2_BASE="$(basename "$UF2_PATH")"
+UF2_DIR="$(cd "$(dirname "$UF2_PATH")" 2>/dev/null && pwd -P)" || UF2_DIR=""
 UF2="$UF2_DIR/$UF2_BASE"
-[ ! -L "$UF2" ] || { echo "refusing $UF2_ARG: a symlink" >&2; exit 2; }
-[ -f "$UF2" ] || die "$UF2 not found (build it: ./scripts/build-zmk.sh prospector)"
+# A link's name need not describe the image it points to.
+[ ! -L "$UF2" ] || refuse "a symlink"
+{ [ -n "$UF2_DIR" ] && [ -f "$UF2" ]; } || die "$UF2_PATH not found$BUILD_HINT"
 
 [ "$(uname -s)" = Darwin ] || die "macOS only (ioreg, stty -f, /Volumes)"
 for tool in ioreg stty df pgrep python3; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool not found"
 done
 
-uf2_holds "$UF2" "$PRODUCT"
-case $? in
-  0) ;;
-  1) echo "refusing $UF2_ARG: its image has no \"$PRODUCT\" USB product string, so it would not enumerate for the next flash (a USB power-only build or another device's image). Rebuild: ./scripts/build-zmk.sh prospector" >&2; exit 2 ;;
-  *) echo "refusing $UF2_ARG: not a UF2 file" >&2; exit 2 ;;
+TMP="$(mktemp -d -t flash-dongle)" || die "mktemp failed"
+trap 'rm -rf "$TMP"' EXIT
+ERR="$TMP/stderr"
+SNAPSHOT="$TMP/$UF2_BASE"
+cp "$UF2" "$SNAPSHOT" || die "cannot read $UF2"
+
+image="$(dongle image "$SNAPSHOT" 2>"$ERR")" \
+  || refuse "$(sed 's/^dongle\.py: //' "$ERR")"
+IFS=$'\x1f' read -r DEVICE PRODUCT SHA256 <<<"$image"
+case "$UF2_BASE" in
+  "$DEVICE".uf2|"$DEVICE"-*.uf2|"$DEVICE"_RESET.uf2) ;;
+  *) refuse "its payload is the $PRODUCT's, so its name must be $DEVICE.uf2, $DEVICE-*.uf2 or ${DEVICE}_RESET.uf2 (probe and spike images carry the product string without the 1200 baud entry and would strand the next flash)" ;;
+esac
+case "$UF2_BASE" in
+  *_RESET*) [ "$RESET" -eq 1 ] || refuse "a *_RESET* image wipes the bonds on every boot; pass --reset to flash it anyway (re-pairing the whole keyboard is flash-reset.sh's job)" ;;
+  *) [ "$RESET" -eq 0 ] || refuse "--reset is for *_RESET* images only" ;;
+esac
+case "$DEVICE" in
+  prospector)
+    STRANDED="The Prospector Dongle may be left in its bootloader: finish it by hand (double-tap + cp -X, README) or unplug it before flash-watch.sh or flash-reset.sh runs."
+    CHECK="Check the display." ;;
+  imprint_dongle)
+    STRANDED="The Imprint Dongle may be left in its bootloader, and the keyboard is down until it is finished: finish it by hand (double-tap + cp -X, README)."
+    CHECK="Check that both halves type." ;;
+  *) die "no flash messages for device $DEVICE" ;;
 esac
 
+if [ "$WAIT_S" -gt 0 ]; then
+  say "WAIT up to ${WAIT_S}s for \"$PRODUCT\" with a /dev/cu.* port"
+  t_wait=$(now_ms)
+  deadline=$((t_wait + WAIT_S * 1000))
+  until dongle find "$DEVICE" | cut -d $'\x1f' -f 4 | grep -q .; do
+    [ "$(now_ms)" -lt "$deadline" ] || break
+    sleep 0.5
+  done
+  say "      waited $(secs "$t_wait" "$(now_ms)")"
+fi
+
 if [ -e "$VOL" ]; then
-  die "$VOL is already mounted: a dongle (the Imprint Dongle, or the Prospector Dongle after an earlier failed run) is in its bootloader, so the copy target is ambiguous. Finish or eject that one first."
+  die "$VOL is already mounted: a dongle is in its bootloader (a double-tap, or an earlier failed run), so the copy target is ambiguous. Finish or eject that one first."
 fi
 if running="$(flashers_running)"; then
   die "flash-watch.sh / flash-reset.sh is running (it copies imprint_dongle.uf2 onto any XIAO-SENSE mount):
 $running"
 fi
 
-ERR="$(mktemp -t flash-prospector)" || die "mktemp failed"
-trap 'rm -f "$ERR"' EXIT
-
-devices="$(ioq product "$PRODUCT")" || die "ioreg query failed"
+devices="$(dongle find "$DEVICE")" || die "ioreg query failed"
 count=$(printf '%s' "$devices" | grep -c .)
 if [ "$count" -eq 0 ]; then
-  die "no USB device named \"$PRODUCT\". The USB power-only image that preceded the 1200 baud handler does not enumerate, nor does anything behind a charge-only cable: double-tap reset and cp -X by hand (README)."
+  die "no USB device named \"$PRODUCT\". A KVM switch hides both dongles from this Mac (--wait N), nothing shows behind a charge-only cable, and the Prospector Dongle's USB power-only image does not enumerate: double-tap reset and cp -X by hand (README)."
 fi
 [ "$count" -eq 1 ] || die "$count USB devices named \"$PRODUCT\"; leave exactly one plugged in:
 $(printf '%s\n' "$devices" | tr '\037' ' ')"
-IFS=$'\x1f' read -r _ SERIAL SESSION LOCATION <<<"$devices"
-PORTS="$(ioq ports "$SESSION")" || die "ioreg query failed"
+IFS=$'\x1f' read -r SERIAL SESSION LOCATION PORTS <<<"$devices"
 PORT="${PORTS%% *}"
 [ -n "$PORT" ] || die "\"$PRODUCT\" (serial $SERIAL) has no /dev/cu.* port"
 say "FOUND $PRODUCT serial=$SERIAL location=$LOCATION port=$PORT"
 [ "$PORT" = "$PORTS" ] || say "      more than one port ($PORTS); the handler listens on all of them"
-say "IMAGE $UF2"
+say "IMAGE $UF2 sha256=${SHA256:0:12}"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+  say "PLAN stty -f $PORT 1200, wait up to ${BOOT_TIMEOUT_S}s for $VOL on USB location $LOCATION, cp -X $UF2_BASE, wait for \"$PRODUCT\" to come back with its port"
+  say "DRY RUN $DEVICE serial=$SERIAL $UF2 sha256=${SHA256:0:12}: nothing touched"
+  exit 0
+fi
 
 # stty opens with O_NONBLOCK; the device may vanish mid-call and fail it, so
 # its exit status is logged, not judged.
@@ -257,17 +221,15 @@ say "BOOTLOADER $VOL after $(secs "$t0" "$t_boot")"
 # shellcheck disable=SC2001  # indenting every line is clearest with sed
 sed 's/^/           /' "$VOL/INFO_UF2.TXT"
 
-# Identity, not presence: the Prospector Dongle having left USB does not make
-# $VOL its volume (the Imprint Dongle may hold XIAO-SENSE while the Prospector
-# Dongle's mounts under a suffixed name). Its bootloader enumerates on the same
-# USB port, so the disk behind $VOL must sit under the device at LOCATION.
-disk="$(mounted_disk "$VOL")"
-[ -n "$disk" ] || die_touched "$VOL is not a mount point. Nothing copied."
-owner="$(ioq disk "$disk")" || die_touched "ioreg query failed. Nothing copied."
-IFS=$'\x1f' read -r OWNER_PRODUCT OWNER_SERIAL _ OWNER_LOCATION <<<"$owner"
+# Identity, not presence: the dongle having left USB does not make $VOL its
+# volume (the other dongle may hold XIAO-SENSE while this one's mounts under a
+# suffixed name). Its bootloader enumerates on the same USB port, so the disk
+# behind $VOL must sit under the device at LOCATION.
+owner="$(dongle owner "$VOL" 2>"$ERR")" || die_touched "$(sed 's/^dongle\.py: //' "$ERR"). Nothing copied."
+IFS=$'\x1f' read -r disk OWNER_PRODUCT OWNER_SERIAL _ OWNER_LOCATION <<<"$owner"
 say "      $VOL is $disk on USB location ${OWNER_LOCATION:-(none)}: ${OWNER_PRODUCT:-(no product string)} serial=${OWNER_SERIAL:-(none)}"
 if [ -z "$OWNER_LOCATION" ] || [ "$OWNER_LOCATION" != "$LOCATION" ]; then
-  die_touched "$VOL is not on the Prospector Dongle's USB location ($LOCATION): another board's bootloader holds it. Nothing copied."
+  die_touched "$VOL is not on the $PRODUCT's USB location ($LOCATION): another board's bootloader holds it. Nothing copied."
 fi
 
 if running="$(flashers_running)"; then
@@ -278,7 +240,7 @@ fi
 [ -f "$VOL/INFO_UF2.TXT" ] || die_touched "$VOL went away before the copy. Nothing copied."
 
 say "COPY $UF2_BASE → $VOL"
-run_bounded "$COPY_TIMEOUT_S" "$ERR" cp -X "$UF2" "$VOL/"
+run_bounded "$COPY_TIMEOUT_S" "$ERR" cp -X "$SNAPSHOT" "$VOL/"
 cp_rc=$BOUNDED_RC
 cp_err="$(tr '\n' ' ' <"$ERR")"
 case "$cp_rc" in
@@ -308,16 +270,15 @@ say "WRITTEN $VOL gone after $(secs "$t0" "$t_written")"
 deadline=$((t_written + ENUM_TIMEOUT_S * 1000))
 BACK_PORTS=""
 while :; do
-  back="$(ioq product "$PRODUCT")" || die "ioreg query failed"
+  back="$(dongle find "$DEVICE")" || die "ioreg query failed"
   if [ -n "$back" ]; then
-    IFS=$'\x1f' read -r _ BACK_SERIAL BACK_SESSION BACK_LOCATION <<<"$back"
-    BACK_PORTS="$(ioq ports "$BACK_SESSION")" || die "ioreg query failed"
+    IFS=$'\x1f' read -r BACK_SERIAL BACK_SESSION BACK_LOCATION BACK_PORTS <<<"$back"
     [ -z "$BACK_PORTS" ] || break
   fi
   if [ "$(now_ms)" -ge "$deadline" ]; then
     [ -n "$back" ] \
-      && die "\"$PRODUCT\" enumerated but has no /dev/cu.* port ${ENUM_TIMEOUT_S}s after the write. Check the display."
-    die_touched "\"$PRODUCT\" did not enumerate within ${ENUM_TIMEOUT_S}s of the write: the image may not boot. Check the display."
+      && die "\"$PRODUCT\" enumerated but has no /dev/cu.* port ${ENUM_TIMEOUT_S}s after the write. $CHECK"
+    die_touched "\"$PRODUCT\" did not enumerate within ${ENUM_TIMEOUT_S}s of the write: the image may not boot. $CHECK"
   fi
   sleep 0.5
 done
@@ -326,4 +287,5 @@ say "BACK $PRODUCT serial=$BACK_SERIAL location=$BACK_LOCATION port=$BACK_PORTS 
 [ "$BACK_SERIAL" = "$SERIAL" ] || say "      WARN serial differs from before the touch ($SERIAL)"
 [ "$BACK_LOCATION" = "$LOCATION" ] || say "      WARN location differs from before the touch ($LOCATION)"
 [ "$BACK_SESSION" != "$SESSION" ] || say "      WARN same registry session as before the touch"
-say "DONE bootloader $(secs "$t0" "$t_boot") / written $(secs "$t0" "$t_written") / back $(secs "$t0" "$t_back"). Check the display."
+say "TIMES bootloader $(secs "$t0" "$t_boot") / written $(secs "$t0" "$t_written") / back $(secs "$t0" "$t_back"). $CHECK"
+say "DONE $DEVICE serial=$BACK_SERIAL $UF2 sha256=${SHA256:0:12}"
