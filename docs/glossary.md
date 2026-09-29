@@ -262,13 +262,23 @@ tempo, with no link to the keyboard.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (the file, not
   the on-screen animation), スプライト画像
 
+### sprite name
+The text under the [[HP bar]] in a [[sprite]] build: the GIF's file name with
+the extension dropped, whitespace trimmed and the first letter upper-cased
+(`assets/sprite-name.sh`, since 2026-09-29), passed to zmk-beacon as
+`CONFIG_BEACON_SPRITE_NAME`. It names the GIF's subject, so it never appears
+in commits, PRs or docs; the CI / release build has none and shows no row.
+- **Don't call it:** caption, label, title, character name, キャラ名, 名札
+
 ### HP bar
 The [[Prospector Dongle]]'s battery readings since 2026-09-28: one
-battle-screen style bar, `HP` and a bar in a dark box along the bottom of the
-screen, whose length is the mean of both halves' batteries (the one half that
-has a reading when the other has none; an empty track when neither has).
-Green, yellow under 50 %, red under 20 %; a grey `HP` when no status
-advertisement arrived in the last minute. zmk-beacon's
+battle-screen style bar, `HP` and a bar with its value on it (`65/100`) in a
+dark box along the bottom of the screen, whose length is the mean of both
+halves' batteries (the one half that has a reading when the other has none;
+an empty track and `--/100` when neither has). Green, yellow under 50 %, red
+under 20 %; grey text when no status advertisement arrived in the last
+minute. In a sprite build the box has a second row with the [[sprite name]]
+(46 px instead of 28 px; the user's pick of 2026-09-29). zmk-beacon's
 `CONFIG_BEACON_READINGS_HP_BAR=y` in [`config/prospector.conf`](../config/prospector.conf);
 the alternative is the digits (`CONFIG_BEACON_READINGS_DIGITS`, each half's
 percentage in the bottom corners).
