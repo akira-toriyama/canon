@@ -1,32 +1,28 @@
 name: ZMK Build
 
-# canon 専用の ZMK ビルド reusable workflow（build.yml から呼ばれる）。
+# The firmware build, called by build.yml (PRs, main, weekly) and release.yml
+# (the release assets). Its steps are scripts/zmk-west.sh, the same steps
+# scripts/build-zmk.sh runs locally.
 #
-# 通常 ZMK user-config は公式 reusable
-# (zmkfirmware/zmk/.github/workflows/build-user-config.yml) を使うだけだが、本
-# リポジトリは ZMK コア・Zephyr への out-of-tree パッチ
-# (patches/<tree>/*.patch — vkey や usb-hid-prime 等) を前提とする。公式
-# reusable は「素の ZMK」をビルドし patches/ を当てないため、パッチ依存の
-# behavior (&vkey 等) が devicetree で解決できず全ターゲットが落ちる。そこで
-# scripts/build-zmk.sh と同一手順 (west init/update → patch 適用 → west build)
-# を踏む自前ジョブにした。
-# CI モデルが「素 ZMK のコンパイル検証」→「patch 済みファームの build」へ変わる
-# (既存 security-changed / usb-hid-prime patch も乗る＝ローカルと等価)。
-# 将来 patches/ の全 patch が上流へ採用されたら撤去し公式 reusable へ戻せる。
-# 詳細・upstream 化方針: docs/vkey-roadmap.md。
-#
-# build.yml から `uses: ./.github/workflows/zmk-build.yml` で呼ぶ薄い構成に
-# しているのは、ステータスチェック名を公式 reusable 時代と同じ
-# `build / Build (<board>, <shield>)` に保ち、main 保護 ruleset の必須チェック
-# 設定を変えずに済ませるため。
+# Kept local instead of calling ZMK's
+# zmkfirmware/zmk/.github/workflows/build-user-config.yml:
+# - canon builds a patched ZMK and Zephyr (patches/<tree>/*.patch, applied
+#   between west update and west build); ZMK's workflow builds them unpatched,
+#   and the imprint keymap's &vkey, a patched behavior, does not resolve there.
+# - the fleet's zizmor policy (.github/zizmor.yml) hash-pins every third-party
+#   `uses:`, so a moving @main ref would fail the gate and a commit pin would
+#   be moved by Dependabot to a release tag older than the zmk@main the
+#   manifest follows.
+# - the main ruleset's required checks are named
+#   `build / Build (<board>, <shield>)`: the caller's job id `build` and the
+#   job name below. Keep both.
 
 on:
   workflow_call:
 
 jobs:
-  # build.yaml の include: を matrix へ変換する。board/shield の唯一のソースは
-  # build.yaml（build-zmk.sh / release.yml も同じファイルを参照）。ここで動的
-  # 生成して各 workflow へのハードコード＝二重管理を避ける。
+  # build.yaml is the only list of targets: the matrix comes from it here and
+  # in build-zmk.sh, through the same `zmk-west.sh pairs`.
   matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -40,35 +36,27 @@ jobs:
         name: Derive build matrix from build.yaml
         run: |
           set -euo pipefail
-          # build-zmk.sh と同じ awk で board<TAB>shield を抽出（board/shield の
-          # 順不同・コメント行スキップに対応）→ jq で JSON matrix へ変換。
-          include=$(awk '
-            /^[[:space:]]*#/ { next }
-            /^[[:space:]]*-[[:space:]]/ { if (b != "") print b "\t" s; b=""; s="" }
-            /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
-            /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
-            END { if (b != "") print b "\t" s }
-          ' build.yaml | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {board: .[0], shield: .[1]})')
+          include=$(scripts/zmk-west.sh pairs | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {board: .[0], shield: .[1]})')
           echo "include=$include" >> "$GITHUB_OUTPUT"
           echo "matrix: $include"
 
   build:
     needs: matrix
     runs-on: ubuntu-latest
-    # ZMK ビルドツールチェーン（Zephyr SDK + west + arm-none-eabi）入りの公式
-    # イメージ。公式 reusable workflow が内部で使うものと同じ。
+    # The toolchain image ZMK's own workflow builds in.
     container:
       image: zmkfirmware/zmk-build-arm:stable
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.matrix.outputs.include) }}
-    # ステータスチェック名を `build / Build (<board>, <shield>)` に揃える
-    # （main 保護 ruleset の必須チェックがこの名前を参照しているため）。
     name: Build (${{ matrix.board }}, ${{ matrix.shield }})
     defaults:
       run:
         shell: bash
+    env:
+      BOARD: ${{ matrix.board }}
+      SHIELD: ${{ matrix.shield }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -77,58 +65,19 @@ jobs:
           persist-credentials: false
 
       - name: West init + update (ZMK @ main)
-        run: |
-          set -euo pipefail
-          # bind mount の uid 不一致で git が dubious ownership を出すのを抑止。
-          git config --global --add safe.directory '*'
-          # canon を west topdir にして依存 (zmk@main, zmk-keyboards@main, zephyr…)
-          # を取得。ZMK は main 追従必須（理由は config/west.yml のコメント参照）。
-          west init -l config
-          west update
-          west zephyr-export
+        run: scripts/zmk-west.sh update
 
       - name: Apply out-of-tree patches (zmk, zephyr)
-        run: |
-          set -euo pipefail
-          # scripts/build-zmk.sh と同一の冪等適用。LC_ALL=C で glob を C 照合順に
-          # 固定し（patch 間の依存順 security < usb-hid-prime < vkey を保証）
-          # patches/<tree>/*.patch を <tree>/ へ当てる（tree = zmk / zephyr。
-          # patches/ 側は west の path をそのまま写す）。
-          # tree の列挙は build-zmk.sh のループと同じ順に保つこと。
-          # 既適用は reverse-check で skip、当たらなければ即 fail
-          # （upstream drift を CI で大声で検知する）。
-          # パッチパスは **絶対パス必須**: `git -C <tree> apply <path>` は <path> を
-          # <tree>/ 基準で解決するため、相対パスだと patch ファイルを見失う
-          # （build-zmk.sh は /workspace 絶対パスなので無問題）。
-          export LC_ALL=C
-          shopt -s nullglob
-          for tree in zmk zephyr; do
-            for p in "$GITHUB_WORKSPACE"/patches/"$tree"/*.patch; do
-              name=$(basename "$p")
-              if git -C "$tree" apply --reverse --check "$p" >/dev/null 2>&1; then
-                echo "=== PATCH $tree: $name (既適用)"
-              elif git -C "$tree" apply --check "$p" >/dev/null 2>&1; then
-                git -C "$tree" apply "$p"
-                echo "=== PATCH $tree: $name (適用)"
-              else
-                echo "❌ パッチが当たりません: $name" >&2
-                echo "   $tree upstream の該当箇所が変わった可能性。patches/$tree/ を更新してください。" >&2
-                exit 1
-              fi
-            done
-          done
+        run: scripts/zmk-west.sh patch
 
       - name: Build firmware
         run: |
           set -euo pipefail
-          # scripts/build-zmk.sh と同一の west build 呼び出し。board/shield は
-          # すべて upstream モジュール提供（canon ローカル shield ゼロ）のため
-          # BOARD_ROOT/DTS_ROOT の追加は不要。
-          west build -p -s zmk/app -b "${{ matrix.board }}" -- \
-            -DSHIELD="${{ matrix.shield }}" \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/config"
-          cp build/zephyr/zmk.uf2 "${{ matrix.shield }}.uf2"
+          scripts/zmk-west.sh build "$BOARD" "$SHIELD" ""
+          cp "build/$SHIELD/zephyr/zmk.uf2" "$SHIELD.uf2"
 
+      # One artifact per shield, named after it: release.yml collects
+      # dist/<shield>/<shield>.uf2.
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v7
         with:

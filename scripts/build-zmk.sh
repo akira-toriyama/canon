@@ -1,351 +1,227 @@
 #!/usr/bin/env bash
 #
-# ZMK ファームウェアを Docker でローカルビルドする。
+# Build canon's firmware in Docker and copy the images to ./firmware/.
 #
-#   ./scripts/build-zmk.sh                 # build.yaml の全ターゲットをビルド（=all）
-#   ./scripts/build-zmk.sh imprint         # 製品グループ: imprint の全シールド
-#   ./scripts/build-zmk.sh imprint_left    # 指定シールドのみビルド
-#   ./scripts/build-zmk.sh imprint_dongle --logging  # USB-CDC ログ版（デバッグ）を焼く
-#   ./scripts/build-zmk.sh imprint --reset # NVS リセット版（*_RESET.uf2）を作る
-#   ./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # GIF sprite 入り（prospector-sprite.uf2）
-#   ./scripts/build-zmk.sh --update        # west update を強制（依存を最新化）
-#   ./scripts/build-zmk.sh --clean         # ワークスペースを破棄して終了
+#   ./scripts/build-zmk.sh                   # every target in build.yaml (= all)
+#   ./scripts/build-zmk.sh imprint           # the imprint group: build.yaml's imprint* shields
+#   ./scripts/build-zmk.sh imprint_left      # one shield; its board comes from build.yaml
+#   ./scripts/build-zmk.sh <board>:<shield>  # a pair that build.yaml does not list
+#   ./scripts/build-zmk.sh imprint_dongle --logging
+#   ./scripts/build-zmk.sh imprint --reset
+#   ./scripts/build-zmk.sh prospector --sprite assets/<name>.gif
+#   ./scripts/build-zmk.sh --update          # west update first
+#   ./scripts/build-zmk.sh --clean           # delete the workspace and exit
 #
-#   グループ all|imprint は build.yaml の shield 名から都度引く（ハードコード無し。
-#   imprint=imprint_* / all=全ターゲット）。
-#   --logging は選択ターゲットを CONFIG_ZMK_USB_LOGGING=y で焼き直し（成果物は
-#   <shield>-logging.uf2）。USB-serial で BLE 接続や INPUT_BTN_x の観測に使う
-#   ローカル専用のデバッグビルド（build.yaml/CI/release は製品ターゲットのみで不変）。
-#   --reset は選択ターゲットを実シールド据置のまま CONFIG_ZMK_SETTINGS_RESET_ON_START=y
-#   で焼き直し <shield>_RESET.uf2 を出す（ZMK 標準 settings_reset シールドの本体機構＝
-#   起動時に NVS=BLE bond/設定を消す、だけを実シールドへ載せる。シールドごと差し替える
-#   方式は assimilator-bt board が spi1_default pinctrl を欠いて失敗するため不可）。
-#   ペアリングが壊れた時の復旧用で flash-reset.sh で焼く（焼いた後ふつうの firmware を
-#   焼き直す）。--logging と排他。build.yaml/CI/release は不変（ローカル専用）。
-#   --sprite <gif> embeds that GIF as zmk-beacon's animated sprite
-#   (CONFIG_BEACON_SPRITE_GIF) in the prospector target only, output
-#   prospector-sprite[-logging].uf2; other targets build as usual. Sprite GIFs
-#   are the user's personal files: they live in the git-ignored assets/ (or
-#   anywhere outside the repository), are never committed, and never reach CI
-#   or a release. The GIF is copied into the workspace ($CFG/.sprite/) because
-#   the container only sees $CFG. The name under the HP bar comes from the
-#   GIF's file name through assets/sprite-name.sh (CONFIG_BEACON_SPRITE_NAME).
-#   Both go to the build in the Kconfig fragment $CFG/.sprite/sprite.conf
-#   (EXTRA_CONF_FILE), not as -DCONFIG_...: a failed configure step makes west
-#   print the cmake command line, and the name, like the GIF's path, names the
-#   subject, so this script prints only its length. Exclusive with --reset.
+# Options (local builds only: CI and releases build the plain images):
+#   --logging         USB CDC logging (CONFIG_ZMK_USB_LOGGING=y).
+#   --reset           CONFIG_ZMK_SETTINGS_RESET_ON_START=y on the real shield: the
+#                     image erases the settings, BLE bonds included, at every
+#                     boot. Flash it with flash-reset.sh, then the normal image.
+#   --sprite <gif>    zmk-beacon's animated sprite (CONFIG_BEACON_SPRITE_GIF) in
+#                     the prospector target only, named under the HP bar after
+#                     the GIF's file name (assets/sprite-name.sh). Sprite GIFs are
+#                     personal files: never committed, never in CI or a release,
+#                     and this script prints neither the GIF's path nor the name.
+#   --update          west update before building: moves zmk@main, the
+#                     zmk-keyboards branch and every module to the manifest.
+#   --clean           delete the workspace and exit.
+# --reset combines with neither --logging nor --sprite.
 #
-# 仕組み:
-#   - west の clone 先（zmk/zephyr/modules, 約数 GB）がネットワークボリューム上の
-#     実リポジトリを汚さないよう、$ZMK_WS（既定 ~/.cache/zmk-canon）に
-#     リポジトリを複製してビルドする。依存はそこに永続化され、2 回目以降は
-#     west update を省略するため高速。
-#   - マニフェストは config/west.yml にあるため、リポジトリルートを topdir に
-#     して `west init -l config` する（ZMK GitHub Actions と同じ前提）。
-#   - `west zephyr-export` の登録はコンテナ HOME に書かれ --rm で消えるので、
-#     ビルドコンテナ内で毎回実行する。
+# Images: firmware/<shield>[-sprite][-logging][_RESET].uf2 (git-ignored),
+# copied once every target of the run has built.
 #
-# 生成物: ./firmware/<shield>.uf2（.gitignore 済み）
+# Workspace: $ZMK_WS/cfgrepo is the west topdir (manifest config/west.yml). West's
+# clones (zmk/, zephyr/, modules/, ...) and build/<name>/ (build.log included)
+# stay between runs; each run syncs config/, patches/, scripts/ and build.yaml
+# into it and clears the per-run input .sprite/. west update runs on the first
+# build, when zmk/app is missing, or with --update. The steps inside the
+# container are scripts/zmk-west.sh, which CI runs too.
 #
-# 環境変数で上書き可:
-#   ZMK_WS     ワークスペース置き場       (既定: ~/.cache/zmk-canon)
-#   ZMK_IMAGE  ビルドイメージ             (既定: zmkfirmware/zmk-build-arm:stable)
-#
+# Environment: ZMK_WS (default ~/.cache/zmk-canon), ZMK_IMAGE (default
+# zmkfirmware/zmk-build-arm:stable).
 set -euo pipefail
 
-# --- リポジトリルートへ移動（どこから呼んでも動く） -----------------------
-# A relative --sprite path is the caller's, so keep the caller's directory.
+# A relative --sprite path is the caller's.
 CALLER_DIR="$PWD"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 WS="${ZMK_WS:-$HOME/.cache/zmk-canon}"
 IMAGE="${ZMK_IMAGE:-zmkfirmware/zmk-build-arm:stable}"
-CFG="$WS/cfgrepo"          # リポジトリ複製 = west topdir
+CFG="$WS/cfgrepo"
 FORCE_UPDATE=0
 LOGGING=0
 RESET=0
 SPRITE=""
 SPRITE_NAME=""
+ARGS=()
 
-# --- 引数処理 -------------------------------------------------------------
-SHIELDS=()
+die() {
+  local rc=$1
+  shift
+  echo "build-zmk.sh: $*" >&2
+  exit "$rc"
+}
+
 while [ $# -gt 0 ]; do
-  arg="$1"; shift
+  arg="$1"
+  shift
   case "$arg" in
-    --clean)   echo "ワークスペースを削除: $WS"; rm -rf "$WS"; exit 0 ;;
-    --update)  FORCE_UPDATE=1 ;;
+    --clean)
+      echo "removing the workspace $WS"
+      rm -rf "$WS"
+      exit 0
+      ;;
+    --update) FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
-    --reset)   RESET=1 ;;
+    --reset) RESET=1 ;;
     --sprite)
-      [ $# -gt 0 ] || { echo "--sprite には GIF のパスが要ります" >&2; exit 2; }
-      SPRITE="$1"; shift ;;
-    -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,"");print;next} NR>1{exit}' "${BASH_SOURCE[0]}"; exit 0 ;;
-    -*) echo "不明なオプション: $arg" >&2; exit 2 ;;
-    *)  SHIELDS+=("$arg") ;;
+      if [ $# -eq 0 ] || [ -z "$1" ]; then die 2 "$arg needs a value"; fi
+      SPRITE="$1"
+      shift
+      ;;
+    -h | --help)
+      awk 'NR>1 && /^#/{sub(/^# ?/,""); print; next} NR>1{exit}' "${BASH_SOURCE[0]}"
+      exit 0
+      ;;
+    -*) die 2 "unknown option $arg (see --help)" ;;
+    *) ARGS+=("$arg") ;;
   esac
 done
 
-# --logging（製品 keymap + USB ログ）と --reset（起動時 NVS 消去 config）は目的が
-# 両立しない（NVS を消すだけの復旧 firmware にログを足しても意味が無い）→ 排他。
-if [ "$LOGGING" -eq 1 ] && [ "$RESET" -eq 1 ]; then
-  echo "--logging と --reset は同時指定できません" >&2; exit 2
+# A reset image only erases the settings: logging adds nothing to it, and the
+# prospector has no settings to reset (zmk-beacon: CONFIG_ZMK_BLE=n).
+if [ "$RESET" -eq 1 ] && [ "$LOGGING" -eq 1 ]; then
+  die 2 "--reset and --logging do not combine"
 fi
-# The prospector has no settings to reset (zmk-beacon: CONFIG_ZMK_BLE=n), and a
-# _RESET image is a recovery tool, not a display variant.
-if [ -n "$SPRITE" ] && [ "$RESET" -eq 1 ]; then
-  echo "--sprite と --reset は同時指定できません" >&2; exit 2
+if [ "$RESET" -eq 1 ] && [ -n "$SPRITE" ]; then
+  die 2 "--reset and --sprite do not combine"
 fi
 if [ -n "$SPRITE" ]; then
   case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
-  [ -f "$SPRITE" ] || { echo "GIF が見つかりません: $SPRITE" >&2; exit 2; }
+  # Never the path in a message: a GIF's file name names its subject.
+  if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
   SPRITE_NAME="$("$REPO/assets/sprite-name.sh" "$SPRITE")"
 fi
 
-# build.yaml の include: リストから "board<TAB>shield" 行を全て出力する。
-# 前提: ZMK 公式テンプレ準拠の include: リスト形式。
-#   include:
-#     - board: <b>
-#       shield: <s>      # board/shield の順は不問
-# 非対応: トップレベル board:/shield: 配列形式（その場合は引数でシールド指定）。
-# 各 "- " 要素を境界に board/shield を順不同で拾い、境界か EOF で確定する。
-# コメント行（先頭 #、テンプレ冒頭の board: 例を含む）は無視する。
-# NOTE: 同一の awk を CI の .github/workflows/zmk-build.yml（build matrix 生成）も
-#   使う。片方を直したらもう片方も合わせること（build.yaml が board/shield の唯一のソース）。
-_build_pairs() {
-  awk '
-    /^[[:space:]]*#/ { next }
-    /^[[:space:]]*-[[:space:]]/ { if (b != "") print b "\t" s; b=""; s="" }
-    /^[[:space:]]*(-[[:space:]]*)?board:[[:space:]]/  { t=$0; sub(/.*board:[[:space:]]*/,  "", t); b=t }
-    /^[[:space:]]*(-[[:space:]]*)?shield:[[:space:]]/ { t=$0; sub(/.*shield:[[:space:]]*/, "", t); s=t }
-    END { if (b != "") print b "\t" s }
-  ' build.yaml
+# Targets as board<TAB>shield. The groups come from build.yaml's shield names,
+# never from a list here: all = every target, imprint = the imprint* shields.
+PAIRS="$("$REPO/scripts/zmk-west.sh" pairs)"
+TARGETS=()
+[ ${#ARGS[@]} -gt 0 ] || ARGS=(all)
+for arg in "${ARGS[@]}"; do
+  case "$arg" in
+    all | imprint)
+      filter='.'
+      if [ "$arg" = imprint ]; then filter='^imprint'; fi
+      rows="$(printf '%s\n' "$PAIRS" | awk -F'\t' -v p="$filter" '$2 ~ p')"
+      [ -n "$rows" ] || die 1 "group $arg matches no shield in build.yaml"
+      while IFS= read -r row; do TARGETS+=("$row"); done <<<"$rows"
+      ;;
+    *:*) TARGETS+=("${arg%%:*}	${arg##*:}") ;;
+    *)
+      board="$(printf '%s\n' "$PAIRS" | awk -F'\t' -v s="$arg" '$2 == s { print $1; exit }')"
+      [ -n "$board" ] || die 1 "shield $arg is not in build.yaml (pass <board>:<shield> to build it anyway)"
+      TARGETS+=("$board	$arg")
+      ;;
+  esac
+done
+if [ -n "$SPRITE" ]; then
+  has_prospector=0
+  for row in "${TARGETS[@]}"; do
+    if [ "${row##*	}" = prospector ]; then has_prospector=1; fi
+  done
+  [ "$has_prospector" -eq 1 ] || die 2 "--sprite applies to prospector only, which this run does not build"
+fi
+
+# For the target in row ("board<TAB>shield"), sets BOARD, SHIELD, NAME
+# (<shield><suffix>: the build directory and the image name), SUFFIX and
+# CMAKE_ARGS.
+plan() {
+  BOARD="${1%%	*}"
+  SHIELD="${1##*	}"
+  SUFFIX=""
+  CMAKE_ARGS=()
+  # Merged after config/<shield>.conf.
+  if [ -n "$SPRITE" ] && [ "$SHIELD" = prospector ]; then
+    CMAKE_ARGS+=(-DEXTRA_CONF_FILE=/workspace/.sprite/sprite.conf)
+    SUFFIX="$SUFFIX-sprite"
+  fi
+  if [ "$LOGGING" -eq 1 ]; then
+    CMAKE_ARGS+=(-DCONFIG_ZMK_USB_LOGGING=y)
+    SUFFIX="$SUFFIX-logging"
+  fi
+  if [ "$RESET" -eq 1 ]; then
+    CMAKE_ARGS+=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y)
+    SUFFIX="${SUFFIX}_RESET"
+  fi
+  NAME="$SHIELD$SUFFIX"
 }
 
-# 引数指定が無ければ build.yaml の全 board/shield ペアを対象にする。
-if [ ${#SHIELDS[@]} -eq 0 ]; then
-  while IFS= read -r line; do SHIELDS+=("$line"); done < <(_build_pairs)
-else
-  # 引数は board:shield または shield のみ。shield のみの場合は
-  # build.yaml から該当ペアの board を引く（最初の board 固定ではない、
-  # 異種ボード混在 build.yaml で正しい組み合わせを得るため）。
-  _s=("${SHIELDS[@]}"); SHIELDS=()
-  for arg in "${_s[@]}"; do
-    # 製品グループ all|imprint は build.yaml の board<TAB>shield 行を
-    # shield 名で絞って展開する（build.yaml が唯一のソース＝名前ハードコード無し）。
-    case "$arg" in
-      all|imprint)
-        case "$arg" in
-          all)     _filt='.' ;;
-          imprint) _filt='^imprint' ;;
-        esac
-        _n=0
-        while IFS= read -r _row; do SHIELDS+=("$_row"); _n=$((_n + 1)); done \
-          < <(_build_pairs | awk -F'\t' -v p="$_filt" '$2 ~ p')
-        [ "$_n" -gt 0 ] || { echo "group '$arg' に該当する shield が build.yaml に無い" >&2; exit 1; }
-        continue ;;
-    esac
-    if [[ "$arg" == *:* ]]; then
-      SHIELDS+=("${arg%%:*}	${arg##*:}")
-      continue
-    fi
-    # shield のみ: _build_pairs から該当 shield のペアを探し board を引く
-    # （最初の board 固定ではなく、異種ボード混在でも正しい組み合わせを得る）。
-    BOARD=""
-    while IFS="$(printf '\t')" read -r _b _s; do
-      if [ "$_s" = "$arg" ]; then BOARD="$_b"; break; fi
-    done < <(_build_pairs)
-    if [ -z "$BOARD" ]; then
-      echo "shield '$arg' が build.yaml に見つかりません（board:shield 形式で渡すことも可）" >&2
-      exit 1
-    fi
-    SHIELDS+=("$BOARD	$arg")
-  done
-fi
-
-if [ ${#SHIELDS[@]} -eq 0 ]; then
-  echo "ビルド対象が見つかりません（build.yaml を確認）" >&2; exit 1
-fi
-if [ -n "$SPRITE" ]; then
-  _has=0
-  for row in "${SHIELDS[@]}"; do [ "${row##*	}" = prospector ] && _has=1; done
-  [ "$_has" -eq 1 ] || { echo "--sprite は prospector にだけ効きます（ビルド対象に prospector がありません）" >&2; exit 2; }
-fi
-
-# --- 前提チェック ---------------------------------------------------------
 if ! docker info >/dev/null 2>&1; then
-  echo "Docker デーモンが起動していません。Docker Desktop を起動してください:" >&2
-  echo "  open -a Docker" >&2
-  exit 1
+  die 1 "the Docker daemon is not running (open -a Docker)"
 fi
 
-# --- リポジトリをワークスペースへ同期 -------------------------------------
-# west が topdir に clone するツリー（zmk/ zephyr/ modules/ ...）は決して
-# 触らない（トップレベル限定の除外）。編集対象（config/ build.yaml 等）
-# のみを上書き同期する。
+# Only the build's inputs: west's clones and build/ share this topdir. --delete
+# drops a file removed from the repository, which the build would still read.
 mkdir -p "$CFG"
-# --delete を有効化。REPO で削除したファイル(例: 不要になった
-# config/imprint_*.conf overlay) を CFG にも反映させる。これが無いと
-# cmake cache に古い KEYMAP_FILE が残るなどして挙動がおかしくなる。
-# 除外パスは west モジュール群と build 出力。これらは CFG 固有なので
-# --delete でも触らない。
-# `/.git` に末尾 / を付けない: git worktree の .git はファイル（gitdir ポインタ）で、
-# `/.git/` はディレクトリにしか効かず複製され、コンテナ内の最初の git が
-# `fatal: not a git repository` で落ちる（2026-09-26 実測）。
-rsync -a --delete \
-  --exclude '/.git' --exclude '/.west/' --exclude '/output/' \
-  --exclude '/zmk/' --exclude '/zmk-keyboards/' --exclude '/zmk-pmw3610-driver/' \
-  --exclude '/modules/' --exclude '/optional/' --exclude '/zephyr/' \
-  --exclude '/build/' --exclude '/assets/' \
-  "$REPO"/ "$CFG"/
+rsync -a --delete "$REPO/config" "$REPO/patches" "$REPO/scripts" "$REPO/build.yaml" "$CFG/"
+# The per-run input, written below only when this run has --sprite.
+rm -rf "$CFG/.sprite"
 
-# 旧構成（ローカル shield 時代）が Zephyr チェックアウト直下へ配置していた
-# board_root モジュール宣言の残骸を掃除する。zephyr/ は rsync 対象外のため
-# --delete では消えず、放置すると west が project zephyr の module.yml と
-# 誤解釈しうる。
-rm -f "$CFG/zephyr/module.yml"
-# `/.git` 除外導入前に worktree から複製された gitdir ポインタの残骸を消す。除外パスは
-# --delete の対象外なので rsync では二度と消えず、残るとコンテナ内の最初の git が
-# rc 128 で落ちる（~/.cache/zmk-canon に実在、2026-09-26）。ディレクトリは触らない。
-if [ -f "$CFG/.git" ]; then rm -f "$CFG/.git"; fi
-# The rsync above deleted the previous run's copy, so a build without --sprite
-# leaves no GIF or fragment in the workspace. Kconfig strings keep their quotes.
+# The container sees only the workspace, so the GIF is copied in under a fixed
+# name. Its path and name reach the build in a Kconfig fragment
+# (EXTRA_CONF_FILE), never as -DCONFIG_...: west prints the whole cmake
+# command line when the configure step fails, and both name the subject.
+# Kconfig strings keep their quotes.
 if [ -n "$SPRITE" ]; then
   mkdir -p "$CFG/.sprite"
-  cp "$SPRITE" "$CFG/.sprite/sprite.gif"
+  cp "$SPRITE" "$CFG/.sprite/sprite.gif" 2>/dev/null || die 1 "--sprite: cannot copy the GIF into the workspace"
   {
     echo 'CONFIG_BEACON_SPRITE_GIF="/workspace/.sprite/sprite.gif"'
     echo "CONFIG_BEACON_SPRITE_NAME=\"$SPRITE_NAME\""
   } >"$CFG/.sprite/sprite.conf"
 fi
 
-# --- west init/update が必要か判定 ----------------------------------------
 NEED_UPDATE=0
-[ ! -d "$CFG/.west" ]      && NEED_UPDATE=1   # 未初期化
-[ ! -d "$CFG/zmk/app" ]    && NEED_UPDATE=1   # 依存欠落
-[ "$FORCE_UPDATE" -eq 1 ]  && NEED_UPDATE=1   # --update 指定
-
-# --- ビルド対象を表示 -----------------------------------------------------
-echo "=========================================="
-echo " ワークスペース : $CFG"
-echo " イメージ       : $IMAGE"
-echo " west update    : $([ $NEED_UPDATE -eq 1 ] && echo '実行' || echo 'スキップ（キャッシュ利用）')"
-[ "$LOGGING" -eq 1 ] && echo " logging        : 有効（CONFIG_ZMK_USB_LOGGING=y / *-logging.uf2）"
-[ "$RESET" -eq 1 ]   && echo " reset          : 有効（CONFIG_ZMK_SETTINGS_RESET_ON_START=y / *_RESET.uf2）"
-# Not the source path: a GIF's file name usually names its subject.
-[ -n "$SPRITE" ]     && echo " sprite         : $(wc -c <"$SPRITE" | tr -d ' ') byte GIF（prospector のみ / prospector-sprite*.uf2）"
-[ -n "$SPRITE" ]     && echo " sprite name    : ${#SPRITE_NAME} glyphs（assets/sprite-name.sh。題材名なので表示しない）"
-echo " ビルド対象:"
-for row in "${SHIELDS[@]}"; do
-  printf '   - %s / %s\n' "${row%%	*}" "${row##*	}"
-done
-echo "=========================================="
-
-# --- コンテナ内で実行するスクリプトを生成 ---------------------------------
-# SHIELDS を "board:shield board:shield ..." の 1 行にして渡す
-TARGETS=""
-for row in "${SHIELDS[@]}"; do
-  TARGETS+="${row%%	*}:${row##*	} "
-done
-
-docker run --rm \
-  -v "$CFG:/workspace" \
-  -w /workspace \
-  -e ZEPHYR_BASE=/workspace/zephyr \
-  -e NEED_UPDATE="$NEED_UPDATE" \
-  -e TARGETS="$TARGETS" \
-  -e LOGGING="$LOGGING" \
-  -e RESET="$RESET" \
-  -e SPRITE_CONF="${SPRITE:+/workspace/.sprite/sprite.conf}" \
-  "$IMAGE" bash -c '
-set -e
-git config --global --add safe.directory "*"  # bind mount の uid 不一致対策(Linux)
-if [ "$NEED_UPDATE" -eq 1 ]; then
-  echo "=== west init/update ==="
-  [ -d .west ] || west init -l config
-  # Take the patches applied below back out first: west update refuses to check
-  # out a revision that changes a file a patch modified (zmk 9ebbeff0 ->
-  # 5b51501f touched app/src/split/bluetooth/Kconfig, 2026-09-27). They are
-  # applied again right after the update. Reverse order of application. Only a
-  # patch the working tree carries and HEAD does not (the index equals HEAD:
-  # patches go on without --index); one that upstream merged stays put.
-  # Same tree list as the patch loop below.
-  for tree in zmk zephyr; do
-    [ -e "/workspace/$tree/.git" ] || continue
-    for p in $(LC_ALL=C ls -r /workspace/patches/"$tree"/*.patch 2>/dev/null); do
-      if git -C /workspace/"$tree" apply --reverse --check "$p" >/dev/null 2>&1 &&
-         ! git -C /workspace/"$tree" apply --reverse --check --cached "$p" >/dev/null 2>&1; then
-        git -C /workspace/"$tree" apply --reverse "$p"
-        echo "=== UNPATCH $tree: $(basename "$p")"
-      fi
-    done
-  done
-  west update
+if [ ! -d "$CFG/.west" ] || [ ! -d "$CFG/zmk/app" ] || [ "$FORCE_UPDATE" -eq 1 ]; then
+  NEED_UPDATE=1
 fi
-# out-of-tree パッチを適用する(冪等)。
-# `patches/<tree>/*.patch` を /workspace/<tree> に当てる（tree = zmk / zephyr。
-# patches/ 側は west の path をそのまま写す＝対応表不要。module の tree を足す
-# ときは west の path、例 modules/<name>）。
-# west update で巻き戻されても再適用されるよう毎ビルド実行する。順序は
-# tree の列挙順、tree 内は LC_COLLATE 依存にしたくないので C ロケールでソート。
-# tree を足したら .github/workflows/zmk-build.yml の同じループと、上の west update
-# 前の UNPATCH ループも合わせること。
-for tree in zmk zephyr; do
-  if compgen -G "/workspace/patches/$tree/*.patch" > /dev/null; then
-    for p in $(LC_ALL=C ls /workspace/patches/"$tree"/*.patch); do
-      name=$(basename "$p")
-      if git -C /workspace/"$tree" apply --reverse --check "$p" >/dev/null 2>&1; then
-        echo "=== PATCH $tree: $name (既適用)"
-      elif git -C /workspace/"$tree" apply --check "$p" >/dev/null 2>&1; then
-        git -C /workspace/"$tree" apply "$p"
-        echo "=== PATCH $tree: $name (適用)"
-      else
-        echo "❌ パッチが当たりません: $name" >&2
-        echo "   $tree upstream の該当箇所が変わった可能性。手動で更新するか upstream 取り込み状況を確認。" >&2
-        exit 1
-      fi
-    done
-  fi
-done
-west zephyr-export
-# output/ holds the images of this run only: the old image of a removed or
-# renamed target (e.g. prospector_scanner.uf2, 2026-09-26) must not reach
-# firmware/ again with a fresh mtime, where it would pass for a new build.
-mkdir -p /workspace/output
-rm -f /workspace/output/*.uf2
-for t in $TARGETS; do
-  BOARD="${t%%:*}"; SH="${t##*:}"
-  # 成果物名は常に元の shield 名ベース（flash-impl.sh が device ごとに
-  # imprint_<dev><SUFFIX>.uf2 を探すため）。別 build dir で焼いて製品ビルドの
-  # cmake キャッシュと混ざらないようにする。EXTRA は実シールド据置の追加 Kconfig。
-  EXTRA=(); SUFFIX=""
-  # --sprite: prospector only. The fragment (GIF path + name) merges after
-  # config/prospector.conf.
-  if [ -n "$SPRITE_CONF" ] && [ "$SH" = prospector ]; then
-    EXTRA+=("-DEXTRA_CONF_FILE=$SPRITE_CONF"); SUFFIX="-sprite"
-  fi
-  # --logging: USB-CDC ログを有効化。成果物 -logging。
-  if [ "$LOGGING" = "1" ]; then EXTRA+=(-DCONFIG_ZMK_USB_LOGGING=y); SUFFIX="$SUFFIX-logging"; fi
-  # --reset: 実シールドのまま起動時 NVS 消去を有効化（bond/設定を wipe）。ZMK 標準の
-  # settings_reset シールドの本体機構（CONFIG_ZMK_SETTINGS_RESET_ON_START → SYS_INIT で
-  # zmk_settings_erase）だけを実シールドへ載せる。シールドごと settings_reset に差し替える
-  # 方式は不可: spi1_default pinctrl は imprint シールドの per-board overlay で定義されて
-  # おり、shield を外すと定義が消えて assimilator-bt の参照が未定義になり cmake 失敗する。
-  # 成果物名は元 shield + _RESET
-  # （imprint_left / imprint_right は別シールド＝分割の左右半なので内容も異なる）。
-  if [ "$RESET" = "1" ]; then EXTRA=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y); SUFFIX="_RESET"; fi
-  echo "=== BUILD $BOARD / $SH$SUFFIX ==="
-  west build -p -s zmk/app -d "build/$SH$SUFFIX" -b "$BOARD" -- \
-    -DSHIELD="$SH" -DZMK_CONFIG=/workspace/config "${EXTRA[@]}"
-  cp "build/$SH$SUFFIX/zephyr/zmk.uf2" "/workspace/output/$SH$SUFFIX.uf2"
-  echo "=== DONE $SH$SUFFIX ==="
-done
-'
 
-# --- 生成物をリポジトリの firmware/ へ取り出す ----------------------------
+echo "=========================================="
+echo " workspace   : $CFG"
+echo " image       : $IMAGE"
+echo " west update : $([ "$NEED_UPDATE" -eq 1 ] && echo yes || echo 'no (cached; --update forces it)')"
+if [ "$LOGGING" -eq 1 ]; then echo " logging     : CONFIG_ZMK_USB_LOGGING=y"; fi
+if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
+if [ -n "$SPRITE" ]; then
+  echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, a name of ${#SPRITE_NAME} characters (prospector only; neither printed)"
+fi
+echo " targets     :"
+for row in "${TARGETS[@]}"; do
+  plan "$row"
+  echo "   $BOARD / $SHIELD -> firmware/$NAME.uf2"
+done
+echo "=========================================="
+
+# One container per step; scripts/zmk-west.sh sets each one up.
+in_container() {
+  docker run --rm -v "$CFG:/workspace" -w /workspace -e ZEPHYR_BASE=/workspace/zephyr \
+    "$IMAGE" scripts/zmk-west.sh "$@"
+}
+
+if [ "$NEED_UPDATE" -eq 1 ]; then in_container update; fi
+in_container patch
+for row in "${TARGETS[@]}"; do
+  plan "$row"
+  in_container build "$BOARD" "$SHIELD" "$SUFFIX" ${CMAKE_ARGS[@]+"${CMAKE_ARGS[@]}"}
+done
+
 mkdir -p "$REPO/firmware"
-cp "$CFG"/output/*.uf2 "$REPO/firmware/"
-
 echo
-echo "✅ 完了。生成物:"
-for f in "$CFG"/output/*.uf2; do ls -lh "$REPO/firmware/$(basename "$f")"; done
+echo "images:"
+for row in "${TARGETS[@]}"; do
+  plan "$row"
+  cp "$CFG/build/$NAME/zephyr/zmk.uf2" "$REPO/firmware/$NAME.uf2"
+  ls -lh "$REPO/firmware/$NAME.uf2"
+done
