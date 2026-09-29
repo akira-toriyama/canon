@@ -87,7 +87,7 @@ parse_config:
     "&msc SCRL_DOWN": ⤋
     "&bootloader": ⚙ boot
     # === AUTO-GENERATED (scripts/gen-eiji-drawer-map.py from config/eiji_macros.dtsi) — do not edit ===
-    # EIJI 切替 → 数字キー（NUMBER_LAYER 用）
+    # EIJI, then a digit (NUMBER_LAYER)
     "&en_0":      '0'
     "&en_1":      '1'
     "&en_2":      '2'
@@ -99,7 +99,7 @@ parse_config:
     "&en_8":      '8'
     "&en_9":      '9'
 
-    # EIJI 切替 → 記号キー（SYMBOL1_LAYER 用）
+    # EIJI, then a symbol (SYMBOL1_LAYER)
     "&en_under":  '_'
     "&en_pipe":   '|'
     "&en_amp":    '&'
@@ -117,7 +117,7 @@ parse_config:
     "&en_slash":  '/'
     "&en_bsl":    '\'
 
-    # EIJI 切替 → 記号キー（SYMBOL2_LAYER 用）
+    # EIJI, then a symbol (SYMBOL2_LAYER)
     "&en_caret":  '^'
     "&en_lt":     '<'
     "&en_gt":     '>'
