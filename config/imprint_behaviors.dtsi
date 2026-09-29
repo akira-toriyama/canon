@@ -9,7 +9,12 @@
     #include "letter_morphs.dtsi"
     #include "arrow_behaviors.dtsi"
 
-    // ==== vendor-defined "original key" (vkey) ====
-    // &vkey behavior ノード（config/vkey_behavior.dtsi が唯一のソース）。
-    #include "vkey_behavior.dtsi"
+    // &vkey <id>: vendor HID report 0x20 (press = id, release = 0) that the
+    // host bridge chord maps to an action. The behavior comes from
+    // patches/zmk/vkey-report.patch (central builds only, USB only);
+    // scripts/gen-vkey-aliases.py reads the ids from imprint.keymap.
+    vkey: vkey {
+        compatible = "zmk,behavior-vkey";
+        #binding-cells = <1>;
+    };
 
