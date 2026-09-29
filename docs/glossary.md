@@ -304,7 +304,7 @@ readings since its #19, which removed the digits in the corners
 The [[Prospector Dongle]]'s screen sent over its USB serial port when the host
 sets the port to 2400 baud: zmk-beacon's `CONFIG_BEACON_SCREEN_DUMP`
 (`src/screen_dump.c` there, on in the `prospector` shield), which
-`python3 scripts/dongle.py shot` turns into a PNG outside the repository.
+`python3 scripts/dongle.py shot` turns into a PNG outside any git work tree.
 - A [[sprite]] build's PNG shows the sprite and its [[sprite name]]: it never
   goes into a commit, a PR or an issue.
 - **Don't call it:** screen capture, framebuffer dump, snapshot (LVGL's

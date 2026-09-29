@@ -219,7 +219,7 @@ composite で導入）が算出し、リポジトリ側に設定も依存も持�
   [docs/glossary.md](docs/glossary.md) (`sprite`, `sprite name`, `HP bar`).
   The user's picks of 2026-09-28 (projects t-dzxf) and 2026-09-28/29 (t-er81,
   layout M of twelve trials). A `dongle.py shot` of a sprite build shows the
-  sprite and its name: it writes outside the repository, and the PNG never
+  sprite and its name: it refuses a path in any git work tree, and the PNG never
   goes into a commit, a PR or an issue.
 - **生成/ツール管理ファイルを手で整形・コミットしない**（[.prettierignore](.prettierignore) で除外済）:
   `keymap_drawer.config.yaml`（gen スクリプト）、`keymap-drawer/imprint.{yaml,svg}`

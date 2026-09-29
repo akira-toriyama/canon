@@ -275,19 +275,20 @@ def port_holders(device):
     return list(dict.fromkeys(holders))
 
 
-def repository_roots():
-    """This checkout, and the main checkout when this one is a git worktree."""
-    roots = [REPO]
+def work_tree(path):
+    """The top of the git work tree path lies in, else None. git answers from
+    the nearest existing directory above path (--out names a file not yet
+    there), without the GIT_* variables that would point it elsewhere."""
+    d = os.path.dirname(os.path.realpath(path))
+    while not os.path.isdir(d):
+        d = os.path.dirname(d)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     try:
-        common = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=REPO, capture_output=True, text=True, check=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return roots
-    if common:
-        roots.append(os.path.dirname(common))
-    return roots
+        top = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, env=env).stdout.strip()
+    except OSError:
+        return None
+    return top or None
 
 
 def is_inside(path, root):
@@ -553,9 +554,12 @@ def the_dongle(device):
 
 
 def refuse_inside_repository(path, why):
-    for root in repository_roots():
-        if is_inside(path, root):
-            raise Failure("refusing --out %s: inside the repository %s (%s)" % (path, root, why), 2)
+    """Any git work tree, not only this checkout: canon's other worktrees and
+    the zmk-beacon checkouts are public repositories too. This checkout is
+    refused without git's help as well."""
+    top = work_tree(path) or (REPO if is_inside(path, REPO) else None)
+    if top is not None:
+        raise Failure("refusing --out %s: inside the git work tree %s (%s)" % (path, top, why), 2)
 
 
 def cmd_port(args):
@@ -887,7 +891,7 @@ def parser():
     s.add_argument("devices", nargs="+", choices=DEVICES, metavar="DEVICE", help=names)
     s.add_argument("--seconds", type=seconds, required=True, metavar="N", help="stop after N seconds")
     s.add_argument("--grep", type=regex, metavar="RE", help="print only the device lines RE matches (re.search; (?i) for any case)")
-    s.add_argument("--out", metavar="FILE", help="also append the printed lines to FILE (mode 0600), which must lie outside the repository")
+    s.add_argument("--out", metavar="FILE", help="also append the printed lines to FILE (mode 0600), which must lie outside any git work tree")
     s.add_argument("--raw", action="store_true", help="keep the lines that carry keycodes, key positions or modifiers (dropped by default)")
     s.set_defaults(func=cmd_log)
 
@@ -900,7 +904,7 @@ def parser():
                     "Refuses while another process holds the port: two readers would split the dump. "
                     "Prints the PNG's path on stdout and a summary on stderr.",
     )
-    s.add_argument("--out", metavar="FILE", help="the PNG to write, outside the repository "
+    s.add_argument("--out", metavar="FILE", help="the PNG to write, outside any git work tree "
                                                  "(default: prospector-<date>-<time>.png in the temporary directory)")
     s.add_argument("--seconds", type=seconds, default=10.0, metavar="N", help="give up after N seconds (default 10)")
     s.set_defaults(func=cmd_shot)
