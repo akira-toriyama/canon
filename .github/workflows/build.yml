@@ -1,30 +1,20 @@
 name: Build
 
-# ZMK ファームを CI でビルドする。実体は canon ローカルの reusable
-# workflow（.github/workflows/zmk-build.yml）に委譲する。
-#
-# 以前は ZMK 公式 reusable
-# (zmkfirmware/zmk/.github/workflows/build-user-config.yml) を直接 `uses:` して
-# いたが、本リポジトリは ZMK コアへの out-of-tree パッチ (patches/zmk/*.patch —
-# vkey 等) を前提とし、公式 reusable は patches/ を当てないため &vkey 等が
-# devicetree で解決できず全ターゲットが落ちた。そこで patch を適用する自前
-# reusable へ差し替えた（背景・upstream 化方針は zmk-build.yml と
-# docs/vkey-roadmap.md を参照）。呼び出し元 job を `build` のままにすることで
-# ステータスチェック名 `build / Build (<board>, <shield>)` を維持し、main 保護
-# ruleset の必須チェック設定を変えずに済ませている。
+# Builds every build.yaml target through the local reusable
+# .github/workflows/zmk-build.yml, which says why it is not ZMK's. The job id
+# `build` is half of the required check names
+# `build / Build (<board>, <shield>)` in the main ruleset; keep it.
 
 on:
-  # PR は pull_request で、main は push で 1 回ずつビルド。push を main に
-  # 限定して「PR ブランチへの push が push と pull_request で二重ビルド」
-  # になる無駄を排除（無料枠でもコスト方針に沿う。CLAUDE.md 参照）。
+  # push only on main: a PR branch builds once, through pull_request.
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-  # 週1の定期ビルド。ZMK は main 追従のため上流の破壊を早期検知する。
-  # 失敗時は GitHub がリポジトリオーナーへ自動通知（追加設定不要）。
+  # ZMK is followed at main: the weekly run shows an upstream break within a
+  # week (GitHub mails the owner when a scheduled run fails).
   schedule:
-    - cron: "0 3 * * 1" # 毎週月曜 03:00 UTC
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC
 
 # Least privilege, made explicit — closes zizmor's excessive-permissions
 # finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
