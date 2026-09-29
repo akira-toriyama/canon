@@ -64,15 +64,25 @@ MAX_LINE = 65536
 # vkey patch. Debug lines lead with their function's name
 # (CONFIG_LOG_FUNC_NAME_PREFIX_DBG, on by default), so hold-tap lines such as
 # "decide_hold_tap: 23 decided tap" match by it; the message words cover a
-# build without that prefix. Kept on purpose: zmk-beacon's keystroke counts
-# and the split discovery line "Found position state characteristic".
+# build without that prefix. Two more sources carry keystrokes without those
+# words: behavior_queue.c's "Invoking <behavior>: <param1> <param2>", logged
+# for every macro step (canon's capitals and en_* digits and symbols are
+# macros), and the split central's LOG_HEXDUMP_DBG of position_state
+# (split/bluetooth/central.c), whose data rows are the bitmap of pressed key
+# positions. A bare "invoking" would also drop central.c's "... before
+# invoking peripheral behavior" error. Kept on purpose: zmk-beacon's keystroke
+# counts and the split discovery line "Found position state characteristic".
 KEY_EVENT = re.compile(
     r"keycode|usage|position|modifier|implicit.?mods|explicit.?mods"
     r"|hold.?tap|retro.?tap|tap.?dance|sticky.?key|caps.?word|combo|macro"
-    r"|mouse|button|pressed|released|decision moment|bubbl|capturing",
+    r"|mouse|button|pressed|released|decision moment|bubbl|capturing"
+    r"|behavior.?queue|invoking \S+: 0x",
     re.I,
 )
 KEY_EVENT_KEPT = re.compile(r"characteristic", re.I)
+# A LOG_HEXDUMP_* data row (zephyr log_output.c hexdump_line_print): an
+# indented "xx xx ... |ascii" with no words for KEY_EVENT to match.
+HEXDUMP_ROW = re.compile(r"^\s+(?:[0-9a-f]{2} +){1,16}.*\|")
 
 # ANSI escape sequences (CSI, and two-byte Fe) and the C0 controls but tab.
 ESCAPES = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-Z\\-_])|[\x00-\x08\x0b-\x1f\x7f]")
@@ -180,16 +190,26 @@ def disk_owner(bsd_name):
 def uf2_payload(data):
     """The blocks' payloads joined in target-address order, None for no UF2.
 
-    Joined, a string that straddles two blocks still matches.
+    Joined, a string that straddles two blocks still matches. Raises Failure
+    for an incomplete UF2: every block must carry the file's block count and
+    the block numbers 0..N-1 in order. Bootloader 0.6.1 writes each block over
+    the app as it arrives and resets only once numBlocks blocks came in, so a
+    cut-short copy or download would leave the dongle in its bootloader with a
+    half-written app.
     """
     if not data or len(data) % 512:
         return None
+    total = len(data) // 512
     chunks = {}
-    for off in range(0, len(data), 512):
-        magic0, magic1, _flags, addr, size = struct.unpack_from("<5I", data, off)
+    for i in range(total):
+        off = i * 512
+        magic0, magic1, _flags, addr, size, block_no, num_blocks = struct.unpack_from("<7I", data, off)
         (magic_end,) = struct.unpack_from("<I", data, off + 508)
         if (magic0, magic1, magic_end) != (0x0A324655, 0x9E5D5157, 0x0AB16F30) or size > 476:
             return None
+        if (block_no, num_blocks) != (i, total):
+            raise Failure("an incomplete UF2: the file holds %d blocks, but block %d says %d of %d "
+                          "(a cut-short copy or download)" % (total, i, block_no, num_blocks), 2)
         chunks[addr] = data[off + 32:off + 32 + size]
     return b"".join(chunks[a] for a in sorted(chunks))
 
@@ -205,6 +225,8 @@ def split_lines(buf):
 
 
 def is_key_event(line):
+    if HEXDUMP_ROW.match(line):
+        return True
     return bool(KEY_EVENT.search(line)) and not KEY_EVENT_KEPT.search(line)
 
 
@@ -614,7 +636,7 @@ def parser():
     s.set_defaults(func=cmd_log)
 
     s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 of the dongle whose product string "
-                                     "the UF2 payload holds (exit 1 for none or both, 2 for no UF2)")
+                                     "the UF2 payload holds (exit 1 for none or both, 2 for no UF2 or an incomplete one)")
     s.add_argument("uf2")
     s.set_defaults(func=cmd_image)
 
