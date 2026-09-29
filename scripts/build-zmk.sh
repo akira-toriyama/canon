@@ -16,7 +16,13 @@
 #   ./scripts/build-zmk.sh --clean           # delete the workspace and exit
 #
 # Options (local builds only: CI and releases build the plain images):
-#   --logging         USB CDC logging (CONFIG_ZMK_USB_LOGGING=y).
+#   --logging         USB CDC logging: CONFIG_ZMK_USB_LOGGING=y, a 4 KiB CDC ring
+#                     buffer (the 1 KiB default drops the boot log before the host
+#                     opens the port) and ZMK at INFO level
+#                     (CONFIG_ZMK_LOGGING_MINIMAL=y: at DEBUG the Imprint Dongle's
+#                     boot overflows the 8 KiB log buffer before the log thread
+#                     starts, and DEBUG lines carry keycodes). For DEBUG add
+#                     --kconfig CONFIG_ZMK_LOGGING_MINIMAL=n.
 #   --reset           CONFIG_ZMK_SETTINGS_RESET_ON_START=y on the real shield: the
 #                     image erases the settings, BLE bonds included, at every
 #                     boot. Flash it with flash-reset.sh, then the normal image.
@@ -29,7 +35,7 @@
 #                     tree as it is, instead of the revision config/west.yml pins.
 #   --kconfig CONFIG_NAME=VALUE
 #                     one more Kconfig line for every target, merged after
-#                     config/<shield>.conf and the sprite's.
+#                     config/<shield>.conf and the sprite and logging lines.
 #                     Repeatable. CONFIG_BEACON_SPRITE_* go only through --sprite.
 #   --tag <name>      appended to the build directory and the image name.
 #   --update          west update before building: moves zmk@main, the
@@ -72,6 +78,16 @@ BEACON_REV=""
 TAG=""
 KCONFIG=()
 ARGS=()
+
+# The ZMK defaults under CONFIG_ZMK_USB_LOGGING are a 1 KiB CDC ring and ZMK at
+# DEBUG (zmk app/Kconfig). 4096 holds the Prospector Dongle's boot (about 1.3
+# KB) and the Imprint Dongle's INFO boot (about 3 KB) until the port opens;
+# the ring is allocated twice (RX and TX, Zephyr cdc_acm.c).
+LOGGING_CONF=(
+  CONFIG_ZMK_USB_LOGGING=y
+  CONFIG_USB_CDC_ACM_RINGBUF_SIZE=4096
+  CONFIG_ZMK_LOGGING_MINIMAL=y
+)
 
 die() {
   local rc=$1
@@ -178,7 +194,8 @@ fi
 # For the target in row ("board<TAB>shield"), sets BOARD, SHIELD, NAME
 # (<shield><suffix>: the build directory and the image name), SUFFIX and
 # CMAKE_ARGS. Kconfig fragments merge in list order after config/<shield>.conf,
-# and -DCONFIG_* after every fragment.
+# and -DCONFIG_* after every fragment: --logging is a fragment so that
+# --kconfig can still override it.
 plan() {
   local conf=()
   BOARD="${1%%	*}"
@@ -189,13 +206,13 @@ plan() {
     conf+=(/workspace/.sprite/sprite.conf)
     SUFFIX="$SUFFIX-sprite"
   fi
+  if [ "$LOGGING" -eq 1 ]; then
+    conf+=(/workspace/.kconfig/logging.conf)
+    SUFFIX="$SUFFIX-logging"
+  fi
   if [ ${#KCONFIG[@]} -gt 0 ]; then conf+=(/workspace/.kconfig/extra.conf); fi
   if [ ${#conf[@]} -gt 0 ]; then
     CMAKE_ARGS+=("-DEXTRA_CONF_FILE=$(IFS=';' && echo "${conf[*]}")")
-  fi
-  if [ "$LOGGING" -eq 1 ]; then
-    CMAKE_ARGS+=(-DCONFIG_ZMK_USB_LOGGING=y)
-    SUFFIX="$SUFFIX-logging"
   fi
   if [ "$RESET" -eq 1 ]; then
     CMAKE_ARGS+=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y)
@@ -233,6 +250,10 @@ if [ -n "$SPRITE" ]; then
     echo "CONFIG_BEACON_SPRITE_NAME=\"$SPRITE_NAME\""
   } >"$CFG/.sprite/sprite.conf"
 fi
+if [ "$LOGGING" -eq 1 ]; then
+  mkdir -p "$CFG/.kconfig"
+  printf '%s\n' "${LOGGING_CONF[@]}" >"$CFG/.kconfig/logging.conf"
+fi
 if [ ${#KCONFIG[@]} -gt 0 ]; then
   mkdir -p "$CFG/.kconfig"
   printf '%s\n' "${KCONFIG[@]}" >"$CFG/.kconfig/extra.conf"
@@ -257,7 +278,7 @@ if [ -n "$BEACON" ]; then
 else
   echo " zmk-beacon  : the revision config/west.yml pins"
 fi
-if [ "$LOGGING" -eq 1 ]; then echo " logging     : CONFIG_ZMK_USB_LOGGING=y"; fi
+if [ "$LOGGING" -eq 1 ]; then echo " logging     : ${LOGGING_CONF[*]}"; fi
 if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
 if [ -n "$SPRITE" ]; then
   echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, a name of ${#SPRITE_NAME} characters (prospector only; neither printed)"
