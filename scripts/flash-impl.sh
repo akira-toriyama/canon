@@ -38,17 +38,20 @@ done
 cat >&2 <<'BANNER'
 ============================================================
  ⚠ imprint flash: read this first
-   • Bootloader = reset "double-tap" (a single tap only reboots; the bonds stay)
+   • Bootloader = reset "double-tap" (a single tap only reboots: a normal
+     image keeps the bonds)
    • Left, then right into the bootloader (one board: the mount order decides
      left and right; the dongle, a XIAO, is told apart by itself)
    • If they do not connect, try procedure A first (re-plug the dongle, no
-     computer needed) → docs/dongle-roadmap.md
+     computer needed) → docs/recovery.md
 BANNER
 if [ "$MODE" = "reset" ]; then
   cat >&2 <<'BANNER'
-   ⚠⚠ This wipes NVS (bonds and settings, on every device). Then flash the
-      normal images and re-pair with procedure A (the halves advertise
-      first, the dongle comes last).
+   ⚠⚠ This wipes NVS (bonds and settings, on every device), and the devices
+      pair while the RESET images run, so the order matters (docs/recovery.md
+      B): the right half off; the Imprint Dongle, then the left half, then the
+      right half; then flash-watch.sh in the same order. Until then a single
+      tap, a replug or a power loss erases a device again.
 BANNER
 fi
 echo "============================================================" >&2

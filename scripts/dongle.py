@@ -7,7 +7,7 @@
 # bootloader volume from the plumbing subcommands (image, find, owner).
 #
 # Identity is the USB product string alone. Both dongles (and the ist dongle
-# of zmk-ble-hid-host) carry ZMK's default VID/PID 0x1D50/0x615E, and a
+# of zmk-hid-host) carry ZMK's default VID/PID 0x1D50/0x615E, and a
 # /dev/cu.usbmodem* name is derived from the USB location (0x02112000 ->
 # usbmodem211201): never identify a dongle by either.
 #

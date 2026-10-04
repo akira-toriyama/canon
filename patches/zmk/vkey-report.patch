@@ -316,7 +316,7 @@ index 17cdc5d7..474c01c0 100644
 +    case ZMK_TRANSPORT_BLE:
 +        // vkey over BLE HOG is intentionally not implemented (descoped): no
 +        // canon build target presents HOG to a PC, and there is no
-+        // zmk_hog_send_vkey_report. See docs/vkey-roadmap.md.
++        // zmk_hog_send_vkey_report. See canon's patches/zmk/README.md.
 +        LOG_WRN("vkey over BLE HOG not implemented (descoped)");
 +        return -ENOTSUP;
 +    }

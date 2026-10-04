@@ -121,6 +121,9 @@ cmd_patch() {
       else
         echo "error: patches/$tree/$name applies neither forward nor in reverse to $tree:" >&2
         echo "  upstream changed the lines it touches; update the patch, or drop it if upstream merged it." >&2
+        echo "  Locally also when the patch file changed after the tree was patched. Unless the tree holds an edit" >&2
+        echo "  you still need, reset it: git -C ~/.cache/zmk-canon/cfgrepo/$tree checkout -- . and clean -fd" >&2
+        echo "  (\$ZMK_WS/cfgrepo when ZMK_WS is set), or run build-zmk.sh --clean." >&2
         git -C "$tree" apply --check -v "$p" >&2 || true
         exit 1
       fi

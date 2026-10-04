@@ -6,9 +6,10 @@
 # Use when BLE pairing wedges (split halves won't re-pair, dongle lost the
 # keyboard, etc.). The *_RESET.uf2 is the normal firmware built with ZMK's
 # CONFIG_ZMK_SETTINGS_RESET_ON_START=y, so it wipes NVS (bond/settings) on
-# EVERY boot. Per device:
-#   ① flash *_RESET.uf2 (this script) → wipes on boot → ② flash the normal
-#   firmware (./scripts/flash-watch.sh, removes the wipe-on-boot) → pair fresh.
+# EVERY boot and then runs Bluetooth: the devices pair while it runs, and the
+# normal firmware flashed next (./scripts/flash-watch.sh, which removes the
+# wipe-on-boot) keeps those bonds. Hence the order of docs/recovery.md B: the
+# Imprint Dongle first, then left, then right (right half off until its turn).
 #
 # Build the images first: `./scripts/build-zmk.sh imprint --reset` writes
 # firmware/imprint_{left,right,dongle}_RESET.uf2.

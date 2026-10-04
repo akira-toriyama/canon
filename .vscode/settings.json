@@ -1,22 +1,20 @@
 {
-  // 保存時にフォーマットを実行
+  // Format on save
   "editor.formatOnSave": true,
 
-  // 構文ハイライトの言語関連付け。
-  // - .keymap/.dtsi/.overlay: DeviceTree（要 plorefice.devicetree 拡張。
-  //   .vscode/extensions.json で推奨。未導入時はプレーンに graceful fallback）
-  // - skhdrc / .conf: 拡張不要のビルトイン言語で近似
+  // Language associations for syntax highlighting:
+  // - .keymap/.dtsi/.overlay: DeviceTree (the plorefice.devicetree extension,
+  //   recommended in .vscode/extensions.json; plain text without it)
+  // - .conf: a built-in language as an approximation
   "files.associations": {
     "**/*.keymap": "devicetree",
     "**/*.dtsi": "devicetree",
     "**/*.overlay": "devicetree",
-    "**/*.conf": "properties",
-    "**/skhdrc.tmpl": "shellscript",
-    "**/skhdrc": "shellscript"
+    "**/*.conf": "properties"
   },
 
-  // prettier が扱える言語のみ既定フォーマッタを prettier に固定。
-  // .dtsi / .keymap / .conf / .sh / .py 等は対象外（別フォーマッタの領域）。
+  // prettier is the default formatter only for the languages it handles;
+  // .dtsi / .keymap / .conf / .sh / .py and the like are left to other tools.
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

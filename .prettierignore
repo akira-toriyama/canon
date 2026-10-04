@@ -1,18 +1,18 @@
-# ツール／スクリプト生成・管理ファイル（prettier で整形すると生成元と
-# 食い違い CI churn の原因になるため対象外）。
-# ※ gitignore 構文: 行末コメント不可。コメントは行頭 # のみ。
+# Files that tools and scripts generate or manage: prettier would make them
+# differ from their source and churn CI.
+# gitignore syntax: a comment only on a line of its own, never after an entry.
 
-# scripts/gen-eiji-drawer-map.py が厳密一致で生成
+# scripts/gen-eiji-drawer-map.py writes its AUTO-GENERATED block, checked byte for byte
 keymap_drawer.config.yaml
 
-# scripts/gen-vkey-aliases.py がキーマップから生成（chord 貼り付け用）
+# scripts/gen-vkey-aliases.py generates it from the keymap (for chord's config)
 config/vkey-aliases.toml
 
-# caksoylar/keymap-drawer CI が生成・コミット
+# keymap-drawer's workflow (Draw keymap) generates and commits it
 keymap-drawer/imprint.yaml
 
-# keymap エディタ等のツール管理データ
+# Tool-managed data: the physical layout keymap-drawer draws
 config/imprint.json
 
-# vanilla west / Docker 由来の生成物
+# Local build output
 firmware/

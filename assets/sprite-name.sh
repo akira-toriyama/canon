@@ -2,12 +2,12 @@
 #
 # The name the Prospector Dongle shows under its HP bar for a sprite GIF,
 # from the GIF's file name: the extension dropped, whitespace trimmed at both
-# ends, the first letter upper-cased ("pikachu.gif" -> "Pikachu"; the user's
-# rule, projects t-er81, 2026-09-29). scripts/build-zmk.sh --sprite passes the
-# result to zmk-beacon as CONFIG_BEACON_SPRITE_NAME. Printable ASCII on one
-# line, without a double quote, a backslash or "??": the HP bar's font has no
-# other glyphs, Kconfig would need escaping, and "??x" is a C trigraph in
-# autoconf.h, so anything else is an error and a build never shows a wrong
+# ends, the first letter upper-cased ("my sprite.gif" -> "My sprite"; the
+# user's rule, projects t-er81, 2026-09-29). scripts/build-zmk.sh --sprite
+# passes the result to zmk-beacon as CONFIG_BEACON_SPRITE_NAME. Printable ASCII
+# on one line, without a double quote, a backslash or "??": the HP bar's font
+# has no other glyphs, Kconfig would need escaping, and "??x" is a C trigraph
+# in autoconf.h, so anything else is an error and a build never shows a wrong
 # name. The one committed file next to the personal ones (.gitignore); it
 # prints the name, which names the subject, so never paste its output into a
 # commit, a PR or a doc; its error messages name neither the file nor the

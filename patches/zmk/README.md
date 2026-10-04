@@ -1,139 +1,281 @@
 # patches/zmk/
 
-`scripts/build-zmk.sh` がビルド前に `/workspace/zmk` へ適用する
-out-of-tree パッチ群。`west update` で巻き戻されるたびに毎ビルド
-冪等に再適用される(既適用は reverse-apply check で検出して skip)。
+Out-of-tree patches to ZMK, the `zmk/` west project (zmkfirmware/zmk at
+`main`, [config/west.yml](../../config/west.yml)). Every build applies them
+with `scripts/zmk-west.sh patch`: [scripts/build-zmk.sh](../../scripts/build-zmk.sh)
+locally, [.github/workflows/zmk-build.yml](../../.github/workflows/zmk-build.yml)
+in CI. [patches/zephyr/](../zephyr/README.md) goes through the same loop. A
+patch stays until upstream takes it. Not a ZMK fork: canon follows zmk@main,
+which a fork would have to keep rebasing onto, while a patch that no longer
+applies stops the next build.
 
-最終ゴールは各パッチを `zmkfirmware/zmk` へ upstream PR し、取り込まれ
-たらこのディレクトリごと畳むこと。詳細は
-[docs/dongle-roadmap.md](../../docs/dongle-roadmap.md) の
-「ZMK source patch (out-of-tree)」節を参照。
+## How the patches go on
 
-## パッチ一覧
+- `patches/<tree>/*.patch` patches the west project at `<topdir>/<tree>`. The
+  topdir is the CI checkout, or locally `$ZMK_WS/cfgrepo` (default
+  `~/.cache/zmk-canon/cfgrepo`, `/workspace` inside the container). Trees go
+  zmk first, then zephyr; within a tree, in `LC_ALL=C` file-name order.
+- No tree is reset to pristine. `patch` checks each file on its own: one that
+  reverse-applies is `(already applied)` and skipped, one that applies goes on
+  the working tree (the index stays at HEAD), and one that does neither stops
+  the build (`applies neither forward nor in reverse`); there is no silent skip.
+- `update` (the first local build, `--update`, every CI job) first
+  reverse-applies, last to first, each patch the working tree carries and the
+  index does not, because `west update` refuses a revision that changes a
+  patched file; then it runs `west update`. Update the workspace through it
+  (`./scripts/build-zmk.sh --update`), never with a bare `west update`.
+- On a fresh tree (CI), `(already applied)` means upstream now carries the
+  change: delete the patch.
+- A local build uses the zmk commit of its last `update`; CI takes zmk@main on
+  every run.
 
-### `security-changed-auto-unpair.patch`
+## Adding or changing a patch
 
-`app/src/ble.c` の `security_changed` で
-`BT_SECURITY_ERR_PIN_OR_KEY_MISSING` を受けたピアを `bt_unpair` →
-`bt_conn_disconnect` する。dongle 構成で central(XIAO BLE) と
-peripheral(左右半分) の bond が片側だけ失われたときの自動復帰用。
-このパッチが無いと、再接続時に PIN_OR_KEY_MISSING でハンドシェイクが
-ループしてユーザー操作では復帰できない。
+- A patch is a `git diff` against HEAD with every patch that sorts before it
+  applied (git apply also takes a plain unified diff, which the zephyr patch
+  is; write new ones with the steps below); name a new one so that `LC_ALL=C`
+  order puts it after the patches it builds on.
+- On a built tree every patch is applied and still has to reverse-apply on its
+  own, so no patch may add, remove or change lines inside another patch's
+  hunks (its added lines and their context).
+- Edit in the workspace tree (`~/.cache/zmk-canon/cfgrepo/zmk` after a build:
+  every patch applied and unstaged, created files untracked), then write the
+  patch from it through a scratch index, which leaves the tree's own index at
+  HEAD. `P` is absolute: `git -C` resolves a relative patch path against the
+  tree.
 
-**upstream PR**: [zmkfirmware/zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385)
-(`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`、default n の Kconfig gate
-付き)。merge され次第本 patch を畳む。
+  ```sh
+  T=~/.cache/zmk-canon/cfgrepo/zmk
+  P=/absolute/path/to/canon/patches/zmk
+  export GIT_INDEX_FILE="$(mktemp -d)/index"
+  git -C "$T" read-tree HEAD
+  git -C "$T" apply --cached "$P"/<each patch that sorts before it>
+  git -C "$T" add -N <files the patch creates>
+  git -C "$T" diff -- <files the patch touches> > "$P/<name>.patch"
+  unset GIT_INDEX_FILE
+  ```
 
-### `split-battery-source-bounds.patch`
+  When a later patch touches one of those files, `git -C "$T" apply --reverse`
+  it first; the next build puts it back. On a scratch clone of zmk 5b51501f
+  these steps reproduced vkey-report.patch hunk for hunk (2026-10-04).
+- A patch that stops applying after zmk moved: `git -C "$T" apply --reject`
+  applies the hunks that fit and writes the rest to `*.rej` files; fix those
+  by hand, delete them, and regenerate as above.
+- A patch file that changes any other way (a hand edit, a pull) leaves the
+  workspace tree carrying its old version: the next local build stops at
+  `patch`, and a deleted patch or a dropped hunk goes unnoticed, the tree
+  keeping the removed change. After such a change, reset the tree unless it
+  holds an edit you still need: `git -C ~/.cache/zmk-canon/cfgrepo/zmk
+  checkout -- . && git -C ~/.cache/zmk-canon/cfgrepo/zmk clean -fd`, or
+  delete the whole workspace with `./scripts/build-zmk.sh --clean`.
+- Build a target that compiles it (`./scripts/build-zmk.sh imprint_dongle`);
+  the PR's CI applies the whole set to a fresh tree. Add an entry below.
 
-`app/src/split/central.c` の battery event 分岐に `source` の範囲検査を足す。upstream は
-読み出し側 (`zmk_split_central_get_peripheral_battery_level`) でしか範囲を見ておらず、
-書き込み `peripheral_battery_levels[source] = …` は無検査。`split_central_disconnected()` は
-`peripheral_slot_index_for_conn()` の戻り値をそのまま uint8_t の `source` に入れるため、
-slot を持たない接続が切れると `-EINVAL` が **234** になり、2 byte の配列の 234 byte 先へ
-0 を書く (imprint_dongle の実ビルドでは BLE controller の ECC 鍵領域に着弾する)。
-`split_central_connected()` と違い `BT_CONN_ROLE_CENTRAL` の filter が無いので、dongle 自身の
-BLE 接続 (HOG で繋いだ phone 等) が切れるだけで到達する。
+## The patches
 
-この分岐は `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING` 配下で、canon が
-2026-09-24 に同 Kconfig を `config/imprint_dongle.conf` で有効化するまで compile されて
-いなかった。**有効化と同じ PR で塞ぐ**。
+Every build target builds against the patched tree; patched code compiles
+only where ZMK compiles that file. Upstream state checked 2026-10-04.
 
-**upstream PR**: 未提出。vkey #3390 とは独立の upstream バグ修正なので単独で出す。
+### security-changed-auto-unpair.patch
 
-### `usb-hid-prime-on-ready.patch`
+`security_changed()` in `app/src/ble.c`: on
+`BT_SECURITY_ERR_PIN_OR_KEY_MISSING` it calls `bt_unpair()` on the peer and
+`bt_conn_disconnect()`, so the next connection pairs afresh. When a half has
+lost its bond and the Imprint Dongle (split central) still holds it, every
+reconnect otherwise fails the handshake with that error, and only wiping the
+bonds on both sides ends the loop. The reverse case, a bond the dongle lost and
+the half kept, is not this error and is not covered
+([docs/recovery.md](../../docs/recovery.md)). No Kconfig gate: canon always
+runs it. `ble.c` compiles only into non-split and split-central builds with
+`ZMK_BLE`: the Imprint Dongle.
 
-`app/src/usb_hid.c` に **pending report queue** を追加し、USB が
-`USB_DC_SUSPEND` で破棄していた HID report を貯めて、`USB_DC_CONFIGURED`
-/ `USB_DC_RESUME` 復帰の 100ms 後に flush する。
+Upstream: [zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385)
+(`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`, default n), open; its
+description links this file by name, so keep the name. The earlier
+split-central-only variant, [zmk#3377](https://github.com/zmkfirmware/zmk/pull/3377)
+(`CONFIG_ZMK_SPLIT_AUTO_UNPAIR_ON_KEY_MISMATCH`), is open too.
 
-カバーする 3 症状 (いずれも「USB ready 直後の HID drop」共通機構):
+### split-battery-source-bounds.patch
 
-- dongle 物理つけ外し直後の 1 打目消失
-- PC スリープ復帰直後の 1 打目消失
-- 長時間無操作 (macOS USB selective suspend) 復帰時、数打必要
+A range check on `source` in the battery-event case of
+`app/src/split/central.c`. Upstream checks it on the read side only
+(`zmk_split_central_get_peripheral_battery_level()`); the write to
+`peripheral_battery_levels[source]` is unchecked. The BLE transport's
+`split_central_disconnected()` fills the event's `uint8_t source` from
+`peripheral_slot_index_for_conn()`, which returns `-EINVAL` for a connection
+that never held a peripheral slot, and unlike `split_central_connected()` it
+has no `BT_CONN_ROLE_CENTRAL` filter: the disconnect of any such connection
+writes 0 to index 234 of a 2-byte array. The case compiles only with
+`CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING`, which canon turned on
+in [config/imprint_dongle.conf](../../config/imprint_dongle.conf) in the same
+change as this patch (2026-09-24): the Imprint Dongle.
 
-ZMK 現実装 [`zmk_usb_hid_send_report`](https://github.com/zmkfirmware/zmk/blob/main/app/src/usb_hid.c#L187)
-は `USB_DC_SUSPEND` で `usb_wakeup_request()` だけ返して report を
-完全破棄、`USB_DC_DISCONNECTED` / `RESET` / `UNKNOWN` でも `-ENODEV`
-で破棄。queue 化することで「破棄されていた打鍵」を resume 後に
-取り戻せる。100ms の flush delay は host (macOS) HID interface binding
-race も吸収する。
+Upstream: not submitted. An upstream bug fix of its own, independent of
+zmk#3390.
 
-queue は ring buffer (深さ 8、1 entry 16B)。peripheral 側は
-`CONFIG_ZMK_USB=n` で `app/src/usb_hid.c` 自体が compile されない
-ため無影響。FLASH 数百B / RAM ~200B (dongle build) のオーバーヘッド。
+### usb-hid-prime-on-ready.patch
 
-**upstream PR**: [zmkfirmware/zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)
-(`CONFIG_ZMK_USB_HID_REPLAY_ON_READY` の Kconfig gate + queue depth /
-flush delay の Kconfig 化、default n)。merge され次第本 patch を畳む。
-関連 issue: [zmkfirmware/zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686)。
+A pending-report ring in `app/src/usb_hid.c`. Upstream
+`zmk_usb_hid_send_report()` drops a report sent while the bus is not ready:
+`USB_DC_SUSPEND` returns `usb_wakeup_request()`, `ERROR`, `RESET`,
+`DISCONNECTED` and `UNKNOWN` return `-ENODEV`. The patch queues those reports
+(and `CONNECTED` ones) and flushes them 100 ms after `USB_DC_CONFIGURED` or
+`USB_DC_RESUME`; the delay also covers macOS seeming to drop the first report
+from a freshly bound interface (seen while testing canon#43 and zmk#3384,
+2026-06; 100 ms found enough by trial). Three symptoms went away with the
+patch on hardware (canon#43, 2026-06-09), hence one inferred mechanism behind
+them: the first key lost after replugging the dongle, the first key lost after
+the host wakes, several presses needed after a long idle (the bus suspended
+while the host idles).
 
-### `vkey-report.patch`
+- 8 slots of up to 16 bytes, so at most 7 reports wait; a full ring drops its
+  oldest entry, and a report longer than 16 bytes is dropped, not queued
+  (canon's keyboard and consumer reports are 9 and 13 bytes; NKRO's extended
+  report would be 22). A physical disconnect empties the ring, so old
+  keystrokes are not replayed on replug. A live report queues behind pending
+  ones instead of overtaking them. The code comments and zmk#3384's
+  description give the reasons per USB state (`CONNECTED`: a write on a bus
+  not yet configured fails silently).
+- `usb_hid.c` compiles only with `ZMK_USB`: the Imprint Dongle (a split
+  peripheral cannot enable it, the Prospector Dongle turns it off).
 
-ベンダー定義 HID「オリジナルキー」(vkey) を追加する。Report ID `0x20` の
-1 byte selector レポート (`0`=解放 / `1..255`=ID) を keyboard/consumer/mouse と
-並ぶ独立 collection として `zmk_hid_report_desc[]` に足し、新 behavior
-`&vkey <id>` (press で id 送出、release で 0 送出) を実装する。chord (macOS host
-bridge) が IOHIDManager で受けて id→action にマップする想定。
+Upstream: [zmk#3384](https://github.com/zmkfirmware/zmk/pull/3384)
+(`CONFIG_ZMK_USB_HID_REPLAY_ON_READY`, default n, with
+`CONFIG_ZMK_USB_HID_REPLAY_QUEUE_DEPTH` 8, `CONFIG_ZMK_USB_HID_REPLAY_REPORT_MAX_LEN`
+16 and `CONFIG_ZMK_USB_HID_REPLAY_FLUSH_DELAY_MS` 100), open; its description links
+this file by name, so keep the name. Related issue
+[zmk#2686](https://github.com/zmkfirmware/zmk/issues/2686), open.
 
-- 触るファイル: `app/include/zmk/hid.h` (Report ID + descriptor + report 構造体),
-  `app/src/hid.c` (state + set/clear/get), `app/src/usb_hid.c`
-  (`zmk_usb_hid_send_vkey_report` + get_report_cb の 0x20 case),
-  `app/src/endpoints.c` (`zmk_endpoint_send_vkey_report`),
-  `app/include/zmk/{usb_hid,endpoints}.h`, 新規
-  `app/src/behaviors/behavior_vkey.c` +
-  `app/dts/bindings/behaviors/zmk,behavior-vkey.yaml`,
-  `app/CMakeLists.txt` / `app/Kconfig.behaviors` (central gate 内で behavior 登録)。
-- **USB のみ**。ドングル (central) が PC へ USB HID で送る経路に対応。BLE-HOG 直結は
-  descope (`zmk_endpoint_send_vkey_report` の BLE 分岐は `LOG_WRN` + `-ENOTSUP`)。
-- vkey レポートは既存 `zmk_usb_hid_send_report` を経由するので
-  `usb-hid-prime-on-ready.patch` の resume queue を自動継承する。よって本 patch は
-  `usb-hid-prime-on-ready.patch` の **後** に適用される必要があり、build-zmk.sh の
-  `LC_ALL=C` 順 (s < u < v) で満たされる。
-- descriptor の 16-bit usage page `0xFF31` は `HID_USAGE_PAGE()` が 1 byte に
-  切り詰めるため raw long item `0x06,0x31,0xFF` でベタ書き。Input は単一の値
-  フィールドなので `0x02` (Data,Variable,Absolute)。
-- **upstream PR**: [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)（提出済み・レビュー待ち。
-  `CONFIG_ZMK_HID_VKEY` default-off で汎用化）。**merge されるまで本 patch は維持する**（canon は
-  upstream に非依存。マージは難航しうる）。提出 diff・PR 本文・移行手順は
-  [`docs/vkey-upstream-pr-draft.md`](../../docs/vkey-upstream-pr-draft.md)。
-- 全フェーズ計画・検証ゲート: [`docs/vkey-roadmap.md`](../../docs/vkey-roadmap.md)。
-- **Report ID `0x21` = split peripheral battery**（2026-09-24〜）。同じ `0xFF31` collection に
-  `{source, level}` 2 byte の input report を同居させる。`source` = split peripheral の slot index
-  （0/1。初回ペアリング順で決まり settings に永続化＝NVS リセットまで同じ半体。`ble.c`
-  `zmk_ble_put_peripheral_addr()` 2026-09-25 実読）、`level` = 0..100。切断時に central が流す `0` は
-  firmware では落とさず素通し（host が「切断」と「0%」を区別する）。
-  - 追加物: `app/src/split/bluetooth/central_battery_hid.c`（`zmk_peripheral_battery_state_changed`
-    listener → `zmk_hid_split_battery_set` → `zmk_endpoint_send_split_battery_report`）、
-    Kconfig `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID`（default n・`depends on ZMK_USB`、
-    `FETCHING` の配下）、`usb_hid.c` の GET_REPORT case と送出関数、`endpoints.c` の dispatcher。
-    有効化は `config/imprint_dongle.conf` の `..._FETCHING=y` + `..._HID=y`。
-  - **別 patch ファイルに分けない**: 0x21 の descriptor 項目は vkey hunk の post-image
-    （`hid.h` の 0xFF31 collection）の内側にしか置けず、分けると warm tree で本 patch の
-    reverse-check と forward-check が両方落ちて `build-zmk.sh` が `exit 1` する（2026-09-24 実測）。
-    `docs/vkey-roadmap.md` Phase 1 の「1 つの patch に集約」と同じ裁定。
-  - `zmk_endpoint_clear_reports` には**足さない**: あれは「押しっぱなしのキーを旧 endpoint に
-    残さない」契約で、battery に held state は無い。足すと endpoint 切替のたび捏造の `{source, 0}` が飛ぶ。
-  - **pending ring を一切使わない**: `zmk_usb_hid_send_split_battery_report()` は
-    `zmk_usb_hid_send_report()` を経由せず、`USB_DC_SUSPEND` 等のときと ring に未送出が残って
-    いる間は `-EAGAIN` で捨てる。理由は 2 つ。ring（8 深）は溢れると**最古**を捨てるので、
-    誰も待っていない level が打鍵を押し出す。そして `zmk_usb_hid_send_report()` の
-    `USB_DC_SUSPEND` 分岐は `usb_wakeup_request()` を呼ぶので、半体の残量変化や切断で
-    **スリープ中の host が起きる**。
-  - **`zmk_usb_is_hid_ready()` では止められない**（2026-09-24 に前提の誤りが判明し撤回）:
-    `app/src/usb.c` は `USB_DC_SUSPEND` を `ZMK_USB_CONN_HID` に写し、`is_configured` は
-    真のまま据え置くので、suspend 中も真を返す。
-  - 捨てた値は**再送されない**。半体は % が変わった時だけ notify し、無操作 30 秒で
-    サンプリング自体を止めるため、次の値は数時間先になりうる。よって listener は送出の
-    **前**に `zmk_hid_split_battery_set()` でキャッシュし、GET_REPORT(0x21) が既知の最新値を
-    返せるようにしている。
-  - 上流 PR zmk#3390 の提出 diff（`docs/vkey-upstream-pr-draft.patch`）は vkey のみで、
-    本 patch とは以後乖離する。merge 時の畳み方は同 draft 文書の注記を参照。
+### vkey-report.patch
 
-## パッチを追加するとき
+Adds the vkey and the split battery report (entries in
+[docs/glossary.md](../../docs/glossary.md)), the two reports the host bridge
+chord reads.
 
-1. `~/.cache/zmk-canon/cfgrepo/zmk/` で対象ファイルを編集
-2. `git -C ~/.cache/zmk-canon/cfgrepo/zmk diff <path> > patches/zmk/<name>.patch`
-3. `./scripts/build-zmk.sh` で適用 → ビルドが通ることを確認
-4. 本 README に目的と upstream 化方針を追記
+- Report `0x20`: the vkey selector, 1 byte (`1`–`255` the id, `0` released),
+  in an independent Application collection on vendor usage page `0xFF31`
+  (usage 0x01 the collection, 0x02 the selector), appended after every
+  standard collection and outside the `CONFIG_ZMK_POINTING` guard. ZMK's own
+  report IDs are 0x01 (keyboard, LEDs), 0x02 (consumer) and 0x03 (mouse).
+- `&vkey <id>`: `app/src/behaviors/behavior_vkey.c` and binding
+  `zmk,behavior-vkey` (node in
+  [config/imprint_behaviors.dtsi](../../config/imprint_behaviors.dtsi)).
+  Press sets the id and sends, release sends 0. It runs on the central and
+  sets the report directly instead of raising a keycode event: ZMK's HID path
+  (`zmk_hid_press()`) reports only the keyboard and consumer pages, and an
+  encoded keycode keeps 8 bits of page, too few for 0xFF31.
+  `zmk_endpoint_clear_reports()` clears
+  and resends it too, so an endpoint switch cannot strand a held vkey.
+- Report `0x21`, the split battery report: `{source, level}` in the same
+  collection, from a listener on `zmk_peripheral_battery_state_changed`
+  (`app/src/split/bluetooth/central_battery_hid.c`), under the new
+  `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID` (inside
+  `if ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING`, `depends on ZMK_USB`;
+  both on in config/imprint_dongle.conf). What `source` and `level` mean: the
+  glossary entry.
+- chord (`Sources/ChordAdapterMacOS/VKeyHIDSource.swift`) reads
+  `[0x20, selector]` and `[0x21, source, level]` from the USB device named
+  `Imprint Dongle`. Changing a report ID or a report's byte layout is a wire
+  change chord has to follow; chord does not check the usage page (it
+  matches VID/PID and the product string).
+- Of the C files it changes or adds, the Imprint Dongle compiles all, the
+  halves none (central-only sources), and the Prospector Dongle, a non-split
+  build, `hid.c` and `endpoints.c`. `behavior_vkey.c` is listed inside the
+  central block of `app/CMakeLists.txt`: a split peripheral lacks the HID and
+  endpoint functions it calls.
+
+Decisions not to undo:
+
+- A core patch, not a module: the report descriptor is core
+  (`zmk_hid_report_desc[]` in `hid.h`, registered by `usb_hid.c` and served
+  as the HOG report map by `hog.c`). A module cannot extend it and would have
+  to add a second USB HID interface (the badjeff/zmk-hid-io approach), a
+  different wire for chord.
+- One patch. The 0x21 items sit inside the vkey collection: they use its
+  Usage Page and close with its End Collection, which places them inside this
+  patch's added lines. As a separate patch they would make this one fail its
+  reverse check on a built tree as well as its forward check, and `patch`
+  stops (measured 2026-09-24). Any further report on page 0xFF31 goes into
+  this patch; a change outside the descriptor and the report structs can be
+  a patch of its own (split-battery-source-bounds.patch).
+- It builds on usb-hid-prime-on-ready.patch and sorts after it: it is a diff
+  against the `usb_hid.c` that patch produces, vkey reports go through its
+  queue (via `zmk_usb_hid_send_report()`), and the 0x21 path reads its
+  `pending_head` and `pending_tail`.
+- Descriptor items: the 16-bit page is the raw long item `0x06, 0x31, 0xFF`,
+  because Zephyr's `HID_USAGE_PAGE()` emits a 1-byte item and would truncate
+  it to 0x31; Logical Maximum 255 is the 2-byte `0x26, 0xFF, 0x00`, since a
+  1-byte 0xFF is -1; Input is `0x02` (Data, Variable, Absolute) for a single
+  value field.
+- USB only, BLE HOG descoped: no canon build target presents HOG to a host.
+  The vendor collection is in the HOG report map (the descriptor array is
+  shared), but nothing sends there: the BLE cases return `-ENOTSUP`. A HOG
+  path would need a new input-report characteristic (CCC and Report Reference)
+  and a queue in `hog.c`, and its hard-coded `hog_svc.attrs[]` indices
+  recomputed; zmk#3390 leaves that question open to the maintainers.
+- The split battery report bypasses the pending ring:
+  `zmk_usb_hid_send_split_battery_report()` writes directly and returns
+  `-EAGAIN` unless the bus is up and the ring is empty. Through
+  `zmk_usb_hid_send_report()`, a level would take a ring slot, and a full ring
+  drops its oldest entry, so a level nobody waits for could evict a
+  keystroke; and the `USB_DC_SUSPEND` case's `usb_wakeup_request()` would wake
+  a sleeping host whenever a half's charge changed or a half dropped off.
+  `zmk_usb_is_hid_ready()` cannot gate it: `app/src/usb.c` maps
+  `USB_DC_SUSPEND` to `ZMK_USB_CONN_HID` and keeps `is_configured`, so it
+  reads ready through a suspend.
+- A refused level is not resent, and the next one may be hours away: a half
+  sends a level only when its percentage changes and stops sampling while
+  idle (ZMK `app/src/battery.c`: an event only on a change, the timer stopped
+  at `ZMK_ACTIVITY_IDLE`, 30 s by default). The listener therefore stores the
+  level before sending, and
+  `GET_REPORT(0x21)` answers with the stored value (one instance: the source
+  written last).
+- The split battery report stays out of `zmk_endpoint_clear_reports()`. That
+  function releases held input on an endpoint switch; a battery level is
+  state, and clearing it would send a made-up `{source, 0}` at every switch.
+- The Ctrl/Alt mask in `behavior_vkey.c` (2026-07-06): a vkey press masks the
+  LCtrl or LAlt that the TU_LL and TU_LM thumb keys hold
+  ([config/macros.dtsi](../../config/macros.dtsi)), and the mask lifts at the
+  next layer-off, not per key. The reasons, including why not per key (macOS
+  reads the repeated Ctrl taps as the Dictation shortcut), are in the file's
+  header comment.
+
+Known limits: one vkey at a time: a press replaces the selector and every
+release sends 0, so in a roll (A down, B down, A up) the host sees B released
+with A (a bitmap report would be the backward-compatible extension); vkey
+reports share the ring's drop-oldest
+policy, so across a long not-ready window a press can be dropped while its
+release arrives, and chord sees no press.
+
+Upstream: [zmk#3390](https://github.com/zmkfirmware/zmk/pull/3390)
+(`CONFIG_ZMK_HID_VKEY`, default n; `CONFIG_ZMK_HID_VKEY_USAGE_PAGE` default
+0xFF31, `CONFIG_ZMK_HID_VKEY_REPORT_ID` default 32), open since 2026-06-18.
+Its diff (`gh pr diff 3390 --repo zmkfirmware/zmk`) is the vkey part of this
+patch with every addition behind `CONFIG_ZMK_HID_VKEY`: no split battery
+report, no Ctrl/Alt mask. canon keeps this patch until #3390 merges and does
+not depend on that happening.
+
+## When an upstream PR merges
+
+- zmk#3385 or #3377: delete security-changed-auto-unpair.patch and set the
+  merged option (`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING=y` or
+  `CONFIG_ZMK_SPLIT_AUTO_UNPAIR_ON_KEY_MISMATCH=y`) in
+  config/imprint_dongle.conf.
+- zmk#3384: delete usb-hid-prime-on-ready.patch, set
+  `CONFIG_ZMK_USB_HID_REPLAY_ON_READY=y` in config/imprint_dongle.conf (its
+  defaults are this patch's values), and in vkey-report.patch make
+  `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID` depend on that option (or put the
+  ring check under `#if`): the 0x21 path reads `pending_head` and
+  `pending_tail`, which upstream defines only under it; then regenerate.
+- zmk#3390: set `CONFIG_ZMK_HID_VKEY=y` in config/imprint_dongle.conf (the
+  default page and report ID leave chord and the keymap unchanged) and cut
+  vkey-report.patch down to what #3390 lacks: the split battery report, with
+  its items moved inside upstream's `#if IS_ENABLED(CONFIG_ZMK_HID_VKEY)`
+  block and `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID` depending on
+  `ZMK_HID_VKEY`, and the Ctrl/Alt mask. Or get those upstream first.
+- An upstream change identical to a patch does not fail the build; CI shows
+  that patch as `(already applied)`.
+- After deleting or cutting a patch, reset the local tree (Adding or changing
+  a patch): nothing else takes the removed change out of it.
+- With both patch directories empty, `patch` has nothing to do; zmk-build.yml's
+  header gives the other reasons the CI build is local.

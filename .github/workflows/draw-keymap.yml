@@ -15,14 +15,14 @@ jobs:
   draw:
     permissions:
       contents: write
-    # タグ固定（Dependabot github-actions が更新を追従）。
+    # Pinned by commit with its tag as a comment; Dependabot (github-actions) bumps it.
     uses: caksoylar/keymap-drawer/.github/workflows/draw-zmk.yml@a44809b8cc718cbff646641f49a8f71a9368336d # v0.23.0
     with:
-      # 描画対象は imprint のみ（canon の唯一の製品）。既定の config/*.keymap では
-      # なく明示指定にして、物理レイアウトを持たない keymap が混ざったときの
-      # "physical layout could not be found" 事故を避ける。
+      # imprint only (canon's one keymap), named rather than the default
+      # config/*.keymap, so that a keymap without a physical layout cannot fail
+      # the run with "physical layout could not be found".
       keymap_patterns: config/imprint.keymap
-      commit_message: ":bento:(keymap-drawer) update the generated svg"
+      commit_message: ":bento:(keymap-drawer)= update the generated svg"
       amend_commit: false
-      # keymap のパース/描画でエラーが出たら CI を落とす（壊れた keymap の早期検知）。
+      # A keymap that fails to parse or draw fails the run (a broken keymap shows early).
       fail_on_error: true
