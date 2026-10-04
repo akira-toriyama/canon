@@ -192,8 +192,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - Public repository on free Actions minutes: PR gates are deterministic checks only (build,
   commit-lint, shellcheck, verify-eiji-sync, verify-vkey-sync, draw-keymap's `fail_on_error`,
   actionlint, zizmor, repo-policy, taplo, the glossary build); never add a workflow that calls a
-  paid API; Claude reviews run locally. The main ruleset requires `lint / lint` and the three
-  imprint builds, not prospector's (2026-10-04).
+  paid API; Claude reviews run locally. The main ruleset requires `lint / lint` and all four
+  builds (prospector's since 2026-10-04): a new build.yaml target joins it.
 - Fleet-managed, never edited here (fleet-sync in akira-toriyama/.github overwrites them):
   `.github/workflows/{actionlint,commit-lint,repo-policy,taplo,task-status,version-preview,zizmor}.yml`,
   `.github/zizmor.yml`, `.github/dependabot.yml`, `docs/commit-convention.md`. `glyph.toml` came
