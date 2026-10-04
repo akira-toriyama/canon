@@ -183,7 +183,7 @@ IOHIDManager and maps the id to one of its actions.
 The vendor-defined HID input report in which the [[Imprint Dongle]] sends each
 half's battery level to the host: usage page `0xFF31`, Report ID `0x21`,
 2 bytes `{source, level}`, USB only (BLE HOG descoped, as for [[vkey]]).
-- `source`: the split peripheral's slot index, 0 or 1, which a half keeps through reboots and reconnects until an NVS reset (how a half gets its slot and which half holds which: [docs/recovery.md](recovery.md#slot-order)).
+- `source`: the split peripheral's slot index, 0 or 1, which a half keeps through reboots, reconnects and its own erase, until the Imprint Dongle's NVS reset (how a half gets its slot and which half holds which: [docs/recovery.md](recovery.md#slot-order)).
 - `level`: 0..100 percent. The `0` that ZMK raises when a half disconnects passes through unfiltered; the [[host bridge]] (chord), not the firmware, tells a disconnect from 0 %.
 - Implementation: [`patches/zmk/vkey-report.patch`](../patches/zmk/vkey-report.patch), the same `0xFF31` collection and the same patch as [[vkey]] (why one patch: [`patches/zmk/README.md`](../patches/zmk/README.md)). Enabled by `CONFIG_ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_{FETCHING,HID}=y` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf).
 - Measuring: [CLAUDE.md](../CLAUDE.md), Debugging and device operations.
@@ -282,7 +282,7 @@ Option builds add a suffix to the name (`prospector-sprite.uf2`,
 `imprint_dongle-logging.uf2`; the scheme is in the header of
 `scripts/build-zmk.sh`).
 - Built by `./scripts/build-zmk.sh` (Docker, workspace `~/.cache/zmk-canon`); CI builds the same four, and the release draft attaches them.
-- The container the build runs in is the Docker image (`ZMK_IMAGE`, `zmkfirmware/zmk-build-arm`), never "image" alone.
+- The build runs in a container of the Docker image `zmkfirmware/zmk-build-arm` (`ZMK_IMAGE`): call it the Docker image, never "image" alone.
 - **Don't call it:** binary, uf2 artifact (an artifact is the zip a CI run uploads), ファーム本体
 
 ### dtsi

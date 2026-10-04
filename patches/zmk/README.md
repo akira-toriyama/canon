@@ -122,20 +122,25 @@ A pending-report ring in `app/src/usb_hid.c`. Upstream
 (and `CONNECTED` ones) and flushes them 100 ms after `USB_DC_CONFIGURED` or
 `USB_DC_RESUME`; the delay also covers macOS seeming to drop the first report
 from a freshly bound interface (seen while testing canon#43 and zmk#3384,
-2026-06; 100 ms found enough by trial). Three symptoms went away with the
-patch on hardware (canon#43, 2026-06-09), hence one inferred mechanism behind
-them: the first key lost after replugging the dongle, the first key lost after
-the host wakes, several presses needed after a long idle (the bus suspended
-while the host idles).
+2026-06; 100 ms found enough by trial). It keeps keys sent while the dongle's
+USB is not ready, such as the first key after replugging the dongle or a key
+pressed while the host is waking. canon#43 (2026-06-09) queued `SUSPEND` only;
+canon#48 (2026-06-11) added `RESET`, `DISCONNECTED`, `UNKNOWN` and `ERROR`,
+because the wake loss still happened now and then; canon#49 (2026-06-13) added
+`CONNECTED` and hardened the flush. The key each half lost after an idle spell
+was not USB but the halves' deep sleep, whose wake press the GPIO wake trigger
+spends before any firmware runs; `config/imprint.conf` turns that sleep off
+(canon#49).
 
 - 8 slots of up to 16 bytes, so at most 7 reports wait; a full ring drops its
-  oldest entry, and a report longer than 16 bytes is dropped, not queued
-  (canon's keyboard and consumer reports are 9 and 13 bytes; NKRO's extended
-  report would be 22). A physical disconnect empties the ring, so old
-  keystrokes are not replayed on replug. A live report queues behind pending
-  ones instead of overtaking them. The code comments and zmk#3384's
-  description give the reasons per USB state (`CONNECTED`: a write on a bus
-  not yet configured fails silently).
+  oldest entry, and a report longer than 16 bytes is dropped, not queued (the
+  reports that take the ring are 9 (keyboard), 13 (consumer), 10 (mouse, from
+  both trackballs) and 2 (vkey) bytes; NKRO's extended keyboard report would be
+  22). A physical disconnect empties the ring, so old keystrokes are not
+  replayed on replug. A live report queues behind pending ones instead of
+  overtaking them. The code comments and zmk#3384's description give the
+  reasons per USB state (`CONNECTED`: a write on a bus not yet configured fails
+  silently).
 - `usb_hid.c` compiles only with `ZMK_USB`: the Imprint Dongle (a split
   peripheral cannot enable it, the Prospector Dongle turns it off).
 
@@ -210,9 +215,14 @@ Decisions not to undo:
 - USB only, BLE HOG descoped: no canon build target presents HOG to a host.
   The vendor collection is in the HOG report map (the descriptor array is
   shared), but nothing sends there: the BLE cases return `-ENOTSUP`. A HOG
-  path would need a new input-report characteristic (CCC and Report Reference)
-  and a queue in `hog.c`, and its hard-coded `hog_svc.attrs[]` indices
-  recomputed; zmk#3390 leaves that question open to the maintainers.
+  path would need, for each report (0x20, 0x21), an input-report
+  characteristic with CCC and Report Reference, a queue in `hog.c`, and an
+  `attrs[]` index for its notify. `hog.c` hard-codes 5, 9 and 13 for the
+  keyboard, consumer and mouse reports. A characteristic appended after the
+  POINTING (+4 attributes), SMOOTH_SCROLLING (+3) and HID_INDICATORS (+3)
+  blocks moves none of those, but its own index depends on which of those
+  blocks are built (inserted before the mouse block, it would move 13).
+  zmk#3390 asks the maintainers whether HOG belongs in it or in a follow-up.
 - The split battery report bypasses the pending ring:
   `zmk_usb_hid_send_split_battery_report()` writes directly and returns
   `-EAGAIN` unless the bus is up and the ring is empty. Through

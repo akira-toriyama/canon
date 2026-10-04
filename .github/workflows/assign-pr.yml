@@ -1,7 +1,8 @@
 name: Assign PR
 
-# Assign every opened PR to the maintainer (akira-toriyama). Dependabot's PRs
-# are skipped: their GITHUB_TOKEN is read-only, so the job would fail.
+# Assign every opened PR to the maintainer (akira-toriyama). Runs that
+# Dependabot triggers are skipped (the if: below), so its PRs stay unassigned:
+# the fleet-managed .github/dependabot.yml sets no assignees.
 on:
   pull_request:
     types: [opened, reopened]

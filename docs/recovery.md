@@ -76,7 +76,10 @@ For the bonds A cannot fix ([Why bonds break](#why-bonds-break)).
 
 Steps 3 and 4 as one paste, after A, with step 2 done and double-tapping in
 step 3's order (`--yes`, or running without a TTY, skips the Enter prompt).
-The images are already in `firmware/`:
+Only when all six images are in the main checkout's `firmware/`
+(`ls firmware/imprint_{left,right,dongle}{,_RESET}.uf2` there lists them
+without an error): the scripts look for an image only once its device has
+mounted, so a missing one leaves that device in its bootloader:
 
 ```sh
 cd /Volumes/workspace/github.com/akira-toriyama/canon && ./scripts/flash-reset.sh --yes && ./scripts/flash-watch.sh --yes
@@ -139,7 +142,10 @@ What the scripts do ([flash-impl.sh](../scripts/flash-impl.sh)):
   the next slot 1, saved at once as `ble/peripheral_addresses/<i>` (ZMK
   `app/src/ble.c` `zmk_ble_put_peripheral_addr()`), before any pairing and
   even if the pairing then fails. The index then follows the half's address
-  through every reconnect and reboot until the next erase.
+  through every reconnect and reboot until the Imprint Dongle's settings are
+  erased. A half's own erase keeps its slot: its address is the chip's static
+  address (FICR; Zephyr `bt_setup_random_id_addr()`, `CONFIG_BT_PRIVACY` off),
+  not a setting (derived from source).
 - Slot 0 must be the left half: the split battery report's `source`, which
   chord passes on as `CHORD_BATTERY_SOURCE` (its README's example maps 0 to
   left), and the left byte of the status advertisement (zmk-beacon
@@ -183,13 +189,27 @@ To tell them apart, build a logging Imprint Dongle
 `python3 scripts/dongle.py log imprint_dongle --seconds 90 --grep '(?i)security failed|stale bond|reserve'`
 and then, while it runs, replug the Imprint Dongle (the reader follows it
 through the reboot) or switch the silent half off and on: these lines come
-only while a connection is set up. `Security failed: … err 2` followed by
-`Stale bond detected, clearing and disconnecting` is auto-recovery at work;
-`err 4` at each connection is the refused pairing; an `Unable to reserve
-peripheral slot (err -12)` that keeps repeating is a split peripheral outside
-both slots (a replaced half, or any unbonded ZMK split peripheral in range),
-while a few right after a half reboots are its old connection timing out. All
-three are within the logging build's INFO level.
+when the dongle boots or a half connects, all three at the logging build's
+INFO level.
+
+- `Security failed: … err 2` followed by
+  `Stale bond detected, clearing and disconnecting`: auto-recovery at work.
+- `err 4` at each connection: the refused pairing.
+- `Unable to reserve peripheral slot (err -12)`: an advertiser whose address
+  is in neither slot while both are taken (a replaced half, or any unbonded
+  ZMK split peripheral in range), or a half whose slot still holds its old
+  connection (until the 4 s supervision timeout drops it; logged only while
+  the other slot is free, as the dongle scans only then). The line names no
+  address, and the dongle's controller reports each advertiser once per scan
+  (a 16-entry duplicate filter), so neither the count nor the timing of the
+  lines tells the two apart, and a -12 from outside both slots comes again on
+  a replug of the Imprint Dongle, not when that half is switched off and on.
+  The DEBUG image (CLAUDE.md, Debugging:
+  `firmware/imprint_dongle-logging-kconfig.uf2`) logs
+  `Found existing peripheral address in slot <i>` before a -12 from a half
+  still connected, and only `peripheral slot <i> occupied by <addr>` lines
+  before one from outside both slots. Derived from source (ZMK 5b51501f,
+  Zephyr 10ba6d0), not run on hardware.
 
 ### Auto-recovery and what was rejected
 
@@ -232,13 +252,15 @@ three are within the logging build's INFO level.
 
 ## New-unit provisioning
 
-Steps 1-3 and 5 were verified on 2026-08-04 by bringing up a second Cyboard
-Imprint and Imprint Dongle on a Mac without Docker, from release files only.
-Steps 4 and 6 (the left half pairs first) follow the [slot order](#slot-order)
-rule and have not been run on hardware; on 2026-08-04 the pairing used A's
-order (halves first, dongle last), before the split battery report
-(2026-09-24) gave the slot order a reader. With Docker, B erases all three
-instead, with images that keep Bluetooth on, hence its order.
+Steps 1-3 and step 5's flash and enumeration were verified on 2026-08-04 by
+bringing up a second Cyboard Imprint and Imprint Dongle on a Mac without
+Docker, from release files only (copied with plain `cp`, which warned about
+extended attributes; `cp -X` is the practice since 2026-09-24, 328dffc). Step
+4, step 5's typing check and step 6 (the left half pairs first) follow the
+[slot order](#slot-order) rule and have not been run on hardware; on 2026-08-04
+the pairing used A's order (halves first, dongle last), before the split
+battery report (2026-09-24) gave the slot order a reader. With Docker, B erases
+all three instead, with images that keep Bluetooth on, hence its order.
 
 1. canon's images: `gh release download <tag> --repo akira-toriyama/canon -p '*.uf2' -D firmware`.
    A draft works for an authenticated owner (the v3.0.0 draft on 2026-10-04:

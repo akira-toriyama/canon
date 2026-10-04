@@ -27,10 +27,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 
 - `config/`: `imprint.keymap` (includes `behavior_macros.h` and the keymap-side `*.dtsi`; the halves'
   overlays include `ext_power_off.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
-  `imprint.json` (keymap-drawer's physical layout), and confs and overlays named after shields: ZMK
-  merges the `.conf` of every prefix of a shield name (`imprint.conf` serves all three imprint
-  targets) but takes only the first matching overlay, so a `config/imprint.overlay` would silently
-  replace `imprint_left.overlay`. [build.yaml](build.yaml): the only list of build targets.
+  `imprint.json` (keymap-drawer's physical layout), and confs and overlays per shield: ZMK merges the
+  `.conf` of every shield-name prefix (`imprint.conf` serves all three imprint targets) but takes only
+  the first matching overlay: a `config/imprint.overlay` would silently replace `imprint_left.overlay`
+  (`app/boards/post_boards_shields.cmake`). [build.yaml](build.yaml): the only list of build targets.
   `patches/zmk/`, `patches/zephyr/`: applied before every build; their READMEs give reasons and PRs.
 - `scripts/`: each header documents its flags and contracts; `flash-impl.sh` is the body of
   `flash-watch.sh` / `flash-reset.sh`. Build, Debugging and Invariants below place every script.
@@ -66,14 +66,14 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Goal | Command | Healthy result |
 | --- | --- | --- |
 | Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin)` |
-| Flash either dongle, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display or both halves typing (re-enumeration does not show which image booted) |
+| Flash either dongle, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display or both halves typing (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222) |
 | Flash the halves and the Imprint Dongle | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
 | Find the dongles | `python3 scripts/dongle.py list` | each dongle with its `/dev/cu.*` port, `location=… serial=…`, `port free`; `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
 
-- Timings: Imprint Dongle (2026-09-27, t-eray, #222) mount 2.2-2.6 s, copy 9.5-12.2 s, back 0.7-1.3 s.
-  An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
-  it skips matching pages and resets after the last block, `src/flash_nrf5x.c`): not a truncated copy.
+- An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
+  it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
+  `src/usb/msc_uf2.c`): not a truncated copy.
 - `python3 scripts/dongle.py log prospector imprint_dongle --seconds N [--grep RE] [--out FILE]`:
   lines `MM-DD HH:MM:SS.mmm <device>`, a bar, the text; exit 0 at the deadline, 1 if a device never
   appeared; 115200 only; follows a dongle through a reboot (start it before a flash for the boot
@@ -92,16 +92,16 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   so never `west init` / `west update` in the repository: the work tree would take clones of zmk,
   zephyr and every module (build-zmk.sh builds in its workspace copy). Besides ZMK it lists two
   modules (zmk-keyboards' imported manifest adds `zmk-pmw3610-driver`):
-  - **Cyboard `zmk-keyboards` at branch `zephyr-4.1`, never `main`**: since 2026-07-07 `main` pins
-    ZMK `v0.3.0` with the HWv1 `assimilator-bt` (`boards/arm/`), which fails against zmk@main with
-    `Kconfig/soc/Kconfig.defconfig not found` on the two assimilator-bt targets (a partial red on
-    2026-07-07, while canon's own `imprint_dongle` shield stayed green). The HWv2 board is on
-    `zephyr-4.1`, as Cyboard's own west.yml says; kept 2026-07-30 (t-wz4k).
+  - **Cyboard `zmk-keyboards` at branch `zephyr-4.1`, never `main`**: since 2026-07-07 `main` pins ZMK
+    `v0.3.0` with the HWv1 `assimilator-bt` (`boards/arm/`), which fails against zmk@main with
+    `Kconfig/soc/Kconfig.defconfig not found` on the two assimilator-bt targets (a partial red, first
+    in CI on 2026-07-11, while canon's then-local `imprint_dongle` shield stayed green). The HWv2
+    board is on `zephyr-4.1`, as Cyboard's own west.yml says; kept 2026-07-30 (t-wz4k).
   - **Own `zmk-beacon`, pinned by commit SHA** so that canon takes a change without a zmk-beacon
     release (2026-09-26, t-5gxp): the `prospector` shield and the Imprint Dongle's status
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
 - **ZMK tracks `main`, never a tag**, against ZMK's advice: the HWv2 `assimilator-bt` needs Zephyr's
-  new hardware model, and a ZMK tag fails in `arch.cmake` with `Could not find ARCH=cyboard`.
+  new hardware model; `v0.3.0` failed in `arch.cmake`: `Could not find ARCH=cyboard` (2026-05-17).
 - **No local boards or shields**: `imprint_dongle` went upstream with Cyboard#19 (merged
   2026-07-28); canon's part is `config/imprint_dongle.{conf,overlay}`.
 - **eiji: [config/eiji_macros.dtsi](config/eiji_macros.dtsi) is the single source** of the `en_*`
@@ -135,8 +135,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   copy `imprint_dongle*.uf2` onto the first XIAO bootloader they see**: never put the Prospector
   Dongle into its bootloader while they run, nor both dongles at once. flash-dongle.sh guards this
   (their shared lock; no start while `XIAO-SENSE` is mounted; a copy only onto the disk at that
-  dongle's USB location, which its bootloader keeps, 2026-09-26; details: its header). The first
-  image with the 1200 baud entry, and a failed run, go on by double-tap + `cp -X` (docs/recovery.md).
+  dongle's USB location, which its bootloader keeps, 2026-09-26; details: its header). The first image
+  with the 1200 baud entry, or a failed run, takes a double-tap + `cp -X` (README, docs/recovery.md).
 - **A dongle port's rate is a command**: 1200 baud reboots either dongle into its UF2 bootloader,
   2400 makes the Prospector Dongle send its screen (zmk-beacon's
   `CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on in its shield and, since 2026-09-27, in
@@ -147,10 +147,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   out with a mere warning: after a ZMK bump, grep it in `build/imprint_dongle/zephyr/.config`.
 - **A split peripheral's slot index is the order the dongle first hears it, persisted**: ZMK's
   `zmk_ble_put_peripheral_addr()` (`app/src/ble.c`) saves a new advertiser in the first free slot,
-  before pairing and even if pairing fails, and `reserve_peripheral_slot()` (`central.c`) maps it
-  back until an NVS reset (read 2026-10-04, ZMK 5b51501f). Consumers: chord's split battery
-  `source` and zmk-beacon's `src/status_broadcaster.c` (slot 0 → the left byte). Slot 0 is the left
-  half (2026-09-27, t-eray); after a reset, the left half pairs first (docs/recovery.md B).
+  before pairing and even if pairing fails, and `reserve_peripheral_slot()` (`central.c`) maps it back
+  until the Imprint Dongle's NVS reset (read 2026-10-04, ZMK 5b51501f). Consumers: chord's split
+  battery `source` and zmk-beacon's `src/status_broadcaster.c` (slot 0 → the left byte). Slot 0 is the
+  left half (2026-09-27, t-eray); after a reset, the left half pairs first (docs/recovery.md B).
 - **Generated and tool-managed files are never formatted (`.prettierignore`) or edited where
   generated**: the AUTO-GENERATED block of `keymap_drawer.config.yaml`, `config/vkey-aliases.toml`,
   `keymap-drawer/imprint.{yaml,svg}`, `config/imprint.json`. Draw keymap commits `keymap-drawer/`

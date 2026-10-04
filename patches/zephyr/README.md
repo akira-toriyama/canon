@@ -27,17 +27,17 @@ What 33 does on macOS, and what it does not:
   reports 0, and when that record says ISO, macOS types `§` for HID usage 0x35
   (`` ` ``) and `` ` `` for 0x64. canon hit this on 2026-07-20 (#148, which
   also reverted #147's keymap workaround: the keymap sends GRAVE and TILDE).
-- 33 moves the dongle onto `24926-7504-33`, a record it shares only with
-  other 0x1D50/0x615E devices that report 33: zmk-hid-host's receivers set 33
-  too. That is all: macOS never interprets the value. A device whose key the
-  plist lacks starts the Keyboard Setup Assistant whatever its code, and the
-  answer is stored under that key, so a Mac that has seen none of these
-  devices runs the assistant once (answer ANSI), and one that has seen any of
-  them reuses that answer; no code makes the type settle by itself.
+- 33 moves the dongle onto `24926-7504-33`, a record it shares only with other
+  0x1D50/0x615E devices that report 33: zmk-hid-host's ist dongles set 33 too.
+  That is all: macOS never interprets the value. A device whose key the plist
+  lacks starts the Keyboard Setup Assistant whatever its code, and the answer
+  is stored under that key, so a Mac that has seen none of these devices runs
+  the assistant once (answer ANSI), and one that has seen any of them reuses
+  that answer; no code makes the type settle by itself.
 - If `` ` `` types `§` again, look at the device and its record, not the
   keymap: `ioreg -r -c IOHIDDevice -l` shows the dongle's `CountryCode`,
   `defaults read /Library/Preferences/com.apple.keyboardtype` the stored type,
-  which an answer given for an ist receiver may have written.
+  which an answer given for an ist dongle may have written.
 - Measured 2026-09-13 on the owner's Mac (zmk-hid-host#72): the dongle reports
   `CountryCode = 33` and matches `24926-7504-33 = 40`. The measurement table
   and the IOHIDFamily and macOS 26.5 references behind these points are in

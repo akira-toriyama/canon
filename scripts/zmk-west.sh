@@ -2,7 +2,7 @@
 #
 # The in-container half of canon's firmware build: scripts/build-zmk.sh runs
 # each step in its own `docker run` of zmkfirmware/zmk-build-arm, and
-# .github/workflows/zmk-build.yml runs them as job steps in the same image.
+# .github/workflows/zmk-build.yml runs them as job steps in the same Docker image.
 # The west topdir is this script's parent directory (the checkout in CI, the
 # workspace copy $ZMK_WS/cfgrepo locally), with the manifest in config/.
 #
@@ -14,7 +14,7 @@
 #                                             west build into build/<shield><suffix>,
 #                                             its output also in build.log there
 #
-# pairs needs only awk (host or runner); the rest need the image's west.
+# pairs needs only awk (host or runner); the rest need the Docker image's west.
 set -euo pipefail
 
 TOP="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -122,7 +122,7 @@ cmd_patch() {
         echo "error: patches/$tree/$name applies neither forward nor in reverse to $tree:" >&2
         echo "  upstream changed the lines it touches; update the patch, or drop it if upstream merged it." >&2
         echo "  Locally also when the patch file changed after the tree was patched. Unless the tree holds an edit" >&2
-        echo "  you still need, reset it: git -C ~/.cache/zmk-canon/cfgrepo/$tree checkout -- . and clean -fd" >&2
+        echo "  you still need, reset it: git -C ~/.cache/zmk-canon/cfgrepo/$tree checkout -- . && git -C ~/.cache/zmk-canon/cfgrepo/$tree clean -fd" >&2
         echo "  (\$ZMK_WS/cfgrepo when ZMK_WS is set), or run build-zmk.sh --clean." >&2
         git -C "$tree" apply --check -v "$p" >&2 || true
         exit 1

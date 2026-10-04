@@ -297,7 +297,7 @@ fi
 
 echo "=========================================="
 echo " workspace   : $CFG"
-echo " image       : $IMAGE"
+echo " docker image: $IMAGE"
 echo " west update : $([ "$NEED_UPDATE" -eq 1 ] && echo yes || echo 'no (cached; --update forces it)')"
 if [ -n "$BEACON" ]; then
   echo " zmk-beacon  : $BEACON @ $BEACON_REV (--beacon, overrides the pin in config/west.yml)"

@@ -26,9 +26,11 @@ A single-commit PR squash-merges with the commit message as the title — keep t
 <!-- Anything subtle, deferred, or risky — state it explicitly rather than leaving it implicit. -->
 
 <!--
-Task footer, one line, so the furrow task's status follows this PR:
-  SetStatus-task: https://github.com/akira-toriyama/projects/blob/main/.furrow/bodies/<id>.md <lane>
-With <lane>: opening the PR nudges a task not yet in a terminal lane to in-progress, and the merge
-applies <lane> (e.g. `done`; `furrow board` lists the lanes). Without <lane>: open and merge only
-annotate the task body. Non-blocking: a bad id or lane comments on the PR but never blocks the merge.
+Task footer, so the furrow task's status follows this PR: a line of its own that starts with the
+directive SetStatus-task:, then the task's body URL
+https://github.com/akira-toriyama/projects/blob/main/.furrow/bodies/<id>.md and an optional <lane>.
+furrow reads this comment too, so no line in it starts with the directive. With <lane>: opening the
+PR nudges a task not yet in a terminal lane to in-progress, and the merge applies <lane> (e.g.
+`done`; `furrow board` lists the lanes). Without <lane>: open and merge only annotate the task body.
+Non-blocking: a bad id or lane comments on the PR but never blocks the merge.
 -->

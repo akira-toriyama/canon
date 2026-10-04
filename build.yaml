@@ -2,8 +2,8 @@
 # (.github/workflows/zmk-build.yml) and scripts/build-zmk.sh read it. The
 # release attaches only the images on the allowlist in release.yml, so a
 # target added or renamed here goes there too.
-#   imprint (the keyboard): imprint_left / imprint_right on assimilator-bt, and
-#     the Imprint Dongle, imprint_dongle on xiao_ble/nrf52840/zmk
+#   imprint (the Cyboard Imprint and the Imprint Dongle): imprint_left /
+#     imprint_right on assimilator-bt, imprint_dongle on xiao_ble/nrf52840/zmk
 #   prospector (the Prospector Dongle): zmk-beacon's shield on
 #     xiao_ble/nrf52840/zmk, a BLE observer of the Imprint Dongle's status
 #     advertisement; not a split central, it never pairs or advertises

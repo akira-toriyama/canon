@@ -42,7 +42,7 @@ jobs:
   build:
     needs: matrix
     runs-on: ubuntu-latest
-    # The toolchain image ZMK's own workflow builds in.
+    # The Docker image ZMK's own workflow builds in.
     container:
       image: zmkfirmware/zmk-build-arm:stable
     strategy:
