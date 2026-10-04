@@ -200,25 +200,24 @@ INFO level.
   any unbonded ZMK split peripheral in range), or a half whose slot still
   holds its old connection (a stale -12: until the 4 s supervision timeout
   drops it, and only while the other half is not connected, as the dongle
-  scans only then). The line names no address, and the dongle's controller
-  reports an advertiser once per scan (a 16-entry duplicate filter, emptied
-  when a scan starts; an address returns sooner only once 16 newer ones push
-  it out), so the count and timing of the lines are no guide:
-  - A stale -12 leaves that half in the filter, and the timeout's disconnect
-    does not restart the running scan, so the half stays silent, through its
-    own off and on, until the dongle starts a new scan: a replug (A) or the
-    other half connecting.
-  - An outsider's -12 comes again whenever the dongle starts a new scan: a
-    replug, or a connected half switched off for more than 4 s and on again.
-    Switching the outsider itself off and on brings nothing.
-  - To tell them apart, flash the DEBUG image (CLAUDE.md, Debugging:
-    `firmware/imprint_dongle-logging-kconfig.uf2`), start the log with
-    `--grep '(?i)slot'` (the grep above and CLAUDE.md's drop the lines that
-    tell), then switch a connected half off for more than 4 s and on (DEBUG
-    overflows the boot log, so a replug's lines can be lost):
-    `Found existing peripheral address in slot <i>` comes before a stale
-    -12, only `peripheral slot <i> occupied by <addr>` lines before an
-    outsider's.
+  scans only then). The line names no address, and the dongle reports an
+  advertiser once per scan (a duplicate filter), so the count of the lines is
+  no guide. A stale -12 can leave that half silent, through its own off and
+  on, until the dongle starts a new scan: a replug (A) or the other half
+  connecting.
+  - To tell them apart, start a new scan with the log running: replug the
+    Imprint Dongle (A; the `--logging` image's ring keeps the boot log) or
+    switch a connected half off for more than 4 s and on. Neither can make a
+    stale -12 (a reboot drops every old connection, and the timeout drops
+    that of a half away longer than 4 s), so a -12 then is an outsider's;
+    none means no outsider is advertising now.
+  - The DEBUG image (CLAUDE.md, Debugging:
+    `firmware/imprint_dongle-logging-kconfig.uf2`), read with
+    `--grep '(?i)slot'`, adds the slot addresses: an outsider's -12 comes
+    right after `peripheral slot 0 occupied by <addr>` and
+    `peripheral slot 1 occupied by <addr>`. Flash the product image back
+    afterwards (`./scripts/flash-dongle.sh imprint_dongle`): DEBUG logs
+    keycodes.
 
   Derived from source (ZMK 5b51501f, Zephyr 10ba6d0), not run on hardware.
 
