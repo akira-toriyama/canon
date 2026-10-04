@@ -57,9 +57,9 @@ jobs:
 
       # glyph comes from its own composite install (checksum + provenance
       # verified). The action pin and the binary version stay on the same tag.
-      - uses: akira-toriyama/glyph/.github/actions/install@v4.2.0
+      - uses: akira-toriyama/glyph/.github/actions/install@v4.3.0
         with:
-          version: v4.2.0
+          version: v4.3.0
           token: ${{ github.token }}
 
       # One walk yields both the version and the notes (separate bump and
