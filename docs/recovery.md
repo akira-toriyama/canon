@@ -188,9 +188,9 @@ To tell them apart, build a logging Imprint Dongle
 `./scripts/flash-dongle.sh firmware/imprint_dongle-logging.uf2`), start
 `python3 scripts/dongle.py log imprint_dongle --seconds 90 --grep '(?i)security failed|stale bond|reserve'`
 and then, while it runs, replug the Imprint Dongle (the reader follows it
-through the reboot) or switch the silent half off and on: these lines come
-when the dongle boots or a half connects, all three at the logging build's
-INFO level.
+through the reboot) or switch the silent half off and on, USB cable out: these
+lines come when the dongle boots or a half connects, all three at the logging
+build's INFO level.
 
 - `Security failed: … err 2` followed by
   `Stale bond detected, clearing and disconnecting`: auto-recovery at work.
@@ -206,18 +206,19 @@ INFO level.
   on, until the dongle starts a new scan: a replug (A) or the other half
   connecting.
   - To tell them apart, start a new scan with the log running: replug the
-    Imprint Dongle (A; the `--logging` image's ring keeps the boot log) or
-    switch a connected half off for more than 4 s and on. Neither can make a
-    stale -12 (a reboot drops every old connection, and the timeout drops
-    that of a half away longer than 4 s), so a -12 then is an outsider's;
-    none means no outsider is advertising now.
+    Imprint Dongle (A; the INFO `--logging` image's ring keeps the boot log)
+    or switch a connected half off, USB cable out, for more than 4 s and on.
+    Neither can make a stale -12 (a reboot drops every old connection, and
+    the timeout drops that of a half away longer than 4 s), so a -12 then is
+    an outsider's; none means no outsider is advertising now.
   - The DEBUG image (CLAUDE.md, Debugging:
     `firmware/imprint_dongle-logging-kconfig.uf2`), read with
     `--grep '(?i)slot'`, adds the slot addresses: an outsider's -12 comes
     right after `peripheral slot 0 occupied by <addr>` and
-    `peripheral slot 1 occupied by <addr>`. Flash the product image back
-    afterwards (`./scripts/flash-dongle.sh imprint_dongle`): DEBUG logs
-    keycodes.
+    `peripheral slot 1 occupied by <addr>`. With it, start the scan by
+    switching a connected half off and on as above, not by a replug: a DEBUG
+    boot overflows the log buffer and the ring. Flash the product image back afterwards
+    (`./scripts/flash-dongle.sh imprint_dongle`): DEBUG logs keycodes.
 
   Derived from source (ZMK 5b51501f, Zephyr 10ba6d0), not run on hardware.
 
