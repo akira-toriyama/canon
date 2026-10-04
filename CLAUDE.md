@@ -44,8 +44,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   target = all, `imprint` = build.yaml's `imprint*` shields). Flags (its header): `--update` (west
   update; otherwise zmk@main and the branches stay at the cached commits), `--clean`, `--reset`
   (`CONFIG_ZMK_SETTINGS_RESET_ON_START=y`: wipes settings and bonds at every boot), `--logging`,
-  `--kconfig CONFIG_X=V`, `--tag <name>`, `--beacon <dir>` (a zmk-beacon working tree instead of
-  the pin), `--sprite <gif>` (Privacy).
+  `--kconfig CONFIG_X=V`, `--tag <name>`, `--beacon <dir>` (a zmk-beacon tree, not the pin), `--sprite`.
 - Images: `firmware/<shield>[-sprite][-logging][-kconfig][-beacon][_RESET][-<tag>].uf2`; a bare
   `<shield>.uf2` / `<shield>_RESET.uf2` (what flash-watch.sh, flash-reset.sh and `flash-dongle.sh
   <device>` take) is always a pinned build. West topdir `~/.cache/zmk-canon/cfgrepo` (each run syncs
