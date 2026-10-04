@@ -196,25 +196,31 @@ INFO level.
   `Stale bond detected, clearing and disconnecting`: auto-recovery at work.
 - `err 4` at each connection: the refused pairing.
 - `Unable to reserve peripheral slot (err -12)`: an advertiser whose address
-  is in neither slot while both are taken (a replaced half, or any unbonded
-  ZMK split peripheral in range), or a half whose slot still holds its old
-  connection (until the 4 s supervision timeout drops it; logged only while
-  the other half is not connected, as the dongle scans only then). The line
-  names no address. The dongle's controller reports each advertiser once per
-  scan until 16 newer addresses push it out of its 16-entry duplicate filter:
-  with up to 16 addresses heard in that scan, neither the count nor the timing
-  of the lines tells the two apart, and a -12 from outside both slots comes
-  again on a replug of the Imprint Dongle, not when that half is switched off
-  and on; with more, a -12 that keeps coming back without a replug is from
-  outside both slots (a still-connected half's comes only within its 4 s).
-  The DEBUG image (CLAUDE.md, Debugging:
-  `firmware/imprint_dongle-logging-kconfig.uf2`), read with
-  `--grep '(?i)slot'` (the grep above and CLAUDE.md's drop these lines) and
-  with the -12 provoked after the reader attaches (DEBUG overflows the boot
-  log), logs `Found existing peripheral address in slot <i>` before a -12 from
-  a half still connected, and only `peripheral slot <i> occupied by <addr>`
-  lines before one from outside both slots. Derived from source (ZMK
-  5b51501f, Zephyr 10ba6d0), not run on hardware.
+  is in neither slot while both are taken (an outsider: a replaced half, or
+  any unbonded ZMK split peripheral in range), or a half whose slot still
+  holds its old connection (a stale -12: until the 4 s supervision timeout
+  drops it, and only while the other half is not connected, as the dongle
+  scans only then). The line names no address, and the dongle's controller
+  reports an advertiser once per scan (a 16-entry duplicate filter, emptied
+  when a scan starts; an address returns sooner only once 16 newer ones push
+  it out), so the count and timing of the lines are no guide:
+  - A stale -12 leaves that half in the filter, and the timeout's disconnect
+    does not restart the running scan, so the half stays silent, through its
+    own off and on, until the dongle starts a new scan: a replug (A) or the
+    other half connecting.
+  - An outsider's -12 comes again whenever the dongle starts a new scan: a
+    replug, or a connected half switched off for more than 4 s and on again.
+    Switching the outsider itself off and on brings nothing.
+  - To tell them apart, flash the DEBUG image (CLAUDE.md, Debugging:
+    `firmware/imprint_dongle-logging-kconfig.uf2`), start the log with
+    `--grep '(?i)slot'` (the grep above and CLAUDE.md's drop the lines that
+    tell), then switch a connected half off for more than 4 s and on (DEBUG
+    overflows the boot log, so a replug's lines can be lost):
+    `Found existing peripheral address in slot <i>` comes before a stale
+    -12, only `peripheral slot <i> occupied by <addr>` lines before an
+    outsider's.
+
+  Derived from source (ZMK 5b51501f, Zephyr 10ba6d0), not run on hardware.
 
 ### Auto-recovery and what was rejected
 

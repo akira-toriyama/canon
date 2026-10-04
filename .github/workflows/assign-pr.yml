@@ -1,9 +1,9 @@
 name: Assign PR
 
-# Assign every opened or reopened PR to the maintainer (akira-toriyama). The
-# job is skipped when Dependabot started the run (the if: below), so a PR
-# Dependabot opens gets no assignee unless someone else reopens it: the
-# fleet-managed .github/dependabot.yml sets no assignees.
+# Assign PRs to the maintainer (akira-toriyama) when they are opened or
+# reopened. Runs Dependabot started are skipped (the if: below), and the
+# fleet-managed .github/dependabot.yml sets no assignees, so a PR Dependabot
+# opens stays unassigned unless someone else reopens it.
 on:
   pull_request:
     types: [opened, reopened]
