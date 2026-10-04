@@ -103,7 +103,8 @@ only: it shows both halves' battery from the [[Imprint Dongle]]'s
 USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
 (no HID), and opening that port at 1200 baud reboots it into the UF2
 bootloader for `scripts/flash-dongle.sh` (both seen on hardware
-2026-09-26). It does not replace the Imprint Dongle.
+2026-09-26); at 2400 baud it sends a [[screen dump]]. It does not replace the
+Imprint Dongle.
 - Config: [`config/prospector.conf`](../config/prospector.conf) (canon's
   additions only); the shield's own defaults live in zmk-beacon, pinned by
   commit in [`config/west.yml`](../config/west.yml)
@@ -264,9 +265,9 @@ Connectionless: no pairing, no bond, no BLE slot consumed on either side.
 The animated GIF the [[Prospector Dongle]] can show above the [[HP bar]]:
 zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`, built only locally with
 `scripts/build-zmk.sh prospector --sprite <gif>` (`prospector-sprite.uf2`)
-from a personal GIF that is never committed. With `CONFIG_BEACON_SPRITE_FILL=y`
-(canon's conf) it fills the space above the HP bar, 2 px in from the edges,
-scaled to fit whole factor or not. While nobody types it plays at 75 % of
+from a personal GIF that is never committed. It fills the space above the
+HP bar, 2 px in from the edges, scaled to fit whole factor or not (zmk-beacon's
+only layout since its #19). While nobody types it plays at 75 % of
 the GIF's own tempo; while the keyboard is typed on it runs on the key
 presses instead (either half, any key: eight frames queued per press,
 stepped one per render and skipped as presses pile up), and 0.2 s after the
@@ -293,12 +294,21 @@ halves' batteries (the one half that has a reading when the other has none;
 an empty track and `--/100` when neither has). Green, yellow under 50 %, red
 under 20 %; grey text when no status advertisement arrived in the last
 minute. In a sprite build the box has a second row with the [[sprite name]]
-(46 px instead of 28 px; the user's pick of 2026-09-29). zmk-beacon's
-`CONFIG_BEACON_READINGS_HP_BAR=y` in [`config/prospector.conf`](../config/prospector.conf);
-the alternative is the digits (`CONFIG_BEACON_READINGS_DIGITS`, each half's
-percentage in the bottom corners).
+(46 px instead of 28 px; the user's pick of 2026-09-29). zmk-beacon's only
+readings since its #19, which removed the digits in the corners
+(`CONFIG_BEACON_READINGS_DIGITS`).
 - **Don't call it:** battery bar, life bar, health bar, gauge, HP ゲージ,
   体力バー
+
+### screen dump
+The [[Prospector Dongle]]'s screen sent over its USB serial port when the host
+sets the port to 2400 baud: zmk-beacon's `CONFIG_BEACON_SCREEN_DUMP`
+(`src/screen_dump.c` there, on in the `prospector` shield), which
+`python3 scripts/dongle.py shot` turns into a PNG outside any git work tree.
+- A [[sprite]] build's PNG shows the sprite and its [[sprite name]]: it never
+  goes into a commit, a PR or an issue.
+- **Don't call it:** screen capture, framebuffer dump, snapshot (LVGL's
+  `lv_snapshot`, which needs a whole-screen buffer), 画面キャプチャ, スクショ
 
 ---
 

@@ -100,6 +100,26 @@ run_bounded() {
 
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
+# No volume after the touch: what is on USB at the dongle's location tells a
+# touch the firmware ignored from a bootloader macOS did not mount. Seen on
+# hardware 2026-09-29: the bootloader enumerated, macOS's write to its FAT
+# failed and the mass storage driver gave up after 5 resets; bootloader 0.6.1
+# then returns to the app if its USB was not up within 3 s, and otherwise
+# stays in the bootloader with no way out but a replug or a reset.
+no_volume() {
+  local at product serial session why="log show --last 5m --predicate 'sender == \"IOUSBMassStorageDriver\"'"
+  at="$(dongle at "$LOCATION")" || die_touched "no $VOL within ${BOOT_TIMEOUT_S}s, and the ioreg query failed."
+  IFS=$'\x1f' read -r product serial session <<<"$at"
+  if [ "$product" = "$PRODUCT" ] && [ "$session" = "$SESSION" ]; then
+    die "no $VOL within ${BOOT_TIMEOUT_S}s, and \"$PRODUCT\" is still the same USB device: the firmware ignored the touch (no handler, or no 1200 baud line coding reached it). Nothing touched."
+  elif [ "$product" = "$PRODUCT" ]; then
+    die "no $VOL within ${BOOT_TIMEOUT_S}s, and \"$PRODUCT\" rebooted into its app: its bootloader went back to the app because macOS had not set up its USB within 3 s (why: $why), or the reboot missed the bootloader. Nothing copied."
+  elif [ -n "$at" ]; then
+    die_touched "no $VOL within ${BOOT_TIMEOUT_S}s, but the bootloader (\"${product:-no product string}\", serial ${serial:--}) is on USB at $LOCATION: macOS mounted no volume (why: $why), and it stays in the bootloader once its USB is up. Replug the dongle, then flash again."
+  fi
+  die_touched "no $VOL within ${BOOT_TIMEOUT_S}s, and nothing is on USB at $LOCATION."
+}
+
 DRY_RUN=0
 RESET=0
 WAIT_S=0
@@ -224,8 +244,7 @@ say "      stty exit=$BOUNDED_RC$([ "$BOUNDED_RC" -ne 124 ] || echo " (killed af
 
 deadline=$((t0 + BOOT_TIMEOUT_S * 1000))
 until [ -f "$VOL/INFO_UF2.TXT" ]; do
-  [ "$(now_ms)" -lt "$deadline" ] \
-    || die_touched "no $VOL within ${BOOT_TIMEOUT_S}s: the firmware lacks the handler or the host sent no 1200 baud line coding."
+  [ "$(now_ms)" -lt "$deadline" ] || no_volume
   sleep 0.2
 done
 t_boot=$(now_ms)

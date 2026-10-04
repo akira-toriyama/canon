@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Which USB device is which dongle, and a serial log reader that follows them.
+# Which USB device is which dongle, a serial log reader that follows them, and
+# a PNG of the Prospector Dongle's screen.
 #
 # The one place that identifies the dongles on USB: flash-dongle.sh takes the
 # image's device, the port, USB location and serial, and the owner of the
@@ -10,12 +11,13 @@
 # /dev/cu.usbmodem* name is derived from the USB location (0x02112000 ->
 # usbmodem211201): never identify a dongle by either.
 #
-# `log` sets a port to 115200 8N1 and to no other rate: a rate of 1200 reboots
-# either dongle into its UF2 bootloader (zmk-beacon
-# src/bootloader_on_1200_baud.c acts on any change of the line coding to
-# 1200), and 2400 is reserved for a screen dump zmk-beacon will add. It never
-# sets TIOCEXCL: flash-dongle.sh's stty must still open a port that a reader
-# holds, and the reader then follows the dongle through the bootloader into
+# The rate of a port is a command to the firmware, which acts on any change of
+# the line coding (zmk-beacon src/bootloader_on_1200_baud.c): 1200 reboots
+# either dongle into its UF2 bootloader, and 2400 makes the Prospector Dongle
+# send its screen (src/screen_dump.c). `log` sets 115200 8N1 and no other
+# rate; `shot` sets 2400 and then 115200 again, never 1200. Neither sets
+# TIOCEXCL: flash-dongle.sh's stty must still open a port that a reader
+# holds, and a log reader then follows the dongle through the bootloader into
 # the new image's boot log.
 #
 # Stdlib only, and it runs on the Command Line Tools' /usr/bin/python3 (3.9):
@@ -35,8 +37,10 @@ import signal
 import struct
 import subprocess
 import sys
+import tempfile
 import termios
 import time
+import zlib
 from collections import namedtuple
 
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -57,6 +61,29 @@ FLASHERS = r"flash-(watch|reset|impl)\.sh"  # flash-dongle.sh's guard pattern
 US = "\x1f"  # plumbing field separator: a tab would collapse empty fields under IFS
 POLL_S = 0.2
 MAX_LINE = 65536
+
+# The screen dump's records (zmk-beacon src/screen_dump.c, whose header is the
+# contract: change both together). Integers are little-endian.
+#   start  tag version:u8 format:u8 width:u16 height:u16
+#   band   tag x1:u16 y1:u16 x2:u16 y2:u16, then the band's RGB565 pixels
+#   end    tag bands:u16 crc32:u32 (zlib's crc32 of every band's pixels)
+#   error  tag reason:u8, in place of the rest
+DUMP_BAUD = termios.B2400  # BEACON_SCREEN_DUMP_BAUD
+DUMP_VERSION = 1
+TAG_START, TAG_BAND, TAG_END, TAG_ERROR = b"\xa5SCR", b"\xa5BND", b"\xa5END", b"\xa5ERR"
+DUMP_FORMATS = {1: ">", 2: "<"}  # RGB565 high byte first / low byte first
+DUMP_ERRORS = {
+    1: "the firmware has no display",
+    2: "the display's color format is not RGB565",
+    3: "the display did not refresh within 2 s",
+    4: "LVGL's draw buffer did not match the band it flushed",
+}
+# Older output ends once the port stays quiet this long (log lines come far
+# apart), and the wait for it ends in any case after DRAIN_LIMIT_S.
+DRAIN_QUIET_S = 0.2
+DRAIN_LIMIT_S = 3.0
+FIVE_BITS = bytes((v << 3) | (v >> 2) for v in range(32))
+SIX_BITS = bytes((v << 2) | (v >> 4) for v in range(64))
 
 # Lines that carry a keycode, a HID usage, a key position, modifier state or a
 # key's press and release. From the LOG_DBG calls of ZMK main 5b51501f app/src
@@ -248,19 +275,20 @@ def port_holders(device):
     return list(dict.fromkeys(holders))
 
 
-def repository_roots():
-    """This checkout, and the main checkout when this one is a git worktree."""
-    roots = [REPO]
+def work_tree(path):
+    """The top of the git work tree path lies in, else None. git answers from
+    the nearest existing directory above path (--out names a file not yet
+    there), without the GIT_* variables that would point it elsewhere."""
+    d = os.path.dirname(os.path.realpath(path))
+    while not os.path.isdir(d):
+        d = os.path.dirname(d)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     try:
-        common = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=REPO, capture_output=True, text=True, check=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return roots
-    if common:
-        roots.append(os.path.dirname(common))
-    return roots
+        top = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, env=env).stdout.strip()
+    except OSError:
+        return None
+    return top or None
 
 
 def is_inside(path, root):
@@ -509,8 +537,9 @@ def cmd_list(_args):
     return 0
 
 
-def cmd_port(args):
-    product = DEVICES[args.device]
+def the_dongle(device):
+    """The one USB device with the dongle's product string; it must have a port."""
+    product = DEVICES[device]
     hits = find({product})
     if not hits:
         raise Failure('no USB device named "%s"' % product)
@@ -521,17 +550,27 @@ def cmd_port(args):
         raise Failure('"%s" (serial %s) has no /dev/cu.* port' % (dev.product, dev.serial or "-"))
     if len(dev.ports) > 1:
         print("dongle.py: more than one port: %s" % " ".join(dev.ports), file=sys.stderr)
-    print(dev.ports[0])
+    return dev
+
+
+def refuse_inside_repository(path, why):
+    """Any git work tree, not only this checkout: canon's other worktrees and
+    the zmk-beacon checkouts are public repositories too. This checkout is
+    refused without git's help as well."""
+    top = work_tree(path) or (REPO if is_inside(path, REPO) else None)
+    if top is not None:
+        raise Failure("refusing --out %s: inside the git work tree %s (%s)" % (path, top, why), 2)
+
+
+def cmd_port(args):
+    print(the_dongle(args.device).ports[0])
     return 0
 
 
 def cmd_log(args):
     out = None
     if args.out is not None:
-        for root in repository_roots():
-            if is_inside(args.out, root):
-                raise Failure("refusing --out %s: inside the repository %s (raw logs never go into a repository)"
-                              % (args.out, root), 2)
+        refuse_inside_repository(args.out, "raw logs never go into a repository")
         try:
             out = os.fdopen(os.open(args.out, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600), "a", encoding="utf-8")
         except OSError as e:
@@ -541,6 +580,225 @@ def cmd_log(args):
     finally:
         if out is not None:
             out.close()
+
+
+class Dump:
+    """A screen dump, parsed from the port's bytes as they arrive."""
+
+    def __init__(self):
+        self.buf = bytearray()
+        self.skipped = 0  # bytes ahead of the start record: older output
+        self.width = self.height = self.order = None
+        self.pixels = self.covered = None
+        self.bands = 0
+        self.crc = 0
+        self.done = False
+
+    def feed(self, data):
+        self.buf += data
+        while not self.done and self.step():
+            pass
+
+    def step(self):
+        """Takes one record off buf; False when it needs more bytes first."""
+        if self.width is None:
+            return self.start()
+        tag = bytes(self.buf[:4])
+        if len(tag) < 4:
+            return False
+        if tag == TAG_BAND:
+            return self.band()
+        if tag == TAG_END:
+            return self.end()
+        if tag == TAG_ERROR:
+            return self.error()
+        raise Failure("the dump broke off after %d bands: %r is no record tag (bytes lost, or other output "
+                      "mixed in)" % (self.bands, tag))
+
+    def start(self):
+        hits = [i for i in (self.buf.find(TAG_START), self.buf.find(TAG_ERROR)) if i >= 0]
+        if not hits:
+            drop = max(0, len(self.buf) - (len(TAG_START) - 1))  # keep a tag cut by the read
+            self.skipped += drop
+            del self.buf[:drop]
+            return False
+        self.skipped += min(hits)
+        del self.buf[:min(hits)]
+        if self.buf.startswith(TAG_ERROR):
+            return self.error()
+        if len(self.buf) < 10:
+            return False
+        version, fmt, width, height = struct.unpack_from("<BBHH", self.buf, 4)
+        if version != DUMP_VERSION:
+            raise Failure("a version %d screen dump, and dongle.py reads version %d: canon and its zmk-beacon "
+                          "pin disagree with the image" % (version, DUMP_VERSION))
+        if fmt not in DUMP_FORMATS or width == 0 or height == 0:
+            raise Failure("a malformed start record: format %d, %dx%d" % (fmt, width, height))
+        del self.buf[:10]
+        self.width, self.height, self.order = width, height, DUMP_FORMATS[fmt]
+        self.pixels = bytearray(width * height * 2)
+        self.covered = bytearray(width * height)
+        return True
+
+    def band(self):
+        if len(self.buf) < 12:
+            return False
+        x1, y1, x2, y2 = struct.unpack_from("<4H", self.buf, 4)
+        if not (x1 <= x2 < self.width and y1 <= y2 < self.height):
+            raise Failure("band %d, (%d,%d)-(%d,%d), lies outside the %dx%d screen"
+                          % (self.bands + 1, x1, y1, x2, y2, self.width, self.height))
+        w, h = x2 - x1 + 1, y2 - y1 + 1
+        end = 12 + w * h * 2
+        if len(self.buf) < end:
+            return False
+        data = bytes(self.buf[12:end])
+        del self.buf[:end]
+        self.crc = zlib.crc32(data, self.crc)
+        for row in range(h):
+            at = (y1 + row) * self.width + x1
+            if any(self.covered[at:at + w]):
+                raise Failure("band %d overlaps an earlier one in row %d" % (self.bands + 1, y1 + row))
+            self.covered[at:at + w] = b"\x01" * w
+            self.pixels[2 * at:2 * (at + w)] = data[2 * w * row:2 * w * (row + 1)]
+        self.bands += 1
+        return True
+
+    def end(self):
+        if len(self.buf) < 10:
+            return False
+        bands, crc = struct.unpack_from("<HI", self.buf, 4)
+        del self.buf[:10]
+        if bands != self.bands:
+            raise Failure("the end record counts %d bands, %d arrived" % (bands, self.bands))
+        if crc != self.crc:
+            raise Failure("CRC-32 %08x from the dongle, %08x over the bands read: bytes were lost or altered"
+                          % (crc, self.crc))
+        missing = self.covered.count(0)
+        if missing:
+            raise Failure("the bands left %d of the %d pixels uncovered" % (missing, self.width * self.height))
+        self.done = True
+        return False
+
+    def error(self):
+        if len(self.buf) < 5:
+            return False
+        reason = self.buf[4]
+        raise Failure("the Prospector Dongle gave up the dump: %s (reason %d)"
+                      % (DUMP_ERRORS.get(reason, "a reason this dongle.py does not know"), reason))
+
+
+def png(dump):
+    """The dump as an 8-bit RGB PNG, RGB565 widened by bit replication."""
+    values = struct.unpack("%s%dH" % (dump.order, dump.width * dump.height), dump.pixels)
+    raw = bytearray()
+    row = bytearray(1 + 3 * dump.width)  # filter byte 0: none
+    for y in range(dump.height):
+        for x, v in enumerate(values[y * dump.width:(y + 1) * dump.width]):
+            at = 1 + 3 * x
+            row[at] = FIVE_BITS[v >> 11]
+            row[at + 1] = SIX_BITS[(v >> 5) & 0x3F]
+            row[at + 2] = FIVE_BITS[v & 0x1F]
+        raw += row
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", dump.width, dump.height, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+            + chunk(b"IEND", b""))
+
+
+def set_speed(fd, speed):
+    if speed == termios.B1200:
+        raise Failure("refusing to set 1200 baud: it reboots the dongle into its UF2 bootloader")
+    attrs = termios.tcgetattr(fd)
+    attrs[4] = attrs[5] = speed
+    termios.tcsetattr(fd, termios.TCSANOW, attrs)
+
+
+def read_some(fd, port, timeout):
+    """The bytes that arrive within timeout seconds (b"" for none)."""
+    ready, _, _ = select.select([fd], [], [], max(timeout, 0.0))
+    if not ready:
+        return b""
+    try:
+        chunk = os.read(fd, 65536)
+    except (BlockingIOError, InterruptedError):
+        return b""
+    except OSError as e:
+        raise Failure("lost %s: %s" % (port, e.strerror or e))
+    if not chunk:
+        raise Failure("lost %s: end of file" % port)
+    return chunk
+
+
+def drain(fd, port):
+    """Reads away the port's older output (log lines, the tail of an abandoned
+    dump), so that a start tag in it cannot pass for the new dump's."""
+    drained = 0
+    limit = time.monotonic() + DRAIN_LIMIT_S
+    while True:
+        wait = min(DRAIN_QUIET_S, limit - time.monotonic())
+        if wait <= 0:
+            return drained
+        chunk = read_some(fd, port, wait)
+        if not chunk:
+            return drained
+        drained += len(chunk)
+
+
+def read_dump(fd, port, seconds):
+    dump = Dump()
+    deadline = time.monotonic() + seconds
+    while not dump.done:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            if dump.width is None:
+                raise Failure("no screen dump from the Prospector Dongle within %g s: an image without "
+                              "zmk-beacon's CONFIG_BEACON_SCREEN_DUMP ignores 2400 baud" % seconds)
+            raise Failure("the dump stopped after %d bands (%g s)" % (dump.bands, seconds))
+        dump.feed(read_some(fd, port, min(left, 0.5)))
+    return dump
+
+
+def cmd_shot(args):
+    path = args.out or os.path.join(
+        tempfile.gettempdir(), datetime.datetime.now().strftime("prospector-%Y%m%d-%H%M%S-%f.png"))
+    refuse_inside_repository(path, "the screen of a sprite build shows its personal GIF")
+    dev = the_dongle("prospector")
+    port = dev.ports[0]
+    holders = port_holders(dev)
+    if holders:
+        raise Failure("%s is held by %s: two readers would split the dump between them; stop the other first"
+                      % (port, ", ".join(holders)))
+    started = time.monotonic()
+    try:
+        fd = open_port(port)
+    except (OSError, termios.error) as e:  # termios.error is no OSError
+        raise Failure("cannot open %s: %s" % (port, e.args[-1]))
+    try:
+        skipped = drain(fd, port)
+        set_speed(fd, DUMP_BAUD)
+        dump = read_dump(fd, port, args.seconds)
+    except termios.error as e:
+        raise Failure("cannot set %s to 2400 baud: %s" % (port, e.args[-1]))
+    finally:
+        try:
+            set_speed(fd, termios.B115200)
+        except (OSError, termios.error):
+            pass  # the port is gone: the dongle left USB
+        os.close(fd)
+    try:
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as f:
+            f.write(png(dump))
+    except OSError as e:
+        raise Failure("cannot write %s: %s" % (path, e.strerror or e))
+    print("dongle.py shot: %dx%d in %d bands, CRC-32 ok, %.1f s; skipped %d bytes of older output"
+          % (dump.width, dump.height, dump.bands, time.monotonic() - started, skipped + dump.skipped),
+          file=sys.stderr)
+    print(os.path.abspath(path))
+    return 0
 
 
 def cmd_image(args):
@@ -568,6 +826,19 @@ def cmd_image(args):
 def cmd_find(args):
     for dev in find({DEVICES[args.device]}):
         print(US.join([dev.serial, str(dev.session), dev.location, " ".join(dev.ports)]))
+    return 0
+
+
+def cmd_at(args):
+    try:
+        location = int(args.location, 16)
+    except ValueError:
+        raise Failure("not a USB location: %r (0x02114000, as find prints it)" % args.location, 2)
+    for root in ioreg("-p", "IOUSB", "-l"):
+        for node, usb in walk(root):
+            if node is usb and node.get("locationID") == location:
+                dev = usb_device(node)
+                print(US.join([dev.product, dev.serial, str(dev.session)]))
     return 0
 
 
@@ -603,7 +874,8 @@ def parser():
     p = argparse.ArgumentParser(
         prog="dongle.py",
         description="Find the Imprint Dongle and the Prospector Dongle on USB by their USB product "
-                    "strings, and read their serial logs. Devices: %s." % names,
+                    "strings, read their serial logs, and take a PNG of the Prospector Dongle's screen. "
+                    "Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure, 2 usage.",
     )
     sub = p.add_subparsers(dest="command", metavar="COMMAND")
@@ -620,7 +892,8 @@ def parser():
     s = sub.add_parser(
         "log", help="read the dongles' serial logs for a fixed time",
         description="Read the dongles' serial logs (a --logging image) at 115200 8N1, never another rate: "
-                    "1200 baud reboots a dongle into its bootloader, 2400 is reserved. Each line is "
+                    "1200 baud reboots a dongle into its bootloader, and 2400 makes the Prospector Dongle "
+                    "send its screen (shot). Each line is "
                     "'MM-DD HH:MM:SS.mmm DEVICE | text' for the device's output and "
                     "'MM-DD HH:MM:SS.mmm DEVICE # event' for the port opening, going away and coming "
                     "back: when a port goes away the reader polls for the dongle every 0.2 s and "
@@ -631,9 +904,23 @@ def parser():
     s.add_argument("devices", nargs="+", choices=DEVICES, metavar="DEVICE", help=names)
     s.add_argument("--seconds", type=seconds, required=True, metavar="N", help="stop after N seconds")
     s.add_argument("--grep", type=regex, metavar="RE", help="print only the device lines RE matches (re.search; (?i) for any case)")
-    s.add_argument("--out", metavar="FILE", help="also append the printed lines to FILE (mode 0600), which must lie outside the repository")
+    s.add_argument("--out", metavar="FILE", help="also append the printed lines to FILE (mode 0600), which must lie outside any git work tree")
     s.add_argument("--raw", action="store_true", help="keep the lines that carry keycodes, key positions or modifiers (dropped by default)")
     s.set_defaults(func=cmd_log)
+
+    s = sub.add_parser(
+        "shot", help="write a PNG of the Prospector Dongle's screen and print its path",
+        description="Set the Prospector Dongle's port to 2400 baud, on which its firmware (zmk-beacon "
+                    "CONFIG_BEACON_SCREEN_DUMP) renders the screen once more and sends it; check the bands "
+                    "against their CRC-32 and write an RGB PNG (mode 0600 when created). The port goes back "
+                    "to 115200 afterwards and never to 1200, which reboots the dongle into its bootloader. "
+                    "Refuses while another process holds the port: two readers would split the dump. "
+                    "Prints the PNG's path on stdout and a summary on stderr.",
+    )
+    s.add_argument("--out", metavar="FILE", help="the PNG to write, outside any git work tree "
+                                                 "(default: prospector-<date>-<time>-<microseconds>.png in the temporary directory)")
+    s.add_argument("--seconds", type=seconds, default=10.0, metavar="N", help="give up after N seconds (default 10)")
+    s.set_defaults(func=cmd_shot)
 
     s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 of the dongle whose product string "
                                      "the UF2 payload holds (exit 1 for none or both, 2 for no UF2 or an incomplete one)")
@@ -644,6 +931,11 @@ def parser():
                                     "device with the dongle's product string (none: no output)")
     s.add_argument("device", choices=DEVICES)
     s.set_defaults(func=cmd_find)
+
+    s = sub.add_parser("at", help="plumbing: PRODUCT US SERIAL US SESSION of the USB device at LOCATION, "
+                                  "whatever it is (a dongle's bootloader too; none: no output)")
+    s.add_argument("location")
+    s.set_defaults(func=cmd_at)
 
     s = sub.add_parser("owner", help="plumbing: DISK US PRODUCT US SERIAL US SESSION US LOCATION of the USB "
                                      "device behind the disk mounted at MOUNTPOINT (empty when none)")
@@ -659,6 +951,9 @@ def main(argv=None):
     except Failure as e:
         print("dongle.py: %s" % e, file=sys.stderr)
         return e.status
+    except KeyboardInterrupt:  # log handles SIGINT itself; shot's finally has reset the port
+        print("dongle.py: interrupted", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":
