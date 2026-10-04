@@ -764,7 +764,7 @@ def read_dump(fd, port, seconds):
 
 def cmd_shot(args):
     path = args.out or os.path.join(
-        tempfile.gettempdir(), datetime.datetime.now().strftime("prospector-%Y%m%d-%H%M%S.png"))
+        tempfile.gettempdir(), datetime.datetime.now().strftime("prospector-%Y%m%d-%H%M%S-%f.png"))
     refuse_inside_repository(path, "the screen of a sprite build shows its personal GIF")
     dev = the_dongle("prospector")
     port = dev.ports[0]
@@ -918,7 +918,7 @@ def parser():
                     "Prints the PNG's path on stdout and a summary on stderr.",
     )
     s.add_argument("--out", metavar="FILE", help="the PNG to write, outside any git work tree "
-                                                 "(default: prospector-<date>-<time>.png in the temporary directory)")
+                                                 "(default: prospector-<date>-<time>-<microseconds>.png in the temporary directory)")
     s.add_argument("--seconds", type=seconds, default=10.0, metavar="N", help="give up after N seconds (default 10)")
     s.set_defaults(func=cmd_shot)
 
@@ -951,6 +951,9 @@ def main(argv=None):
     except Failure as e:
         print("dongle.py: %s" % e, file=sys.stderr)
         return e.status
+    except KeyboardInterrupt:  # log handles SIGINT itself; shot's finally has reset the port
+        print("dongle.py: interrupted", file=sys.stderr)
+        return 130
 
 
 if __name__ == "__main__":
