@@ -103,8 +103,11 @@ only: it shows both halves' battery from the [[Imprint Dongle]]'s
 USB it enumerates as one CDC ACM port with product string `Prospector Dongle`
 (no HID), and opening that port at 1200 baud reboots it into the UF2
 bootloader for `scripts/flash-dongle.sh` (both seen on hardware
-2026-09-26); at 2400 baud it sends a [[screen dump]]. It does not replace the
-Imprint Dongle.
+2026-09-26); at 2400 baud it sends a [[screen dump]]. Its screen turns off
+after five minutes without a key press on the keyboard and lights at the next
+one (zmk-beacon's `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; on hardware
+since 2026-10-04), so a dark screen is not a dead device. It does not replace
+the Imprint Dongle.
 - Config: [`config/prospector.conf`](../config/prospector.conf) (canon's
   additions only); the shield's own defaults live in zmk-beacon, pinned by
   commit in [`config/west.yml`](../config/west.yml)

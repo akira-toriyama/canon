@@ -137,7 +137,9 @@ Dongle into bootloader or open its port at 1200 baud while `flash-watch.sh` /
 mount; `flash-dongle.sh` refuses to start then).
 
 zmk-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
-sensor, touch panel unwired): fixed 80% brightness, no touch.
+sensor, touch panel unwired): 80% brightness, no touch. The screen turns off
+after five minutes without a key press and lights at the next one (zmk-beacon's
+`CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300 seconds; 0 keeps it lit).
 `config/prospector.conf` only adds what this manifest needs
 (`CONFIG_ZMK_RGB_UNDERGLOW=n`, see [CLAUDE.md](CLAUDE.md)).
 
