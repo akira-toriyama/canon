@@ -32,10 +32,10 @@
   keymap {
     compatible = "zmk,keymap";
 
-    // display-name matches [A-Za-z][A-Za-z0-9]{0,3} and stays unique after
-    // uppercasing: only its first 4 bytes reach the Prospector Dongle, and
-    // keymap-drawer silently drops a layer whose name repeats. Formal names,
-    // reasons and sources: docs/glossary.md, entry "layer".
+    // display-name matches [A-Za-z][A-Za-z0-9]{0,3} and is unique: only its
+    // first 4 bytes reach the Prospector Dongle, and keymap-drawer silently
+    // drops a layer whose name repeats. Formal names, reasons and sources:
+    // docs/glossary.md, entry "layer".
     DEFAULT_LAYER {
       display-name = "Base";
       bindings = <

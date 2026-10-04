@@ -17,10 +17,10 @@ indent_size = 4
 [Makefile]
 indent_style = tab
 
-# Markdown は行末の二空白が改行の意味を持つため trim しない
+# Markdown: two trailing spaces are a line break, so they stay
 [*.md]
 trim_trailing_whitespace = false
 
-# devicetree / ZMK keymap / C ヘッダは既存の書式を尊重し indent を強制しない
+# Devicetree, ZMK keymap, conf and C header files keep their existing layout
 [*.{keymap,dtsi,overlay,conf,h}]
 trim_trailing_whitespace = false

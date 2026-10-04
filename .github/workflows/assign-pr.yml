@@ -1,8 +1,9 @@
 name: Assign PR
 
-# 開いた PR を毎回メンテナ（akira-toriyama）にアサインする。
-# Dependabot PR は GITHUB_TOKEN が read-only でこのジョブが失敗するため除外し、
-# そちらは .github/dependabot.yml の assignees で対応する。
+# Assign PRs to the maintainer (akira-toriyama) when they are opened or
+# reopened. Runs Dependabot started are skipped (the if: below), and the
+# fleet-managed .github/dependabot.yml sets no assignees, so a PR Dependabot
+# opens stays unassigned unless someone else reopens it.
 on:
   pull_request:
     types: [opened, reopened]

@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
-# Flash NVS-reset firmware (*_RESET.uf2) to all 3 devices in order:
-#   1st assimilator-bt mount → imprint_left_RESET.uf2
-#   2nd assimilator-bt mount → imprint_right_RESET.uf2
-#   XIAO BLE mount           → imprint_dongle_RESET.uf2
-# Use when BLE pairing wedges (split halves won't re-pair, dongle lost the
-# keyboard, etc.). The *_RESET.uf2 is the normal firmware built with ZMK's
+# Flash the NVS-reset images (*_RESET.uf2) to all 3 devices by what mounts,
+# one device at a time:
+#   a volume whose INFO_UF2.TXT names XIAO → imprint_dongle_RESET.uf2
+#   the first other volume                 → imprint_left_RESET.uf2
+#   the next other volume                  → imprint_right_RESET.uf2
+# Use when BLE pairing wedges (split halves won't re-pair, the Imprint Dongle
+# lost the halves, etc.). The *_RESET.uf2 is the normal build plus ZMK's
 # CONFIG_ZMK_SETTINGS_RESET_ON_START=y, so it wipes NVS (bond/settings) on
-# EVERY boot. Per device:
-#   ① flash *_RESET.uf2 (this script) → wipes on boot → ② flash the normal
-#   firmware (./scripts/flash-watch.sh, removes the wipe-on-boot) → pair fresh.
+# EVERY boot and then runs Bluetooth: the devices pair while it runs, and the
+# normal image flashed next (./scripts/flash-watch.sh, which removes the
+# wipe-on-boot) keeps those bonds. Hence the order of docs/recovery.md B: the
+# Imprint Dongle first, then left, then right (right half off and unplugged
+# until its turn).
 #
 # Build the images first: `./scripts/build-zmk.sh imprint --reset` writes
 # firmware/imprint_{left,right,dongle}_RESET.uf2.
 # The body is flash-impl.sh (the normal variant is flash-watch.sh).
 # --yes / -y skips the confirmation (one-paste recovery, Claude, CI), as does
 # running without a TTY.
-exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "_RESET" "NVS reset firmware flashed" " (NVS wiped)" reset "$@"
+exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "_RESET" "NVS reset image flashed" " (NVS wiped)" reset "$@"

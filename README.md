@@ -1,178 +1,210 @@
 # canon
 
-**日本語** | [English](README.en.md)
+ZMK firmware config (**Cyboard Imprint**, repo root = ZMK user-config).
+A split keyboard; ZMK emits dedicated vendor-HID keys (vkeys).
 
-ZMK ファームウェア設定（**Cyboard Imprint**、リポジトリルート = ZMK
-user-config）。分割キーボード。ZMK が専用の vendor-HID キー（v-key）を送出する。
-
-ZMK が送る v-key を macOS 側で受けるホストブリッジは独立リポジトリ
-[`chord`](https://github.com/akira-toriyama/chord)（Swift 6 / CGEventTap
-デーモン、`~/.config/chord/config.toml` 駆動）。本リポジトリは ZMK 側
-（キーマップ・ファームウェアビルド）のみを扱う。
+The macOS host bridge that decodes those vkeys is a standalone
+repo, [`chord`](https://github.com/akira-toriyama/chord) — a Swift 6
+CGEventTap daemon driven by `~/.config/chord/config.toml`. This
+repository covers only the ZMK side (keymap / firmware build).
 
 ```mermaid
 flowchart LR
-  subgraph KB["キーボード (ZMK)"]
-    FW["imprint_left / imprint_right<br/>ZMK ファーム"]
+  subgraph KB["Keyboard (ZMK)"]
+    FW["imprint_left / imprint_right<br/>ZMK firmware"]
+    DONGLE["imprint_dongle<br/>Imprint Dongle (split central)"]
   end
-  subgraph MAC["macOS ホスト"]
+  subgraph MAC["macOS host"]
     CHORD["chord daemon<br/>~/.config/chord/config.toml"]
-    ACT["macOS 操作"]
+    ACT["macOS action"]
   end
-  FW -->|"v-key + 通常キー"| CHORD
-  CHORD -->|"解釈してマップ"| ACT
+  FW -->|"BLE"| DONGLE
+  DONGLE -->|"USB: vkeys + normal keys"| CHORD
+  CHORD -->|"decode & map"| ACT
 ```
 
-## 環境構築
+## Setup
 
-クローン後、コミットメッセージ検証フックを有効化する（gitmoji 規約を
-glyph が検証 / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
+After cloning, enable glyph's commit-msg and pre-push hooks (glyph checks the gitmoji
+convention / [CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)):
 
 ```sh
 glyph hook install
 ```
 
-## ディレクトリ構成
+## Layout
 
 ```
-config/         ZMK キーマップ / behaviors / combos / west.yml（ルート必須）
-build.yaml      ビルド対象 4 つ（imprint_left / imprint_right / imprint_dongle + prospector）
-keymap-drawer/  keymap 図 SVG（draw-keymap CI が自動生成・コミット）
-scripts/        build-zmk.sh（エントリ）, gen-eiji-drawer-map.py, hooks/
-docs/           コミット規約ほか
-.github/        CI（build / draw / verify-eiji-sync / commit-lint / shellcheck / release）
+config/         ZMK keymap / behaviors / combos / west.yml (must stay at root)
+build.yaml      4 build targets (imprint_left / imprint_right / imprint_dongle + prospector)
+keymap-drawer/  keymap SVG (auto-generated & committed by the draw-keymap CI)
+scripts/        build-zmk.sh (entrypoint), zmk-west.sh, flash-*.sh, dongle.py, gen-*.py
+docs/           commit convention, glossary, pairing recovery
+.github/        CI (build / draw / verify-eiji-sync / verify-vkey-sync / commit-lint / shellcheck / release)
 ```
 
-ZMK と上流ツールの制約で `config/` `build.yaml` はリポジトリルート固定
-（移動しない）。board / shield はすべて module 提供（ローカル shield 無し —
-imprint_dongle は Cyboard 上流入り済み、Prospector Dongle の shield は
-[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)）。詳細は [CLAUDE.md](CLAUDE.md)。
+Per ZMK/upstream constraints, `config/` and `build.yaml` must remain at the
+repo root (do not move). Every board/shield comes from a module (no local
+shields: imprint_dongle is upstreamed to Cyboard, and the Prospector Dongle's
+shield lives in [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)). See [CLAUDE.md](CLAUDE.md).
 
-## ZMK ファーム ビルド
+## ZMK firmware build
 
-`config/imprint.keymap` 等を変更したら、以下のいずれかで `.uf2` を得る。
-ビルド対象は [build.yaml](build.yaml)（`imprint_left` / `imprint_right` /
-`imprint_dongle` の 3 つ + Prospector Dongle 用 `prospector`）。ZMK 本体は
-`main` 追従（Cyboard モジュールが要求。タグ固定
-不可。詳細 [CLAUDE.md](CLAUDE.md)）。
+After editing `config/imprint.keymap` etc., get the `.uf2` via one of the
+following. Build targets are in [build.yaml](build.yaml) (`imprint_left` /
+`imprint_right` / `imprint_dongle`, plus `prospector` for the Prospector
+Dongle — 4 in total). ZMK itself tracks `main` (required by the
+Cyboard module; pinning a release tag is not possible — see [CLAUDE.md](CLAUDE.md)).
 
-### GitHub Actions（環境構築不要）
+### GitHub Actions (no local setup)
 
-1. 変更を push（または PR を作成）
-2. GitHub の **Actions** タブ → 対象の `Build` run を開く
-3. run 下部の **Artifacts** から `firmware` を DL して解凍
-4. 中の `imprint_left` / `imprint_right` の `.uf2` を各ハーフへ書き込む
+1. Open a PR with the change (a push to a branch without a PR does not build)
+2. GitHub **Actions** tab → open the `Build` run
+3. Download the run's **Artifacts**, one per target (`imprint_left`,
+   `imprint_right`, `imprint_dongle`, `prospector`), and unzip them
+4. Flash `imprint_left.uf2` / `imprint_right.uf2` to each half,
+   `imprint_dongle.uf2` to the Imprint Dongle and `prospector.uf2` to the
+   Prospector Dongle (see Flash below)
 
-### ローカル（Docker）
+### Local (Docker)
 
 ```sh
-./scripts/build-zmk.sh                 # build.yaml の全ターゲット（=all）
-./scripts/build-zmk.sh imprint         # imprint の 3 ターゲット（prospector を除く）
-./scripts/build-zmk.sh imprint_left    # シールド指定
-./scripts/build-zmk.sh prospector     # Prospector Dongle のみ
-./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # GIF アニメ入り（手元専用）
-./scripts/build-zmk.sh --update        # 依存を最新化（west update）
-./scripts/build-zmk.sh --clean         # キャッシュ破棄
+./scripts/build-zmk.sh                 # all targets in build.yaml (=all)
+./scripts/build-zmk.sh imprint         # the 3 imprint targets (without prospector)
+./scripts/build-zmk.sh imprint_left    # a specific shield
+./scripts/build-zmk.sh prospector     # the Prospector Dongle only
+./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # with a GIF animation (local only)
+./scripts/build-zmk.sh --update        # west update, then build all targets
+./scripts/build-zmk.sh --clean         # drop the cached workspace
 ```
 
-- 出力先: **`firmware/imprint_left.uf2`** / **`firmware/imprint_right.uf2`** /
-  `firmware/imprint_dongle.uf2` / `firmware/prospector.uf2`（`.gitignore` 済）
-- 要 Docker。依存は `~/.cache/zmk-canon` に永続化（2 回目以降は高速）
+- Output: **`firmware/imprint_left.uf2`** / **`firmware/imprint_right.uf2`** /
+  `firmware/imprint_dongle.uf2` / `firmware/prospector.uf2`, one per target
+  built (git-ignored); the `--sprite` build writes
+  `firmware/prospector-sprite.uf2` instead
+- Requires Docker. Deps persist in `~/.cache/zmk-canon` (fast after the
+  first run)
 
-### フラッシュ
+### Flash
 
-ビルドした `.uf2` をブートローダ（リセット2回でマウント）へコピーする。
-`scripts/flash-watch.sh` が `/Volumes` を監視して順に自動コピーする
-（assimilator-bt 1台目→左 / 2台目→右 / XIAO BLE→dongle）。3台焼けたら終了。
+Copy the built `.uf2` onto the device's bootloader volume (double-tap reset to
+mount it; a single tap only reboots: a normal image keeps the bonds, a
+`*_RESET.uf2` erases them at every boot). `scripts/flash-watch.sh`
+watches `/Volumes` and copies in order (1st assimilator-bt mount → left, 2nd →
+right, XIAO mount → Imprint Dongle), then exits once all three are done. To
+wipe NVS (every BLE bond and setting, on all three devices) first, build
+`*_RESET.uf2` with `./scripts/build-zmk.sh imprint --reset` and use
+`scripts/flash-reset.sh`; the re-pairing procedure is in
+[docs/recovery.md](docs/recovery.md).
 
-Imprint Dongle（2026-09-27 以降の image）は、リセットのダブルタップの代わりに CDC
-ポートを 1200 baud で開いてもブートローダへ入る（Prospector Dongle と同じ仕組み。
-1200 baud 対応前の image から上げる初回だけダブルタップ）。Claude Code が焼くときは
-`./scripts/flash-dongle.sh imprint_dongle`（ポートを製品名 `Imprint Dongle` で探し、マウントした
-`XIAO-SENSE` の USB location が Imprint Dongle のものだと確かめてから `cp -X` する）。`flash-watch.sh` /
-`flash-reset.sh` の実行中はどちらのポートも 1200 baud で開かない。
+The Imprint Dongle (images from 2026-09-27 on) also enters the bootloader when
+its CDC port is opened at 1200 baud, the Prospector Dongle's mechanism, so
+`flash-dongle.sh` needs no double-tap except the first time, coming from an
+image without that entry; `flash-watch.sh` / `flash-reset.sh` and a failed
+`flash-dongle.sh` run take it by double-tap (by hand:
+[docs/recovery.md](docs/recovery.md)). Claude Code flashes it with `./scripts/flash-dongle.sh imprint_dongle`, which
+finds the port by the product string `Imprint Dongle` and copies with `cp -X`
+only after checking that the mounted `XIAO-SENSE` carries the Imprint Dongle's
+USB location. Never open
+either dongle's port at 1200 baud while `flash-watch.sh` / `flash-reset.sh`
+runs.
 
-NVS をリセットして焼く場合は `./scripts/build-zmk.sh imprint --reset` で
-`*_RESET.uf2` を作り `scripts/flash-reset.sh`。再ペアリング復旧手順は
-[docs/dongle-roadmap.md](docs/dongle-roadmap.md)。
+### Prospector Dongle (companion status display)
 
-### Prospector Dongle（状態表示の companion）
-
+Flashing `prospector.uf2` onto a
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
-（XIAO nRF52840 + 1.69" LCD）に `prospector.uf2` を焼くと、Imprint Dongle が
-BLE 広告で流す状態から左右半体の電池を表示する。受信するだけで、広告もペアリングも
-接続もしない（2026-09-26 に Mac の BLE スキャンで広告 0 件を確認）。Mac には CDC
-シリアルポート 1 つ（製品名 `Prospector Dongle`、HID キーボードではない）としてだけ
-現れる（2026-09-26 実機確認）。このポートは 1200 baud で開くとブートローダへ入るための
-もの。Imprint Dongle 側は本リポジトリの `imprint_dongle.uf2`（status advertisement
-入り）であること。shield と画面は
-[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon) にあり、画面の見方
-（`75%`、値の無い半体は白の `--`、1 分受信が無ければ灰色の `--`）は同 README。
+(XIAO nRF52840 + 1.69" LCD) turns it into a display of both halves' battery
+levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
+showing their mean (or the one half that has a reading), yellow under 50 % and
+red under 20 %. It only listens: it
+never advertises, pairs or connects (a Mac's BLE scan saw no advertisement from
+it, 2026-09-26). It appears on the Mac only as
+one CDC serial port (product `Prospector Dongle`, no HID keyboard; seen on
+hardware 2026-09-26), and that port is how it is reflashed (1200 baud enters
+the bootloader), how `python3 scripts/dongle.py shot` reads its screen (2400
+baud) and, in a logging build, where its log goes. The Imprint Dongle must run this repository's
+`imprint_dongle.uf2`, which carries the status advertisement. The shield and
+its screen come from [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon),
+whose README explains what the screen shows.
 
-焼き方（`flash-watch.sh` は使わない）:
+Flashing (not with `flash-watch.sh`):
 
-- 通常は `./scripts/flash-dongle.sh prospector`（`firmware/prospector.uf2`）。
-  ポートを 1200 baud で開いてブートローダへ入れ、`cp -X` し、再列挙まで待つ
-  （2026-09-26 実機で 2 回連続成功、1 回 8 秒前後）。表示が正しいかは目視で確認する。
-- 1200 baud 対応前の版（USB 給電のみ）から上げる初回と、スクリプトが失敗したときは手動:
-  1. Prospector Dongle のリセットをダブルタップ → `/Volumes/XIAO-SENSE` がマウント
-  2. `cp -X firmware/prospector.uf2 /Volumes/XIAO-SENSE/`（末尾の
-     `fcopyfile failed: Input/output error` は書き込み完了で再起動した合図）
-  3. 再列挙後、Imprint Dongle が動いていれば広告を拾って表示が始まる
+- Normally `./scripts/flash-dongle.sh prospector`
+  (`firmware/prospector.uf2`): it opens the port at 1200 baud to enter
+  the bootloader, copies with `cp -X` and waits for the device to re-enumerate
+  (two runs in a row on hardware 2026-09-26, about 8 s each; the copy of a
+  new image alone took about 24 s the same day). Check the display yourself.
+- The first time, coming from the USB power-only image that predates the
+  1200 baud entry, and whenever the script fails, flash by hand:
+  1. Double-tap the Prospector Dongle's reset → `/Volumes/XIAO-SENSE` mounts
+  2. `cp -X firmware/prospector.uf2 /Volumes/XIAO-SENSE/` (a trailing
+     `fcopyfile failed: Input/output error` is usual as the bootloader
+     reboots under the copy, but proves nothing alone: step 3 is the check)
+  3. Once it re-enumerates it picks up the advertisement and shows both
+     halves' battery, provided the Imprint Dongle is running
 
-**Imprint Dongle と同じ `XIAO-SENSE` ブートローダ**なので、2 台を同時にブートローダへ
-入れない。`flash-watch.sh` / `flash-reset.sh` は XIAO を見ると `imprint_dongle.uf2` を
-焼くため、実行中は Prospector Dongle をブートローダに入れず、ポートを 1200 baud で
-開かない（`flash-dongle.sh` はその間は起動を拒否する）。
+**It shares the `XIAO-SENSE` bootloader with the Imprint Dongle**: never put
+both dongles into bootloader at the same time, and never put the Prospector
+Dongle into bootloader or open its port at 1200 baud while `flash-watch.sh` /
+`flash-reset.sh` is running (those copy `imprint_dongle.uf2`, or
+`imprint_dongle_RESET.uf2`, onto any XIAO mount; `flash-dongle.sh` refuses to
+start then).
 
-zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー無し・touch 未配線）
-向け: 明るさ 80%・touch 無し。打鍵が 5 分無いと画面が消え、次の打鍵で点く
-（zmk-beacon の `CONFIG_BEACON_SCREEN_OFF_AFTER_S`、既定 300 秒・0 で常時点灯）。`config/prospector.conf` はこの manifest の都合
-（`CONFIG_ZMK_RGB_UNDERGLOW=n`、[CLAUDE.md](CLAUDE.md) 参照）だけを足す。
+zmk-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
+sensor, touch panel unwired): 80% brightness, no touch. The screen turns off
+after five minutes without a key press and lights at the next one (zmk-beacon's
+`CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300 seconds; 0 keeps it lit).
+`config/prospector.conf` only adds what this manifest needs
+(`CONFIG_ZMK_RGB_UNDERGLOW=n`, see [CLAUDE.md](CLAUDE.md)).
 
-画面は下端の HP バー 1 本（左右半体の電池の平均。50% 未満で黄、20% 未満で赤）と、
-その上の GIF アニメ。GIF アニメ（手元専用）:
-`./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` で HP バーの上の領域いっぱいに
-GIF を載せた `firmware/prospector-sprite.uf2` を作り、
-`./scripts/flash-dongle.sh firmware/prospector-sprite.uf2` で焼く。GIF は
-git-ignore 済みの `assets/` に置き、commit しない。CI / Release の `prospector.uf2` には
-入らないので、それを焼くとアニメは消え、HP バーだけになる。アニメは打鍵が無い間は GIF
-本来の 0.75 倍の速さで動き続け、キーを押している間は（左右どちらの半体でも、どのキーでも）
-打鍵に合わせて動く: 1 打鍵ごとに 8 コマぶんを溜め、描画のたびに 1 コマ、続けて打つほど
-1 描画で飛ばすコマが増えて速くなる。最後の打鍵から 0.2 秒で残りを捨ててそのコマから元の
-速さに戻る（0.2 秒は広告間隔と同じなので、単発の 1 打鍵では 3〜4 コマ動いて戻る）。
-使える GIF の条件は zmk-beacon の README。
+GIF animation (local builds only):
+`./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` builds
+`firmware/prospector-sprite.uf2` with the GIF above the HP bar and its file
+name, as the sprite name, under it (rules: [assets/README.md](assets/README.md));
+flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
+Keep the GIF in the git-ignored `assets/` and never commit it. The CI / release
+`prospector.uf2` has no animation, so flashing it removes the sprite and its
+name and leaves only the HP bar. The sprite plays at three quarters of the GIF's own tempo and
+steps with the key presses (either half, any key) while you type; zmk-beacon's
+README has the details and lists which GIFs work.
 
-### リリース
+### Release
 
-main へマージするたび、Actions の **Release** が glyph で次版とノートを算出し
-「ローリングドラフト」Release を更新する（`imprint_*.uf2` と `prospector.uf2` を添付）。内容確認の
-うえ手動 Publish した時点で `vX.Y.Z` タグが生成される
-（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）。
+Every merge to `main` updates a rolling **draft** Release once a change since
+the last release moves the version: glyph computes the next version and the
+notes (squash-safe), and the **Release** workflow attaches `imprint_*.uf2` and
+`prospector.uf2`. Publish
+the draft manually after review — the `vX.Y.Z` tag is created at publish time
+([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)).
 
 ## keymap
 
 <details>
-<summary>キーマップ図を表示</summary>
+<summary>Show keymap diagram</summary>
 
 ![keymap](keymap-drawer/imprint.svg)
 
 </details>
 
-キーマップは [`config/imprint.keymap`](config/imprint.keymap)（各 `*.dtsi` を
-`#include`）。EIJI（英字入力）レイヤーは
-[`config/eiji_macros.dtsi`](config/eiji_macros.dtsi) を単一ソースとして
-`scripts/gen-eiji-drawer-map.py` が生成し、CI で同期を検証する。
+The keymap is [`config/imprint.keymap`](config/imprint.keymap) (each `*.dtsi`
+is `#include`d). The EIJI layer (macros that switch a Japanese input method to
+alphanumeric input before each digit or symbol) has a single source,
+[`config/eiji_macros.dtsi`](config/eiji_macros.dtsi):
+`scripts/gen-eiji-drawer-map.py` generates the keymap diagram's labels from it,
+and CI verifies they stay in sync.
 
-サム 4 層 + X_1 は **vendor-HID v-key**（`&vkey <id>`）で送出する。既存の
-どのキー入力とも衝突しない専用 HID usage page を使い、macOS 側
-[`chord`](https://github.com/akira-toriyama/chord) が受けて action にマップする。
-id→論理名の対応表 [`config/vkey-aliases.toml`](config/vkey-aliases.toml) は
-キーマップの `&vkey <id>` を単一ソースに `scripts/gen-vkey-aliases.py` が生成し、
-CI（[verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml)）で照合する
-（詳細は [CLAUDE.md](CLAUDE.md)）。
+The four thumb layers + X_1 are emitted as **vendor-HID vkeys**
+(`&vkey <id>`) on a dedicated HID usage page that can't collide with any real
+keystroke; the macOS host bridge [`chord`](https://github.com/akira-toriyama/chord)
+maps them to actions. The id→name table
+[`config/vkey-aliases.toml`](config/vkey-aliases.toml) is generated by
+`scripts/gen-vkey-aliases.py` from the `&vkey <id>` ids in the keymap (the
+single source) and checked in CI
+([verify-vkey-sync.yml](.github/workflows/verify-vkey-sync.yml)); see
+[CLAUDE.md](CLAUDE.md).
 
-## 開発・ライセンス
+## Development & License
 
-- コミット規約: **gitmoji + Conventional Commits**（[CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md)）
-- ライセンス: [MIT](LICENSE) © 2026 akira-toriyama
+- Commits: **gitmoji + version sigil**, checked by glyph
+  ([CONTRIBUTING.md](https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md))
+- License: [MIT](LICENSE) © 2026 akira-toriyama

@@ -23,8 +23,8 @@
 #   --wait N   first poll up to N s for the dongle with its port (a KVM switch
 #              hides both dongles from this Mac)
 #   --reset    accept a *_RESET* image: it wipes the dongle's bonds on every
-#              boot, so flash the normal image right after (re-pairing the
-#              whole keyboard is flash-reset.sh's job)
+#              boot, so flash the normal image right after (re-pairing both
+#              halves and the Imprint Dongle is flash-reset.sh's job)
 #
 # A bare device name means firmware/<device>.uf2 of this repository; any other
 # argument is an image path, from any directory. The payload decides the
@@ -183,7 +183,7 @@ case "$UF2_BASE" in
   *) refuse "its payload is the $PRODUCT's, so its name must be $DEVICE.uf2, $DEVICE-*.uf2, ${DEVICE}_RESET.uf2 or ${DEVICE}_RESET-*.uf2 (probe and spike images carry the product string without the 1200 baud entry and would strand the next flash)" ;;
 esac
 case "$UF2_BASE" in
-  *_RESET*) [ "$RESET" -eq 1 ] || refuse "a *_RESET* image wipes the bonds on every boot; pass --reset to flash it anyway (re-pairing the whole keyboard is flash-reset.sh's job)" ;;
+  *_RESET*) [ "$RESET" -eq 1 ] || refuse "a *_RESET* image wipes the bonds on every boot; pass --reset to flash it anyway (re-pairing both halves and the Imprint Dongle is flash-reset.sh's job)" ;;
   *) [ "$RESET" -eq 0 ] || refuse "--reset is for *_RESET* images only" ;;
 esac
 case "$DEVICE" in
@@ -191,7 +191,7 @@ case "$DEVICE" in
     STRANDED="The Prospector Dongle may be left in its bootloader: finish it by hand (double-tap + cp -X, README) or unplug it before flash-watch.sh or flash-reset.sh runs."
     CHECK="Check the display." ;;
   imprint_dongle)
-    STRANDED="The Imprint Dongle may be left in its bootloader, and the keyboard is down until it is finished: finish it by hand (double-tap + cp -X, README)."
+    STRANDED="The Imprint Dongle may be left in its bootloader, and nothing types until it is finished: finish it by hand (double-tap + cp -X, README)."
     CHECK="Check that both halves type." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac

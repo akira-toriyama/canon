@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # The body of flash-watch.sh and flash-reset.sh: watch /Volumes for UF2
-# bootloader mounts and copy the firmware in order:
-#   1st assimilator-bt mount → imprint_left<SUFFIX>.uf2
-#   2nd assimilator-bt mount → imprint_right<SUFFIX>.uf2
-#   XIAO BLE mount           → imprint_dongle<SUFFIX>.uf2
+# bootloader mounts and copy each image by what mounts, one device at a time:
+#   a volume whose INFO_UF2.TXT names XIAO → imprint_dongle<SUFFIX>.uf2
+#   the first other volume                 → imprint_left<SUFFIX>.uf2
+#   the next other volume                  → imprint_right<SUFFIX>.uf2
 # Exits once all three are written. Any XIAO mount gets the Imprint Dongle's
 # image, the Prospector Dongle's too: flash that one with flash-dongle.sh, and
 # never while this runs.
 #
 # Arguments:
-#   $1 SUFFIX         firmware file name suffix ("" normal / "_RESET" NVS reset)
+#   $1 SUFFIX         image name suffix ("" normal / "_RESET" NVS reset)
 #   $2 DONE_NOTE      text of each device's done line (e.g. "flashed (device will reboot)")
 #   $3 ALL_DONE_NOTE  appended to the final ALL DONE line (e.g. " (NVS wiped)")
 #   $4 MODE           "normal" / "reset" (wipes NVS, with an extra warning)
@@ -38,17 +38,20 @@ done
 cat >&2 <<'BANNER'
 ============================================================
  ⚠ imprint flash: read this first
-   • Bootloader = reset "double-tap" (a single tap only reboots; the bonds stay)
+   • Bootloader = reset "double-tap" (a single tap only reboots: a normal
+     image keeps the bonds)
    • Left, then right into the bootloader (one board: the mount order decides
      left and right; the dongle, a XIAO, is told apart by itself)
    • If they do not connect, try procedure A first (re-plug the dongle, no
-     computer needed) → docs/dongle-roadmap.md
+     computer needed) → docs/recovery.md
 BANNER
 if [ "$MODE" = "reset" ]; then
   cat >&2 <<'BANNER'
-   ⚠⚠ This wipes NVS (bonds and settings, on every device). Then flash the
-      normal images and re-pair with procedure A (the halves advertise
-      first, the dongle comes last).
+   ⚠⚠ This wipes NVS (bonds and settings, on every device), and the devices
+      pair while the RESET images run, so the order matters (docs/recovery.md
+      B): the right half off and unplugged; the Imprint Dongle, then the left
+      half, then the right half; then flash-watch.sh in the same order. Until
+      then a single tap, a replug or a power loss erases a device again.
 BANNER
 fi
 echo "============================================================" >&2
