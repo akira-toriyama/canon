@@ -17,7 +17,10 @@ Claude Code 向けのプロジェクト運用メモ。人間向けの概要は
   advertisement; it never advertises, pairs or connects (`CONFIG_ZMK_BLE=n` in
   the shield; a Mac scan saw no advertisement from it, 2026-09-26). The screen,
   the observer and their contracts are documented in zmk-beacon's README and
-  CLAUDE.md. Over USB it enumerates as one CDC ACM port
+  CLAUDE.md. A dark screen is not a fault: it turns off after five minutes
+  without a key press on the keyboard and lights at the next one (zmk-beacon's
+  `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; on hardware 2026-10-04),
+  and `dongle.py list` / `shot` answer either way. Over USB it enumerates as one CDC ACM port
   (product `Prospector Dongle`, no HID) that exists for the 1200 baud
   bootloader entry (seen on hardware 2026-09-26). Device names are fixed
   in [docs/glossary.md](docs/glossary.md): Cyboard Imprint (the halves) /

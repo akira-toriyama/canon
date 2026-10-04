@@ -126,7 +126,8 @@ BLE 広告で流す状態から左右半体の電池を表示する。受信す�
 開かない（`flash-dongle.sh` はその間は起動を拒否する）。
 
 zmk-beacon の shield は beekeeb の pre-soldered 版（環境光センサー無し・touch 未配線）
-向け: 明るさ固定 80%・touch 無し。`config/prospector.conf` はこの manifest の都合
+向け: 明るさ 80%・touch 無し。打鍵が 5 分無いと画面が消え、次の打鍵で点く
+（zmk-beacon の `CONFIG_BEACON_SCREEN_OFF_AFTER_S`、既定 300 秒・0 で常時点灯）。`config/prospector.conf` はこの manifest の都合
 （`CONFIG_ZMK_RGB_UNDERGLOW=n`、[CLAUDE.md](CLAUDE.md) 参照）だけを足す。
 
 画面は下端の HP バー 1 本（左右半体の電池の平均。50% 未満で黄、20% 未満で赤）と、

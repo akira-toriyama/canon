@@ -30,7 +30,7 @@ manifest:
     # this pin before every build that has no --beacon.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: fe564e1d8b578fd0c8c165d03bf53f7b2de1d4d7
+      revision: 11aeac38b55baf2af1da312f8c43424e7d3b3748
       path: modules/zmk-beacon
   self:
     path: config
