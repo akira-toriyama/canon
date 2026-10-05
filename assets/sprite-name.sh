@@ -8,10 +8,11 @@
 # on one line, without a double quote, a backslash or "??": the HP bar's font
 # has no other glyphs, Kconfig would need escaping, and "??x" is a C trigraph
 # in autoconf.h, so anything else is an error and a build never shows a wrong
-# name. Committed, like assets/README.md, next to the git-ignored personal
-# files (the two exceptions in .gitignore); it prints the name, which names the
-# subject, so never paste its output into a commit, a PR or a doc; its error
-# messages name neither the file nor the name for the same reason.
+# name. Committed, like assets/README.md: the two exceptions to the ignore rule
+# on assets/, while the personal files live off the repository. It prints the
+# name, which names the subject, so never paste its output into a commit, a PR
+# or a doc; its error messages name neither the file nor the name for the same
+# reason.
 #
 #   assets/sprite-name.sh <gif>    # prints the name
 set -euo pipefail

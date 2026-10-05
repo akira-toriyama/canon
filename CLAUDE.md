@@ -170,9 +170,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   PR, issue, CI or release, nor its subject, file name or sprite name into their text or a doc.
 - Local only: `./scripts/build-zmk.sh prospector --sprite <gif>` writes
   `firmware/prospector-sprite.uf2` (zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`); the CI and release
-  `prospector.uf2` carries neither sprite nor name, so flashing it removes both. The GIFs live in
-  the main checkout's git-ignored `assets/` ([assets/README.md](assets/README.md): the ignore rules,
-  `SOURCES.md`); a worktree has only its two committed files, so pass the main checkout's path.
+  `prospector.uf2` carries neither sprite nor name, so flashing it removes both. The GIFs and
+  `SOURCES.md` live off the repository on the user's external drive,
+  `/Volumes/HDD/assets/canon/prospector/sprites/` (`shot` PNGs: `.../prospector/shots/`), the same
+  absolute path from any checkout or worktree ([assets/README.md](assets/README.md); t-kbjr). The
+  drive is exFAT: copy onto it with `cp -X`, and give `--sprite` one file, never a `*.gif` glob,
+  which also matches macOS's `._` sidecar files. `assets/`'s ignore rules stay as a guard.
 - [assets/sprite-name.sh](assets/sprite-name.sh) derives the name from the file name (t-er81);
   build-zmk.sh passes it as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when

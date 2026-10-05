@@ -7,9 +7,10 @@
 __pycache__/
 *.pyc
 
-# Personal files for local builds (assets/README.md). The GIF pattern also
-# catches a sprite copied anywhere else, in any letter case: core.ignorecase
-# is false on a case-sensitive volume, where `*.gif` would miss `.GIF`.
+# Personal files for local builds live off the repository (assets/README.md);
+# these rules guard against one copied in by mistake. The GIF pattern catches
+# a sprite anywhere, in any letter case: core.ignorecase is false on a
+# case-sensitive volume, where `*.gif` would miss `.GIF`.
 /assets/*
 !/assets/README.md
 !/assets/sprite-name.sh

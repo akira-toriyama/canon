@@ -8,7 +8,7 @@
 #   ./scripts/build-zmk.sh <board>:<shield>  # a pair that build.yaml does not list
 #   ./scripts/build-zmk.sh imprint_dongle --logging
 #   ./scripts/build-zmk.sh imprint --reset
-#   ./scripts/build-zmk.sh prospector --sprite assets/<name>.gif
+#   ./scripts/build-zmk.sh prospector --sprite /Volumes/HDD/assets/canon/prospector/sprites/<name>.gif
 #   ./scripts/build-zmk.sh prospector --beacon ../zmk-beacon
 #   ./scripts/build-zmk.sh prospector --kconfig CONFIG_LV_USE_SYSMON=y \
 #     --kconfig CONFIG_LV_USE_PERF_MONITOR=y --tag perf
@@ -30,8 +30,9 @@
 #   --sprite <gif>    zmk-beacon's animated sprite (CONFIG_BEACON_SPRITE_GIF) in
 #                     the prospector target only, named under the HP bar after
 #                     the GIF's file name (assets/sprite-name.sh). Sprite GIFs are
-#                     personal files: never committed, never in CI or a release,
-#                     and this script prints neither the GIF's path nor the name.
+#                     personal files kept off the repository (assets/README.md):
+#                     never committed, never in CI or a release, and this script
+#                     prints neither the GIF's path nor the name.
 #   --beacon <dir>    build against the zmk-beacon checkout <dir>, its working
 #                     tree as it is, instead of the revision config/west.yml pins.
 #                     The images carry -beacon.

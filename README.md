@@ -73,7 +73,7 @@ Cyboard module; pinning a release tag is not possible — see [CLAUDE.md](CLAUDE
 ./scripts/build-zmk.sh imprint         # the 3 imprint targets (without prospector)
 ./scripts/build-zmk.sh imprint_left    # a specific shield
 ./scripts/build-zmk.sh prospector     # the Prospector Dongle only
-./scripts/build-zmk.sh prospector --sprite assets/<name>.gif  # with a GIF animation (local only)
+./scripts/build-zmk.sh prospector --sprite <gif>  # with a GIF animation (local only; assets/README.md)
 ./scripts/build-zmk.sh --update        # west update, then build all targets
 ./scripts/build-zmk.sh --clean         # drop the cached workspace
 ```
@@ -158,11 +158,12 @@ after five minutes without a key press and lights at the next one (zmk-beacon's
 (`CONFIG_ZMK_RGB_UNDERGLOW=n`, see [CLAUDE.md](CLAUDE.md)).
 
 GIF animation (local builds only):
-`./scripts/build-zmk.sh prospector --sprite assets/<name>.gif` builds
+`./scripts/build-zmk.sh prospector --sprite <gif>` builds
 `firmware/prospector-sprite.uf2` with the GIF above the HP bar and its file
 name, as the sprite name, under it (rules: [assets/README.md](assets/README.md));
 flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
-Keep the GIF in the git-ignored `assets/` and never commit it. The CI / release
+Keep the GIF outside the repository (where: [assets/README.md](assets/README.md))
+and never commit it. The CI / release
 `prospector.uf2` has no animation, so flashing it removes the sprite and its
 name and leaves only the HP bar. The sprite plays at three quarters of the GIF's own tempo and
 steps with the key presses (either half, any key) while you type; zmk-beacon's
