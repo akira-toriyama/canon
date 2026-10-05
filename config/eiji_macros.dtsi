@@ -1,13 +1,12 @@
-// One EN_MACRO (behavior_macros.h) per digit and symbol, included at the end
-// of macros.dtsi, inside the keymap's macros { } node.
+// Included in the keymap's macros { } node.
 //
 // The single source of the en_* keymap-drawer labels: the `disp:[X]` at the
 // end of each line is the label, and scripts/gen-eiji-drawer-map.py copies
-// them into the AUTO-GENERATED block of keymap_drawer.config.yaml, the section
-// comments below as its headings (the script finds a section comment by its
-// "(<NAME>_LAYER)" ending). .github/workflows/verify-eiji-sync.yml checks the
-// block against this file: after adding, removing or renaming a line, rerun
-// the script.
+// them into the AUTO-GENERATED block of keymap_drawer.config.yaml, with the
+// section comments below as its headings (the script finds a section comment
+// by its "(<NAME>_LAYER)" ending). .github/workflows/verify-eiji-sync.yml
+// checks the block against this file: after changing a line or a section
+// comment, rerun the script.
 
     // EIJI, then a digit (NUMBER_LAYER)
     EN_MACRO(en_0, N0)  // disp:[0]

@@ -1,9 +1,9 @@
-// The upstream imprint_dongle shield (zmk-keyboards, zephyr-4.1) is standalone:
-// it does not include imprint.dtsi, and its default transform is the
-// function-row one. config/imprint.keymap, which this build also uses (the
-// "imprint" prefix of the shield name), chooses the letters-only transform, so
-// its node is defined here as a copy of imprint_letters_only_full_bottom_row
-// (keymap_transform_8) in upstream imprint.dtsi.
+// The upstream imprint_dongle shield (zmk-keyboards) is standalone: it does
+// not include imprint.dtsi, and its default transform is the function-row
+// one. config/imprint.keymap, which this build also uses (the "imprint" prefix
+// of the shield name), chooses the letters-only transform, so its node is
+// defined here as a copy of imprint_letters_only_full_bottom_row in upstream
+// imprint.dtsi.
 
 #include <dt-bindings/zmk/matrix_transform.h>
 

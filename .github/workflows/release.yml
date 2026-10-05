@@ -1,19 +1,14 @@
 name: Release
 
-# On every push to main, glyph walks main since the last v* tag squash-safe
-# (each merge expanded to its PR's commits), computes the next version and the
-# notes in one walk, and upserts one rolling DRAFT release; no tag is created
-# (GitHub creates it when the draft is published). A draft for the same
-# version is updated in place and glyph deletes an automatic draft for another
-# version, so there is at most one. Publishing is manual, after a look at the
-# draft in the GitHub UI. workflow_dispatch with dry_run=true computes the
-# version and notes and builds, without writing a draft or using up a version.
+# On every push to main, glyph computes the next version and the notes from the
+# commits since the last v* tag (a squash merge read as its PR's commits) and
+# upserts the one rolling DRAFT release. No tag is created here: GitHub creates
+# it when the draft is published, by hand, after a look at it in the GitHub UI.
 # Convention: https://github.com/akira-toriyama/.github/blob/main/CONTRIBUTING.md
 #
 # The firmware comes from the same reusable build as CI
 # (.github/workflows/zmk-build.yml): a second build definition here drifted
 # from it once and broke only the release.
-# Jobs: version (verdict + draft upsert) -> build (reusable) -> draft (assets).
 on:
   push:
     branches: [main]
@@ -28,16 +23,14 @@ concurrency:
   group: release
   cancel-in-progress: false
 
-# Least privilege: `version` (glyph upserts the draft release) and `draft`
-# (asset upload) write releases (contents: write); `build` (firmware) needs
-# read only. Scoped per-job below ahead of the fleet zizmor gate
-# (akira-toriyama/.github t-qbp1).
+# Read at the workflow level: `build` sets no permissions of its own and
+# inherits these, and with such a job beside others the fleet zizmor gate
+# fails on a workflow-level write (excessive-permissions). `version` and
+# `draft` take contents: write per job.
 permissions:
   contents: read
 
 jobs:
-  # Next version + notes + rolling draft upsert (glyph release). build and
-  # draft run only when this job outputs release == true.
   version:
     runs-on: ubuntu-latest
     # glyph release upserts the draft (a dry run writes nothing).
@@ -55,8 +48,8 @@ jobs:
           # keep the checkout token out of .git/config (zizmor artipacked). t-yaxa
           persist-credentials: false
 
-      # glyph comes from its own composite install (checksum + provenance
-      # verified). The action pin and the binary version stay on the same tag.
+      # glyph's own install verifies checksum and build provenance. The action
+      # ref and `version` move together (glyph-pin-rewrite bumps both).
       - uses: akira-toriyama/glyph/.github/actions/install@v4.3.0
         with:
           version: v4.3.0
@@ -64,10 +57,9 @@ jobs:
 
       # One walk yields both the version and the notes (separate bump and
       # notes calls would walk twice, and a merge landing in between could
-      # split them). Unless this is a dry run, the same call upserts the
-      # rolling draft. Exit 1 is the uniform soft no-release (nothing to
-      # release), folded into a successful no-op; on a none verdict glyph also
-      # deletes a leftover draft.
+      # split them). Exit 1 is the uniform soft no-release (nothing to
+      # release), folded into a successful no-op; glyph then also deletes a
+      # leftover draft unless glyph.toml sets draft_on_none.
       - name: Compose the verdict and upsert the rolling DRAFT
         id: verdict
         env:
@@ -97,8 +89,8 @@ jobs:
           echo "tag=$tag"     >> "$GITHUB_OUTPUT"
           echo "verdict: $tag (draft $(jq -r .action "$RUNNER_TEMP/verdict.json"))"
 
-      # The notes as an artifact, for the dry-run preview and the draft job's
-      # summary (glyph writes the draft body itself).
+      # The draft job copies the notes on every run, but only a dry run shows
+      # them: glyph writes the draft's body itself.
       - name: Upload release notes
         if: steps.verdict.outputs.release == 'true'
         uses: actions/upload-artifact@v7
@@ -106,9 +98,6 @@ jobs:
           name: release-notes
           path: RELEASE_NOTES.md
 
-  # The reusable build derives its matrix from build.yaml, applies the
-  # patches, builds every target and uploads one <shield> artifact each; the
-  # draft job downloads them.
   build:
     needs: version
     if: needs.version.outputs.release == 'true'
@@ -117,9 +106,8 @@ jobs:
   draft:
     needs: [version, build]
     if: needs.version.outputs.release == 'true'
-    # This job only touches release ASSETS: upload the firmware, prune
-    # anything outside the allowlist. The draft itself (create/update/stale
-    # deletion/target) is glyph's, done in the `version` job.
+    # Release assets only: the draft itself (create, update, stale deletion,
+    # target) is glyph's, in the version job.
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -130,12 +118,12 @@ jobs:
       GH_REPO: ${{ github.repository }}
       VERSION: ${{ needs.version.outputs.version }}
       # The only files a release may carry: canon is public, so a target that
-      # joins build.yaml reaches a release only once it is listed here. The
-      # imprint's three images and the Prospector Dongle's companion image
+      # joins build.yaml reaches a release only once it is listed here. They
       # share one manifest, one patch set and one draft (t-tbaf, 2026-09-25).
       ASSETS: imprint_left.uf2 imprint_right.uf2 imprint_dongle.uf2 prospector.uf2
     steps:
-      # Every artifact of build and version, as dist/<artifact>/<file>.
+      # Every artifact of build and version, as dist/<artifact>/<file>;
+      # zmk-build.yml names each image's artifact after its shield.
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
@@ -162,8 +150,6 @@ jobs:
           cp dist/release-notes/RELEASE_NOTES.md out/RELEASE_NOTES.md
           echo "Collected:"; ls -l out
 
-      # dry_run (workflow_dispatch only): one preview artifact with the images
-      # and the notes instead of a draft, so no version is used up.
       - name: Upload preview (dry run)
         if: github.event.inputs.dry_run == 'true'
         uses: actions/upload-artifact@v7
@@ -182,9 +168,9 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A normal run (push to main, or a dispatch without dry_run): attach the
-      # images to the draft the version job upserted and prune every other
-      # asset. A published release is never touched.
+      # The prune below relies on VERSION being the draft's intended tag: glyph
+      # refuses a next version at or under a published release (its published
+      # floor).
       - name: Attach firmware to the rolling DRAFT
         if: github.event.inputs.dry_run != 'true'
         run: |

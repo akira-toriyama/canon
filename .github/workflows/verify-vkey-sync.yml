@@ -20,8 +20,8 @@ on:
       - .github/workflows/verify-vkey-sync.yml
   workflow_dispatch:
 
-# Least privilege, made explicit — closes zizmor's excessive-permissions
-# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+# Explicit, or the fleet zizmor gate fails on the default token permissions
+# (excessive-permissions).
 permissions:
   contents: read
 
@@ -33,6 +33,6 @@ jobs:
         with:
           # Verify-only, never pushes — drop the persisted checkout token. t-yaxa
           persist-credentials: false
-      # The runner's python3 (stdlib only; the script needs 3.8+).
+      # No setup-python: the script is stdlib only.
       - name: Check vkey aliases are in sync
         run: python3 scripts/gen-vkey-aliases.py --check

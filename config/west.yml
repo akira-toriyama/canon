@@ -8,15 +8,15 @@ manifest:
       url-base: https://github.com/akira-toriyama
   projects:
     # main, never a release tag: the Cyboard assimilator-bt board uses Zephyr's
-    # new hardware model (HWv2), and with a ZMK tag the build fails in
-    # arch.cmake with "Could not find ARCH=cyboard".
+    # new hardware model (HWv2), and with ZMK v0.3.0 the build failed in
+    # arch.cmake with "Could not find ARCH=cyboard" (2026-05-17).
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    # The zephyr-4.1 branch, not main: Cyboard's main pins ZMK v0.3.0 and has
-    # the HWv1 assimilator-bt, which fails against zmk@main with
-    # "Kconfig/soc/Kconfig.defconfig not found". The HWv2 board and the
+    # The zephyr-4.1 branch, not main: since 2026-07-07 Cyboard's main pins
+    # ZMK v0.3.0 and has the HWv1 assimilator-bt, which fails against zmk@main
+    # with "Kconfig/soc/Kconfig.defconfig not found". The HWv2 board and the
     # imprint_dongle shield live on zephyr-4.1 (CLAUDE.md).
     - name: zmk-keyboards
       remote: Cyboard-DigitalTailor
@@ -25,9 +25,9 @@ manifest:
     # zmk-beacon (own module): the Prospector Dongle's `prospector` shield and
     # the Imprint Dongle's status broadcaster (CONFIG_BEACON_STATUS_BROADCAST
     # in config/imprint_dongle.conf). Pinned by commit, not by tag, so canon
-    # takes a change without a zmk-beacon release; bump the SHA by hand. `path`
-    # keeps the clone under modules/; scripts/build-zmk.sh checks it out at
-    # this pin before every build that has no --beacon.
+    # takes a change without a zmk-beacon release; bump the SHA by hand.
+    # scripts/build-zmk.sh checks it out at this pin before every build that
+    # has no --beacon.
     - name: zmk-beacon
       remote: akira-toriyama
       revision: 11aeac38b55baf2af1da312f8c43424e7d3b3748

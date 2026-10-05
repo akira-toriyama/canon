@@ -1,20 +1,16 @@
 name: ZMK Build
 
-# The firmware build, called by build.yml (PRs, main, weekly) and release.yml
-# (the release assets). Its steps are scripts/zmk-west.sh, the same steps
-# scripts/build-zmk.sh runs locally.
+# The firmware build that build.yml and release.yml call. Its steps are
+# scripts/zmk-west.sh, the same steps scripts/build-zmk.sh runs locally.
 #
 # Kept local instead of calling ZMK's
 # zmkfirmware/zmk/.github/workflows/build-user-config.yml:
-# - canon builds a patched ZMK and Zephyr (patches/<tree>/*.patch, applied
-#   between west update and west build); ZMK's workflow builds them unpatched,
-#   and the imprint keymap's &vkey, a patched behavior, does not resolve there.
+# - canon builds ZMK and Zephyr with patches/<tree>/*.patch applied; ZMK's
+#   workflow applies none, and the imprint keymap's &vkey, a patched-in
+#   behavior, does not resolve there.
 # - the fleet's zizmor policy (.github/zizmor.yml) hash-pins every third-party
 #   `uses:`, so ZMK's workflow could be called at a commit SHA only, never at
 #   @main.
-# - the main ruleset's required checks are named
-#   `build / Build (<board>, <shield>)`: the caller's job id `build` and the
-#   job name below. Keep both.
 
 on:
   workflow_call:
@@ -42,13 +38,17 @@ jobs:
   build:
     needs: matrix
     runs-on: ubuntu-latest
-    # The Docker image ZMK's own workflow builds in.
+    # The image ZMK's own workflow builds in, and build-zmk.sh's default
+    # (ZMK_IMAGE): change both together.
     container:
       image: zmkfirmware/zmk-build-arm:stable
     strategy:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    # The main ruleset requires every target's check as
+    # `build / Build (<board>, <shield>)`: the caller's job id and this name.
+    # Keep both.
     name: Build (${{ matrix.board }}, ${{ matrix.shield }})
     defaults:
       run:
@@ -59,13 +59,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Build-only: west/patch/build read and write locally, never push —
-          # drop the persisted checkout token. t-yaxa
+          # Build-only, never pushes — drop the persisted checkout token. t-yaxa
           persist-credentials: false
 
       # Treeless: commits only, trees and blobs come with the checkout (what
-      # ZMK's own workflow fetches). The unpatch half of update has nothing to
-      # do on a fresh checkout.
+      # ZMK's own workflow fetches).
       - name: West init + update (ZMK @ main)
         run: scripts/zmk-west.sh update --fetch-opt=--filter=tree:0
 

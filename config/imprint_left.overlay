@@ -2,9 +2,10 @@
 
 // The left trackball goes to the Imprint Dongle: the left half is a split
 // peripheral, and upstream imprint.dtsi carries the sending input-split node
-// trackball_central_split@1, disabled by default. Enable it and point it at
-// the left PMW3610 (trackball_central). The upstream imprint_dongle shield
-// defines the receiving proxy (same reg 1, no device) and its listener.
+// trackball_central_split@1, disabled by default. trackball_central is the
+// left PMW3610, named for the left half's central role without a dongle. The
+// upstream imprint_dongle shield defines the receiving proxy (same reg 1, no
+// device) and its listener.
 &trackball_central_split {
     status = "okay";
     device = <&trackball_central>;

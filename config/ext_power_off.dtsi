@@ -1,5 +1,5 @@
-// Holds the EXT_POWER rail (assimilator-bt P1.02) off from boot. Both halves'
-// overlays include it; the dongle has no EXT_POWER node.
+// Holds the EXT_POWER rail (assimilator-bt P1.02) off from boot. For the
+// halves' overlays only: the dongle has no EXT_POWER node.
 //
 // Why off: canon never lights the per-key LEDs behind the rail
 // (CONFIG_ZMK_RGB_UNDERGLOW=n), yet the rail drew 10-18 mA per half at rest
@@ -15,8 +15,8 @@
 //
 // Why the hog: with the driver gone nothing configures P1.02, and in its reset
 // state (input, high-Z) the rail's state cannot be told without the
-// schematic. The hog runs after the GPIO controller (PRE_KERNEL_1) and drives
-// the pin low.
+// schematic. Zephyr's gpio_hogs_init() drives the pin low at POST_KERNEL,
+// after the GPIO controller (PRE_KERNEL_1).
 //
 // Why not a key (&ext_power EP_OFF / EP_ON): with the dongle the central has
 // no EXT_POWER device, and zmk_behavior_invoke_binding() stops with -EIO in

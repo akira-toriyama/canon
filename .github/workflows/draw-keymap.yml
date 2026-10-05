@@ -15,14 +15,18 @@ jobs:
   draw:
     permissions:
       contents: write
-    # Pinned by commit with its tag as a comment; Dependabot (github-actions) bumps it.
+    # A commit SHA: the fleet zizmor policy hash-pins third-party `uses:`.
+    # Dependabot (github-actions) bumps it along with the tag comment.
     uses: caksoylar/keymap-drawer/.github/workflows/draw-zmk.yml@a44809b8cc718cbff646641f49a8f71a9368336d # v0.23.0
     with:
-      # imprint only (canon's one keymap), named rather than the default
-      # config/*.keymap, so that a keymap without a physical layout cannot fail
-      # the run with "physical layout could not be found".
+      # Named rather than the default config/*.keymap, so that a keymap without
+      # a physical layout cannot fail the run with "physical layout could not
+      # be found".
       keymap_patterns: config/imprint.keymap
       commit_message: ":bento:(keymap-drawer)= update the generated svg"
       amend_commit: false
-      # A keymap that fails to parse or draw fails the run (a broken keymap shows early).
+      # The reusable's default runs its commit step after a parse or draw
+      # error and fails the run only in its last step, so a re-parsed
+      # keymap-drawer/imprint.yaml could land beside a stale SVG; true stops
+      # the job at the error and commits nothing.
       fail_on_error: true

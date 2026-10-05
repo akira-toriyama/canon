@@ -25,6 +25,7 @@
 #   --reset    accept a *_RESET* image: it wipes the dongle's bonds on every
 #              boot, so flash the normal image right after (re-pairing both
 #              halves and the Imprint Dongle is flash-reset.sh's job)
+#   -h, --help print this header
 #
 # A bare device name means firmware/<device>.uf2 of this repository; any other
 # argument is an image path, from any directory. The payload decides the
@@ -41,15 +42,16 @@
 # rewrites it meanwhile cannot slip another image past them.
 #
 # Refuses to start while another flash-dongle.sh runs (one lock for either
-# dongle, taken before any check or wait), while /Volumes/XIAO-SENSE is
-# mounted, or while flash-watch.sh / flash-reset.sh run (both dongles mount as
-# XIAO-SENSE, and those scripts copy imprint_dongle.uf2 onto any XIAO-SENSE
-# mount; flash-impl.sh takes the same lock). Right
-# before the copy it checks for those scripts again, and step 3's identity
-# check stands in for the mount check.
+# dongle, taken before the wait and the mount check), while /Volumes/XIAO-SENSE
+# is mounted, or while flash-watch.sh / flash-reset.sh run (both dongles mount
+# as XIAO-SENSE, and those scripts copy imprint_dongle*.uf2 onto the first XIAO
+# bootloader they see; flash-impl.sh takes the same lock, but only after its
+# prompt). Right before the copy it checks for those scripts again, and step
+# 3's identity check stands in for the mount check.
 #
 # Exit status: 0 image copied, bootloader volume released and the dongle back
-# on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage.
+# on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage or
+# a refused image.
 
 set -u
 

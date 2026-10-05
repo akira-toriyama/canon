@@ -1,5 +1,4 @@
-// Arrow keys ar_up / ar_down / ar_left / ar_right (ARROW_BEHAVIOR,
-// behavior_macros.h), included in the keymap's behaviors { } node.
+// Included in the keymap's behaviors { } node.
 
     ARROW_BEHAVIOR(ar_up,    UP_ARROW_LAYER,    UP_ARROW,    KEY_POSITION_LEFT_ARROW, KEY_POSITION_RIGHT_ARROW)
     ARROW_BEHAVIOR(ar_down,  DOWN_ARROW_LAYER,  DOWN_ARROW,  KEY_POSITION_LEFT_ARROW, KEY_POSITION_RIGHT_ARROW)

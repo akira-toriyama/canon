@@ -34,7 +34,7 @@
 
     // display-name matches [A-Za-z][A-Za-z0-9]{0,3} and is unique: only its
     // first 4 bytes reach the Prospector Dongle, and keymap-drawer silently
-    // drops a layer whose name repeats. Formal names, reasons and sources:
+    // drops a layer whose name repeats. Canonical names, reasons and sources:
     // docs/glossary.md, entry "layer".
     DEFAULT_LAYER {
       display-name = "Base";
@@ -83,11 +83,10 @@
         FOOTER_TD
       >;
     };
-    // Arrow sub-layers: holding an arrow key (ar_*) enters its layer, and
-    // another arrow key pressed meanwhile sends Home / End / PgUp / PgDn.
-    // display-name names the arrow key that enters the layer (the node's
-    // *_ARROW), not what it sends, which may change.
-    LEFT_ARROW_LAYER {  // hold ar_left, press the ar_down key = HOME
+    // Arrow sub-layers, entered by holding an arrow key (ar_*). A display-name
+    // names that arrow key (the node's *_ARROW), not what the layer sends,
+    // which may change.
+    LEFT_ARROW_LAYER {
       display-name = "LArr";
       bindings = <
         ROW_NONE
@@ -97,7 +96,7 @@
         THUMB_TD
       >;
     };
-    RIGHT_ARROW_LAYER {  // hold ar_right, press the ar_down key = END
+    RIGHT_ARROW_LAYER {
       display-name = "RArr";
       bindings = <
         ROW_NONE
@@ -107,7 +106,7 @@
         THUMB_TD
       >;
     };
-    UP_ARROW_LAYER {  // hold ar_up, press the ar_left key = PAGE_UP
+    UP_ARROW_LAYER {
       display-name = "UArr";
       bindings = <
         ROW_NONE
@@ -117,7 +116,7 @@
         THUMB_TD
       >;
     };
-    DOWN_ARROW_LAYER {  // hold ar_down, press the ar_left key = PAGE_DOWN
+    DOWN_ARROW_LAYER {
       display-name = "DArr";
       bindings = <
         ROW_NONE

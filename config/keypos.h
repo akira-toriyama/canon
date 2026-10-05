@@ -1,7 +1,7 @@
 #pragma once
 
-// Key positions (indices into the matrix transform) for combos and
-// hold-trigger-key-positions.
+// Indices into the matrix transform that imprint.keymap chooses, so another
+// transform can renumber them.
 #define KEY_POSITION_LL 52
 #define KEY_POSITION_LM 53
 #define KEY_POSITION_RM 56

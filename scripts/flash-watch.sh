@@ -8,5 +8,6 @@
 #
 # The body is flash-impl.sh (the NVS reset variant is flash-reset.sh).
 # --yes / -y skips the confirmation (one-paste recovery, Claude, CI), as does
-# running without a TTY.
+# running without a TTY. Any other argument is ignored (there is no --help or
+# --dry-run).
 exec "$(dirname "${BASH_SOURCE[0]}")/flash-impl.sh" "" "flashed (device will reboot)" "" normal "$@"

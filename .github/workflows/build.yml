@@ -11,13 +11,14 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
-  # ZMK is followed at main: the weekly run shows an upstream break within a
-  # week (GitHub mails the owner when a scheduled run fails).
+  # ZMK is followed at main: the weekly run catches an upstream break while
+  # nothing is pushed here. GitHub notifies whoever last edited the cron line,
+  # and stops a public repository's schedule after 60 days without activity.
   schedule:
-    - cron: "0 3 * * 1" # Mondays 03:00 UTC
+    - cron: "0 3 * * 1"
 
-# Least privilege, made explicit — closes zizmor's excessive-permissions
-# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+# Explicit, or the fleet zizmor gate fails on the default token permissions
+# (excessive-permissions).
 permissions:
   contents: read
 

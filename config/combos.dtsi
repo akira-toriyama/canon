@@ -1,6 +1,5 @@
-// The keymap's combos, included in its combos { } node. The two lower thumb
-// keys of a hand together: tap = input source (left kana, right English),
-// hold = a modifier pair, through the ime_kana / ime_eiji hold-taps.
+// Included in the keymap's combos { } node. A combo takes both keys' presses,
+// so its hold gives back the modifiers that their mod-taps (TD_*) would hold.
 
     combo_kana {
       key-positions = <KEY_POSITION_LL KEY_POSITION_LM>;
