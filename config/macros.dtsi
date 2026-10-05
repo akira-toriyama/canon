@@ -1,32 +1,25 @@
-// The keymap's macros, included in its macros { } node; the en_* macros
-// follow from eiji_macros.dtsi.
+// Included in the keymap's macros { } node.
 
-    // EIJI, then the letter passed as the parameter: the Shift side of the
-    // letter mod-morphs (al_*), so that a capital goes out in English input.
     eiji_macro: eiji_macro {
       compatible = "zmk,behavior-macro-one-param";
       #binding-cells = <1>;
       bindings = <&macro_tap &kp EIJI>, <&macro_param_1to1>, <&macro_press &kp MACRO_PLACEHOLDER>, <&macro_pause_for_release>, <&macro_param_1to1>, <&macro_release &kp MACRO_PLACEHOLDER>;
     };
-    // Kana input: the tap of ime_kana (combo_kana).
     kana: kana {
       compatible = "zmk,behavior-macro";
       #binding-cells = <0>;
       bindings = <&kp KANA>;
     };
-    // English input: the tap of ime_eiji (combo_eiji).
     eiji: eiji {
       compatible = "zmk,behavior-macro";
       #binding-cells = <0>;
       bindings = <&kp EIJI>;
     };
 
-    // TU_LL / TU_LM: hold the layer and LCtrl / LAlt together. TU_RM / TU_RR
-    // are plain &mo (behavior_macros.h). The T_*_LAYER keys send &vkey ids.
     TU_MOD(t_ll_ctrl, T_LL_LAYER, LCTRL)
     TU_MOD(t_lm_alt,  T_LM_LAYER, LALT)
 
-    // The same as eiji_macro with the key fixed, as separate 0-cell behaviors
-    // (EN_MACRO): the keymap-drawer labels (raw_binding_map, generated from
-    // eiji_macros.dtsi) key on each behavior's name, en_0, en_under and so on.
+    // en_*: eiji_macro with the key fixed, as separate 0-cell behaviors: their
+    // keymap-drawer labels (raw_binding_map, generated from eiji_macros.dtsi)
+    // key on the behavior's name.
     #include "eiji_macros.dtsi"

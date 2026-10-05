@@ -2,23 +2,23 @@
 # Which USB device is which dongle, a serial log reader that follows them, and
 # a PNG of the Prospector Dongle's screen.
 #
-# The one place that identifies the dongles on USB: flash-dongle.sh takes the
-# image's device, the port, USB location and serial, and the owner of the
-# bootloader volume from the plumbing subcommands (image, find, owner).
+# The one place that identifies the dongles on USB: flash-dongle.sh leaves the
+# product strings and the ioreg and df lookups to the plumbing subcommands and
+# parses their US-separated fields, so those fields are a contract with it.
 #
 # Identity is the USB product string alone. Both dongles (and the ist dongle
 # of zmk-hid-host) carry ZMK's default VID/PID 0x1D50/0x615E, and a
 # /dev/cu.usbmodem* name is derived from the USB location (0x02112000 ->
 # usbmodem211201): never identify a dongle by either.
 #
-# The rate of a port is a command to the firmware, which acts on any change of
-# the line coding (zmk-beacon src/bootloader_on_1200_baud.c): 1200 reboots
-# either dongle into its UF2 bootloader, and 2400 makes the Prospector Dongle
-# send its screen (src/screen_dump.c). `log` sets 115200 8N1 and no other
-# rate; `shot` sets 2400 and then 115200 again, never 1200. Neither sets
-# TIOCEXCL: flash-dongle.sh's stty must still open a port that a reader
-# holds, and a log reader then follows the dongle through the bootloader into
-# the new image's boot log.
+# The rate of a port is a command to the firmware, whichever program sets it,
+# acted on when the rate changes: 1200 reboots either dongle into its UF2
+# bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
+# makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
+# `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
+# again, never 1200. Neither sets TIOCEXCL: flash-dongle.sh's stty must still
+# open a port that a reader holds, and a log reader then follows the dongle
+# through the bootloader into the new image's boot log.
 #
 # Stdlib only, and it runs on the Command Line Tools' /usr/bin/python3 (3.9):
 # no match statements, no X | Y type unions.
@@ -63,7 +63,8 @@ POLL_S = 0.2
 MAX_LINE = 65536
 
 # The screen dump's records (zmk-beacon src/screen_dump.c, whose header is the
-# contract: change both together). Integers are little-endian.
+# contract: change both together and bump DUMP_VERSION). Integers are
+# little-endian.
 #   start  tag version:u8 format:u8 width:u16 height:u16
 #   band   tag x1:u16 y1:u16 x2:u16 y2:u16, then the band's RGB565 pixels
 #   end    tag bands:u16 crc32:u32 (zlib's crc32 of every band's pixels)
@@ -111,7 +112,8 @@ KEY_EVENT_KEPT = re.compile(r"characteristic", re.I)
 # indented "xx xx ... |ascii" with no words for KEY_EVENT to match.
 HEXDUMP_ROW = re.compile(r"^\s+(?:[0-9a-f]{2} +){1,16}.*\|")
 
-# ANSI escape sequences (CSI, and two-byte Fe) and the C0 controls but tab.
+# ANSI escape sequences (CSI, and two-byte Fe) and the ASCII controls but tab
+# and newline.
 ESCAPES = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-Z\\-_])|[\x00-\x08\x0b-\x1f\x7f]")
 
 UsbDevice = namedtuple("UsbDevice", "product serial session location ports dialins")
@@ -136,11 +138,11 @@ def ioreg(*args):
 
 def children(node):
     kids = node.get("IORegistryEntryChildren", [])
-    return [kids] if isinstance(kids, dict) else kids  # -t: a lone child is a dict
+    return [kids] if isinstance(kids, dict) else kids  # -t: an ancestor's child on the path is a dict
 
 
 def walk(node, usb=None):
-    """Each node below node, with the nearest IOUSBHostDevice at or above it."""
+    """Each node at or below node, with the nearest IOUSBHostDevice at or above it."""
     if node.get("IOObjectClass") == "IOUSBHostDevice":
         usb = node
     yield node, usb
@@ -163,10 +165,10 @@ def find(products):
     """The USB devices whose product string is in products, with their ports.
 
     Product strings are the descriptor strings (kUSBProductString; "USB
-    Product Name" is macOS's sanitised copy, "-" becomes "_"). The IOUSB plane
-    has no class subtrees, so it stays fast behind USB disks. Serial clients
-    come with their ancestors (-t), so the nearest IOUSBHostDevice above a
-    port is the device it belongs to.
+    Product Name" can be macOS's sanitised copy, with "-" as "_"). The IOUSB
+    plane has no class subtrees, so it stays fast behind USB disks. Serial
+    clients come with their ancestors (-t), so the nearest IOUSBHostDevice
+    above a port is the device it belongs to.
     """
     hits = {}
     for root in ioreg("-p", "IOUSB", "-l"):
@@ -600,7 +602,8 @@ class Dump:
             pass
 
     def step(self):
-        """Takes one record off buf; False when it needs more bytes first."""
+        """Takes one record off buf; False when it needs more bytes first or
+        has taken the end record."""
         if self.width is None:
             return self.start()
         tag = bytes(self.buf[:4])

@@ -1,9 +1,7 @@
 parse_config:
   # Expand the keymap's macros (config/behavior_macros.h and its includes).
   preprocess: true
-  # Labels of the keycodes in `&kp X`.
   zmk_keycode_map:
-    # Modifiers
     LEFT_SHIFT: ⇧
     RIGHT_SHIFT: ⇧
     LEFT_CONTROL: ⌃
@@ -16,7 +14,6 @@ parse_config:
     RIGHT_COMMAND: ⌘
     LEFT_GUI: ⌘
     RIGHT_GUI: ⌘
-    # Editing keys, full and short aliases
     RETURN: ⏎
     RET: ⏎
     ENTER: ⏎
@@ -30,7 +27,6 @@ parse_config:
     SPACE: ␣
     INSERT: Ins
     INS: Ins
-    # Arrows and navigation
     UP_ARROW: ↑
     DOWN_ARROW: ↓
     LEFT_ARROW: ←
@@ -39,7 +35,6 @@ parse_config:
     END: ⤓
     PAGE_UP: ⇞
     PAGE_DOWN: ⇟
-    # Keypad digits (the KP_NUMBER_* aliases are unused here)
     KP_N0: '0'
     KP_N1: '1'
     KP_N2: '2'
@@ -50,7 +45,6 @@ parse_config:
     KP_N7: '7'
     KP_N8: '8'
     KP_N9: '9'
-    # Keypad symbols
     KP_PLUS: +
     KP_MINUS: '-'
     KP_ASTERISK: '*'
@@ -58,27 +52,25 @@ parse_config:
     KP_DOT: .
     KP_EQUAL: '='
     KP_ENTER: ⏎
-    # System and special keys
     NON_US_BACKSLASH: \
     NON_US_HASH: '#'
     K_APPLICATION: ☰
     APPLICATION: ☰
     PRINTSCREEN: PrtSc
     PAUSE_BREAK: Pause
-    # macOS input source keys: &kp EIJI / &kp KANA at the ends of the base
-    # layer's top row. The combos go through hold-taps and are labelled in
-    # raw_binding_map.
+    # KANA / EIJI of config/behavior_macros.h, which preprocessing turns into
+    # LANGUAGE_1 / LANGUAGE_2. The combos' taps are the &kana / &eiji macros,
+    # labelled in raw_binding_map.
     LANGUAGE_1: かな
     LANGUAGE_2: 英数
   # Include path of the keymap's own headers and dtsi files.
   zmk_additional_includes:
     - config
   zmk_combos: {}
-  # Labels of bindings other than &kp. The &en_* entries between the markers
-  # are generated from config/eiji_macros.dtsi by
-  # scripts/gen-eiji-drawer-map.py (CI: verify-eiji-sync.yml).
+  # The &en_* entries between the markers are generated from
+  # config/eiji_macros.dtsi by scripts/gen-eiji-drawer-map.py (CI:
+  # verify-eiji-sync.yml).
   raw_binding_map:
-    # Pointing and system
     "&mkp MB1": 🖱L
     "&mkp MB2": 🖱R
     "&mkp MB3": 🖱M
@@ -139,7 +131,6 @@ parse_config:
     # The taps of the ime_kana / ime_eiji hold-taps (the combos)
     "&kana": かな
     "&eiji": 英数
-  # Labels of the modifiers in modifier functions such as LS(LEFT_COMMAND).
   modifier_fn_map:
     left_ctrl: Ctl+
     right_ctrl: Ctl+
@@ -153,8 +144,8 @@ parse_config:
     mod_combiner: "{mod_1}{mod_2}"
 
 draw_config:
-  # Key size. With a physical layout (config/imprint.json) keymap-drawer takes
-  # key_h for the width too; key_w only sizes generated layouts (ortho_layout,
+  # With a physical layout (config/imprint.json) keymap-drawer takes key_h for
+  # the width too; key_w only sizes generated layouts (ortho_layout,
   # cols_thumbs_notation).
   key_w: 56
   key_h: 56
@@ -162,8 +153,7 @@ draw_config:
   combo_h: 22
   # Few combos: draw them on their layer, not in separate diagrams.
   separate_combo_diagrams: false
-  # Curve radius of the combo dendrons.
   arc_radius: 6
-  # Fonts of the SVG text; Hiragino Sans and Yu Gothic cover the kana labels.
+  # Hiragino Sans and Yu Gothic cover the Japanese labels.
   svg_extra_style: |
     text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }

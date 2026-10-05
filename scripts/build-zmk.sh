@@ -39,12 +39,13 @@
 #                     one more Kconfig line for every target, merged after
 #                     config/<shield>.conf and the sprite and logging lines.
 #                     Repeatable; the images carry -kconfig. CONFIG_BEACON_SPRITE_*
-#                     go only through --sprite, and nothing that turns the
-#                     display off combines with --sprite.
+#                     go only through --sprite, and CONFIG_ZMK_DISPLAY and
+#                     CONFIG_ZMK_DISPLAY_* lines do not combine with it.
 #   --tag <name>      appended to the build directory and the image name.
 #   --update          west update before building: moves zmk@main, the
 #                     zmk-keyboards branch and every module to the manifest.
 #   --clean           delete the workspace and exit.
+#   -h, --help        print this header and exit.
 # --reset combines with neither --logging nor --sprite.
 #
 # Images: firmware/<shield>[-sprite][-logging][-kconfig][-beacon][_RESET][-<tag>].uf2
@@ -167,8 +168,11 @@ for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
     *$'\n'*) die 2 "--kconfig takes one line" ;;
     CONFIG_BEACON_SPRITE_*) die 2 "--kconfig: CONFIG_BEACON_SPRITE_* go only through --sprite" ;;
     CONFIG_ZMK_DISPLAY=* | CONFIG_ZMK_DISPLAY_*)
-      # The sprite needs the custom status screen; Kconfig would print the
-      # name it could then not take.
+      # zmk-beacon's BEACON_SPRITE_GIF depends on the custom status screen,
+      # which such a line can turn off, and Kconfig only warns about an
+      # assignment that does not take: the -sprite image would lack the sprite.
+      # A --beacon zmk-beacon from 0a64fc9 to before 7e86e58, whose
+      # BEACON_SPRITE_NAME depends on BEACON_SPRITE, would also print the name.
       if [ -n "$SPRITE" ]; then die 2 "--kconfig: ${kv%%=*} does not combine with --sprite"; fi
       ;;
     CONFIG_?*=?*) ;;
@@ -179,7 +183,7 @@ done
 case "$TAG" in *[!A-Za-z0-9._-]*) die 2 "--tag takes letters, digits, '.', '_' and '-'" ;; esac
 
 # Targets as board<TAB>shield. The groups come from build.yaml's shield names,
-# never from a list here: all = every target, imprint = the imprint* shields.
+# never from a list here.
 PAIRS="$("$REPO/scripts/zmk-west.sh" pairs)"
 TARGETS=()
 [ ${#ARGS[@]} -gt 0 ] || ARGS=(all)
@@ -260,13 +264,15 @@ fi
 # drops a file removed from the repository, which the build would still read.
 mkdir -p "$CFG"
 rsync -a --delete "$REPO/config" "$REPO/patches" "$REPO/scripts" "$REPO/build.yaml" "$CFG/"
-# The per-run inputs, written below only for the options of this run.
+# Cleared on every run: after a run without --sprite neither the GIF nor its
+# name stays in .sprite/, and the .beacon copy below, which has no --delete,
+# keeps no file of an earlier tree.
 rm -rf "$CFG/.sprite" "$CFG/.kconfig" "$CFG/.beacon"
 
 # The container sees only the workspace, so the GIF is copied in under a fixed
-# name. Its path and name reach the build in a Kconfig fragment
+# name. Its path and the sprite name reach the build in a Kconfig fragment
 # (EXTRA_CONF_FILE), never as -DCONFIG_...: west prints the whole cmake
-# command line when the configure step fails, and both name the subject.
+# command line when the configure step fails, and the name names the subject.
 # Kconfig strings keep their quotes.
 if [ -n "$SPRITE" ]; then
   mkdir -p "$CFG/.sprite"
@@ -284,7 +290,6 @@ if [ ${#KCONFIG[@]} -gt 0 ]; then
   mkdir -p "$CFG/.kconfig"
   printf '%s\n' "${KCONFIG[@]}" >"$CFG/.kconfig/extra.conf"
 fi
-# Without the checkout's git data, Claude Code state and built images.
 if [ -n "$BEACON" ]; then
   mkdir -p "$CFG/.beacon"
   rsync -a --exclude '/.git' --exclude '/.claude/' --exclude '/firmware/' "$BEACON/" "$CFG/.beacon/"

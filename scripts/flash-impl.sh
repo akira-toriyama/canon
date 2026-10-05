@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 # The body of flash-watch.sh and flash-reset.sh: watch /Volumes for UF2
-# bootloader mounts and copy each image by what mounts, one device at a time:
+# bootloader mounts and copy each image from firmware/ of this checkout by what
+# mounts, one device at a time:
 #   a volume whose INFO_UF2.TXT names XIAO → imprint_dongle<SUFFIX>.uf2
 #   the first other volume                 → imprint_left<SUFFIX>.uf2
 #   the next other volume                  → imprint_right<SUFFIX>.uf2
-# Exits once all three are written. Any XIAO mount gets the Imprint Dongle's
-# image, the Prospector Dongle's too: flash that one with flash-dongle.sh, and
-# never while this runs.
+# Exits 0 once all three are written. Each image is looked for only when its
+# device mounts: a missing one exits 1 and leaves that device in its
+# bootloader. Nothing else may enter a UF2 bootloader while this runs: the
+# first XIAO mount gets the Imprint Dongle's image, even the Prospector
+# Dongle's (flash that one with flash-dongle.sh), and any other board is taken
+# for a half.
 #
 # Arguments:
 #   $1 SUFFIX         image name suffix ("" normal / "_RESET" NVS reset)
 #   $2 DONE_NOTE      text of each device's done line (e.g. "flashed (device will reboot)")
 #   $3 ALL_DONE_NOTE  appended to the final ALL DONE line (e.g. " (NVS wiped)")
-#   $4 MODE           "normal" / "reset" (wipes NVS, with an extra warning)
-#   then [--yes|-y]   skip the confirmation (one-paste recovery, Claude, CI)
+#   $4 MODE           "normal" / "reset" (reset adds the NVS wipe warning to
+#                     the banner and the prompt)
+#   then [--yes|-y]   skip the confirmation (one-paste recovery, Claude, CI);
+#                     any other argument is ignored
 #
 # The safety banner prints on every run. The confirmation takes Enter alone
 # (nothing to type) and is skipped with --yes or without a TTY on stdin
@@ -67,7 +73,7 @@ fi
 
 # The lock flash-dongle.sh takes: while this runs, that script cannot touch a
 # dongle into the bootloader, and this cannot start in the middle of its flash
-# (it would copy imprint_dongle.uf2 onto the volume being written).
+# (it would copy imprint_dongle<SUFFIX>.uf2 onto the volume being written).
 LOCK="/tmp/flash-dongle-$(id -u).lock"
 exec 9>>"$LOCK" || { echo "cannot open $LOCK" >&2; exit 1; }
 lockf -s -t 0 9 || { echo "flash-dongle.sh is flashing a dongle ($LOCK is held): run this afterwards" >&2; exit 1; }
@@ -80,7 +86,6 @@ LAST_MOUNT=""
 ts() { date +%H:%M:%S; }
 
 while true; do
-  # Find a /Volumes/* that contains INFO_UF2.TXT (= UF2 bootloader)
   current=""
   for vol in /Volumes/*/; do
     [[ -f "$vol/INFO_UF2.TXT" ]] || continue
@@ -99,7 +104,6 @@ while true; do
     if echo "$info" | grep -qi "XIAO"; then
       if [[ $DONGLE_DONE -eq 0 ]]; then target="dongle"; fi
     else
-      # assimilator-bt (or non-XIAO) → peripheral
       if   [[ $LEFT_DONE  -eq 0 ]]; then target="left"
       elif [[ $RIGHT_DONE -eq 0 ]]; then target="right"
       fi
@@ -120,7 +124,8 @@ while true; do
         dongle) DONGLE_DONE=1 ;;
       esac
       LAST_MOUNT="$current"
-      # Wait until volume disappears before scanning again
+      # The next device can mount at this same path, so LAST_MOUNT is cleared
+      # only once this volume is gone.
       while [[ -f "$current/INFO_UF2.TXT" ]]; do sleep 0.5; done
       echo "[$(ts)] UNMOUNTED $name"
       LAST_MOUNT=""

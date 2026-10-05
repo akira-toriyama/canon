@@ -3,7 +3,7 @@
 # The in-container half of canon's firmware build: scripts/build-zmk.sh runs
 # each step in its own `docker run` of zmkfirmware/zmk-build-arm, and
 # .github/workflows/zmk-build.yml runs them as job steps in the same Docker image.
-# The west topdir is this script's parent directory (the checkout in CI, the
+# The west topdir is the directory above scripts/ (the checkout in CI, the
 # workspace copy $ZMK_WS/cfgrepo locally), with the manifest in config/.
 #
 #   zmk-west.sh pairs                         board<TAB>shield per build.yaml entry
@@ -13,6 +13,7 @@
 #   zmk-west.sh build <board> <shield> <suffix> [cmake args]
 #                                             west build into build/<shield><suffix>,
 #                                             its output also in build.log there
+#   zmk-west.sh -h | --help                   this header
 #
 # pairs needs only awk (host or runner); the rest need the Docker image's west.
 set -euo pipefail
@@ -20,9 +21,11 @@ set -euo pipefail
 TOP="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$TOP"
 
-# The west projects canon patches, named by their west path as patches/<tree>/
-# names them. A patched project goes through update, never pin: west refuses
-# to check out over a patched file.
+# Every west project canon patches, by its west path, which is also its
+# directory under patches/: update and patch read this list, not patches/, so
+# a directory missing here is never applied. A patched project goes through
+# update, never pin: pin stops on local changes, and west refuses to check out
+# over a patched file.
 TREES=(zmk zephyr)
 
 usage() {
@@ -54,8 +57,7 @@ trust_workspace() {
 
 # One tree's patches as absolute paths (git -C <tree> apply resolves a relative
 # one against <tree>) in C byte order, the order they go on; "-r" gives the
-# order they come off. The one ordering constraint today:
-# usb-hid-prime-on-ready before vkey-report, both change app/src/usb_hid.c.
+# order they come off. A patch must sort after the patches it builds on.
 patch_list() {
   local tree=$1 p
   shift

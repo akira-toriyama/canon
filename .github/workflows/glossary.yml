@@ -2,11 +2,8 @@ name: Deploy glossary site
 
 # Builds a single-page site from docs/glossary.md and publishes it at
 # https://akira-toriyama.github.io/canon/. The builder and the viewer live in
-# akira-toriyama/glossary-site's reusable workflow.
-#
-# - push to main → build + deploy
-# - pull_request → build only (the result is a run artifact; no deploy)
-# - workflow_dispatch → build + deploy
+# akira-toriyama/glossary-site's reusable workflow, which deploys on every
+# event but pull_request: a PR run only builds (the site is its run artifact).
 
 on:
   push:

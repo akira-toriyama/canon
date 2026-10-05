@@ -28,9 +28,10 @@ if [ -z "$name" ]; then
   echo "sprite-name: the GIF's file name leaves no name" >&2
   exit 2
 fi
-# grep reads lines, so a newline is checked apart; a name of semicolons only
-# would collapse to an empty CMake list and the build's sprite box would
-# disagree with the screen's.
+# grep reads lines, so a newline is checked apart. The ';' check is from
+# zmk-beacon 0a64fc9, whose CMake sized the sprite box from the name until
+# 7e86e58: a name of semicolons only collapsed to an empty CMake list there,
+# and the box disagreed with the screen's.
 case "$name" in
   *$'\n'*) echo "sprite-name: the GIF's file name must be one line" >&2; exit 2 ;;
   *[!\;]*) ;;

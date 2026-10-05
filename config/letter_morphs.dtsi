@@ -1,7 +1,5 @@
-// Letter keys al_a .. al_z (LETTER_MORPH, behavior_macros.h), included in the
-// keymap's behaviors { } node: the letter alone, and with Shift EIJI first
-// (eiji_macro), so that Shift+letter types a Latin capital in any input mode.
-// Nothing is generated from this list.
+// Included in the keymap's behaviors { } node. Nothing is generated from this
+// list.
 
     LETTER_MORPH(al_a, A)
     LETTER_MORPH(al_b, B)

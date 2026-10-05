@@ -4,11 +4,11 @@
 config/imprint.keymap is the single source of which key sends which vkey id.
 An id encodes (layer, QWERTY position):
   - 0x01: the base layer's X_1 key (alias VK_X1)
-  - base 0x10 / 0x30 / 0x50 / 0x70 = the LL / LM / RM / RR layer, and
-    id - base = QWERTY position 0..29 -> KEYS[position] -> alias
-    TU_<layer>_<key> (X_1 -> X1: underscores dropped)
+  - any other: the layer's base in LAYERS + the position, which indexes KEYS;
+    alias TU_<layer>_<key> (X_1 -> X1: underscores dropped)
   A layer's positions cross a nibble boundary (LL's C is 0x10 + 22 = 0x26), so
-  the layer is decoded by the range base <= id < base + 30, not by id & 0xF0.
+  decode() finds the layer by the range base <= id < base + len(KEYS), not by
+  id & 0xF0.
 
 The table goes to config/vkey-aliases.toml, which is pasted into the chord
 config (dotfiles).
@@ -28,14 +28,15 @@ ROOT = Path(__file__).resolve().parents[1]
 KEYMAP = ROOT / "config" / "imprint.keymap"
 OUT = ROOT / "config" / "vkey-aliases.toml"
 
-# QWERTY reading order 0..29: the 30 keys of each T_*_LAYER.
+# QWERTY reading order: the &vkey keys of a T_*_LAYER, indexed by id - base.
 KEYS = ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P",
         "A", "S", "D", "F", "G", "H", "J", "K", "L", "X_1",
         "Z", "X", "C", "V", "B", "N", "M", "X_2", "X_3", "X_4"]
-# Base id of each layer, in output order; a layer takes base..base+29.
+# Base id of each layer, in output order; a layer takes len(KEYS) ids from it.
 # 0xA0..0xBF is reserved for the ist dongle (another repository): chord maps
 # vkey ids to actions in one namespace per host, so an imprint id in that band
-# would fire ist's buttons. decode() rejects it by construction.
+# would fire ist's buttons. Keep every layer's range out of it: decode() then
+# rejects those ids.
 LAYERS = [("LL", 0x10), ("LM", 0x30), ("RM", 0x50), ("RR", 0x70)]
 VK_X1_ID = 0x01
 

@@ -1,7 +1,5 @@
-// The keymap's behaviors, included in its behaviors { } node. The generator
-// macros are in behavior_macros.h.
+// Included in the keymap's behaviors { } node.
 
-    // The IME hold-taps of combo_kana / combo_eiji (combos.dtsi).
     HOLD_TAP_HP200(ime_kana, &kana)
     HOLD_TAP_HP200(ime_eiji, &eiji)
 

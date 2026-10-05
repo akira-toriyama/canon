@@ -16,8 +16,8 @@ on:
       - ".github/workflows/shellcheck.yml"
   workflow_dispatch:
 
-# Least privilege, made explicit — closes zizmor's excessive-permissions
-# finding ahead of the fleet-wide zizmor gate (akira-toriyama/.github t-qbp1).
+# Explicit, or the fleet zizmor gate fails on the default token permissions
+# (excessive-permissions).
 permissions:
   contents: read
 
@@ -34,7 +34,7 @@ jobs:
           set -euo pipefail
           files=$(git ls-files '*.sh' '*.bash')
           echo "Checking:"; echo "$files"
-          # Each file's shell comes from its shebang. The word split of the
-          # newline-separated list is intended (no file name has a space).
+          # Each file's shell comes from its shebang. The newline-separated
+          # list is word-split on purpose: a script name with a space breaks it.
           # shellcheck disable=SC2086
           shellcheck $files
