@@ -50,9 +50,9 @@ jobs:
 
       # glyph's own install verifies checksum and build provenance. The action
       # ref and `version` move together (glyph-pin-rewrite bumps both).
-      - uses: akira-toriyama/glyph/.github/actions/install@v4.3.0
+      - uses: akira-toriyama/glyph/.github/actions/install@v5.0.0
         with:
-          version: v4.3.0
+          version: v5.0.0
           token: ${{ github.token }}
 
       # One walk yields both the version and the notes (separate bump and
