@@ -201,14 +201,24 @@ slot on either side. Both ends and the byte layout are zmk-beacon's
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ### sprite
-The animated GIF a [[Prospector Dongle]] build can play above the [[HP bar]]
-(zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`; size, tempo, key-press stepping and
-limits: [zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite)).
+The animation a [[Prospector Dongle]] build can play above the [[HP bar]]: a GIF
+that the build converts into a [[sprite pack]] and embeds (zmk-beacon's
+`CONFIG_BEACON_SPRITE_GIF`; size, tempo, key-press stepping and limits:
+[zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite)).
 The GIF is a personal file: built only locally with
 `./scripts/build-zmk.sh prospector --sprite <gif>` into
 `firmware/prospector-sprite.uf2`, never committed and never in CI or a release
 ([`assets/README.md`](../assets/README.md)).
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (that is the file), スプライト画像
+
+### sprite pack
+A [[sprite]]'s GIF repacked into the distinct pictures it shows and the order
+it shows them in, each picture drawable on its own; file extension `.spk`,
+magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py` at build time
+and the unit a sprite will later be swapped in over the air (format and why:
+[zmk-beacon's docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md)).
+Made from the personal GIF, it stays out of commits, PRs and issues like the GIF.
+- **Don't call it:** sprite sheet, pack alone, spk file, frame list, スプライトパック
 
 ### sprite name
 The text under the [[HP bar]] in a [[sprite]] build: the GIF's file name with

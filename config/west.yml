@@ -30,7 +30,7 @@ manifest:
     # has no --beacon.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: 11aeac38b55baf2af1da312f8c43424e7d3b3748
+      revision: fe32b134b929035b28c149b651917766bf3ba798
       path: modules/zmk-beacon
   self:
     path: config

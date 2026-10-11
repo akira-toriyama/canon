@@ -166,10 +166,16 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 ## Privacy: the sprite
 
 - **This repository is public; the sprite GIF is personal, and the sprite name names its subject.**
-  Never put a GIF or anything made of one (frames, C arrays, previews, `shot` PNGs) into a commit,
-  PR, issue, CI or release, nor its subject, file name or sprite name into their text or a doc.
+  Never put a GIF or anything made of one (sprite packs, frames, C arrays, previews, `shot` PNGs)
+  into a commit, PR, issue, CI or release, nor its subject, file name or sprite name into their
+  text or a doc.
 - Local only: `./scripts/build-zmk.sh prospector --sprite <gif>` writes
-  `firmware/prospector-sprite.uf2` (zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`); the CI and release
+  `firmware/prospector-sprite.uf2` (zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`): the configure step
+  converts the GIF into a sprite pack (zmk-beacon's `tools/sprite_pack.py`, format and reasons in
+  its `docs/sprite-pack.md`; since zmk-beacon fe32b13, t-4dsj) and embeds the pack, never the GIF.
+  The player keeps the canvas and picture 0 in the LVGL pool, which zmk-beacon's shield sizes at
+  64 KiB with a sprite (48 KiB without; `config/prospector.conf` never sets it), and CMake stops a
+  GIF that does not fit, naming the pool size that would. The CI and release
   `prospector.uf2` carries neither sprite nor name, so flashing it removes both. The GIFs and
   `SOURCES.md` live off the repository on the user's external drive,
   `/Volumes/HDD/assets/canon/prospector/sprites/` (`shot` PNGs: `.../prospector/shots/`), the same
@@ -180,8 +186,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   build-zmk.sh passes it as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
   the configure step fails (reproduced 2026-09-29), and prints only the GIF's size and the name's
-  length. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image) hold the
-  GIF and the name: never print or paste from them. The screen layout (zmk-beacon's README, the
+  length. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
+  `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
+  the name: never print or paste from them. The screen layout (zmk-beacon's README, the
   glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials): change it only on request.
 
 ## Commits, pull requests, fleet files
