@@ -116,9 +116,10 @@ Flashing `prospector.uf2` onto a
 (XIAO nRF52840 + 1.69" LCD) turns it into a display of both halves' battery
 levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
 showing their mean (or the one half that has a reading), yellow under 50 % and
-red under 20 %. It only listens: it
-never advertises, pairs or connects (a Mac's BLE scan saw no advertisement from
-it, 2026-09-26). It appears on the Mac only as
+red under 20 %, under a sprite that a Mac can swap over BLE. It listens
+passively for the keyboard, advertises connectably as `Prospector Dongle` for
+the sprite (zmk-beacon's README, "Swapping the sprite over BLE"; on hardware
+2026-10-12) and never pairs. It appears on the Mac only as
 one CDC serial port (product `Prospector Dongle`, no HID keyboard; seen on
 hardware 2026-09-26), and that port is how it is reflashed (1200 baud enters
 the bootloader), how `python3 scripts/dongle.py shot` reads its screen (2400

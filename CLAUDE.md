@@ -11,9 +11,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   the **Imprint Dongle** (ZMK's `xiao_ble/nrf52840/zmk`, Cyboard's shield `imprint_dongle`).
 - The companion **Prospector Dongle** (`xiao_ble/nrf52840/zmk`, shield `prospector` of the own
   module [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon), documented there) shows both
-  halves' battery from the Imprint Dongle's status advertisement. It never advertises, pairs or
-  connects (`CONFIG_ZMK_BLE=n`; a Mac scan saw nothing, 2026-09-26); on USB it is one CDC ACM port,
-  product `Prospector Dongle`, no HID (2026-09-26). Its screen turns off after five minutes without
+  halves' battery from the Imprint Dongle's status advertisement, under a sprite. It scans
+  passively for that, and since zmk-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
+  shield's default) it also advertises connectably as `Prospector Dongle` so that a Mac can write a
+  sprite pack into its sprite room (2026-10-12); it never pairs (`CONFIG_ZMK_BLE=n`). On USB it is
+  one CDC ACM port, product `Prospector Dongle`, no HID (2026-09-26). Its screen turns off after five minutes without
   a key press (`CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; seen with 20 s on 2026-10-04).
 - [chord](https://github.com/akira-toriyama/chord) (separate repository), the macOS host bridge,
   reads the Imprint Dongle's vendor HID reports (`&vkey` 0x20, split battery 0x21).

@@ -84,10 +84,11 @@ The companion status display: a beekeeb pre-soldered
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 (XIAO nRF52840 and a Waveshare 1.69" LCD; no ambient light sensor, touch panel
 unwired) running shield `prospector` of the own module
-[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). A BLE observer
-only: it shows both halves' battery from the [[Imprint Dongle]]'s
-[[status advertisement]] and never advertises, pairs or connects, so it does
-not replace the Imprint Dongle.
+[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). It shows both
+halves' battery from the [[Imprint Dongle]]'s [[status advertisement]], which
+it scans for passively, under a [[sprite]]; it advertises connectably only so
+that a Mac can write a [[sprite pack]] into its [[sprite room]], and never
+pairs, so it does not replace the Imprint Dongle.
 - USB: one CDC ACM port with product string `Prospector Dongle`, no HID. Setting the port to 1200 baud reboots it into the UF2 bootloader, which `scripts/flash-dongle.sh` uses (both seen on hardware 2026-09-26); 2400 baud sends a [[screen dump]].
 - The screen turns off after five minutes without a key press on the [[Cyboard Imprint]] and lights at the next one (zmk-beacon's `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; the cycle seen on hardware 2026-10-04 with a 20 s setting): a dark screen is not a dead device.
 - Config: [`config/prospector.conf`](../config/prospector.conf) (canon's additions only); the shield's defaults live in zmk-beacon, pinned by commit in [`config/west.yml`](../config/west.yml)
@@ -201,33 +202,47 @@ slot on either side. Both ends and the byte layout are zmk-beacon's
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ### sprite
-The animation a [[Prospector Dongle]] build can play above the [[HP bar]]: a GIF
-that the build converts into a [[sprite pack]] and embeds (zmk-beacon's
+The animation the [[Prospector Dongle]] plays above the [[HP bar]]: a
+[[sprite pack]], either the one last written into its [[sprite room]] over
+BLE or one the build made from a GIF and embedded (zmk-beacon's
 `CONFIG_BEACON_SPRITE_GIF`; size, tempo, key-press stepping and limits:
 [zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite)).
-The GIF is a personal file: built only locally with
+The GIF is a personal file: embedded only by a local build,
 `./scripts/build-zmk.sh prospector --sprite <gif>` into
 `firmware/prospector-sprite.uf2`, never committed and never in CI or a release
-([`assets/README.md`](../assets/README.md)).
+([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and
+shows the room's.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (that is the file), スプライト画像
 
 ### sprite pack
 A [[sprite]]'s GIF repacked into the distinct pictures it shows and the order
 it shows them in, each picture drawable on its own; file extension `.spk`,
-magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py` at build time
-and the unit a sprite will later be swapped in over the air (format and why:
+magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py`: at build time
+to embed, and by a sender to write into the [[sprite room]] over BLE (format
+and why:
 [zmk-beacon's docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md)).
-Made from the personal GIF, it stays out of commits, PRs and issues like the GIF.
+It carries the [[sprite name]]. Made from the personal GIF, it stays out of
+commits, PRs and issues like the GIF.
 - **Don't call it:** sprite sheet, pack alone, spk file, frame list, スプライトパック
 
+### sprite room
+The 384 KiB flash partition of the [[Prospector Dongle]] (zmk-beacon's shield
+overlay, `sprite_partition`, 0x80000-0xdffff) that holds one [[sprite pack]]
+written over BLE by a Mac; the device plays it at once and again after a
+reboot or a reflash, and erases it for the next (zmk-beacon's
+`CONFIG_BEACON_SPRITE_RECEIVE`, protocol in its `src/ble_receiver.c`). A
+transfer that fails leaves the embedded sprite, or none, until the next one.
+- **Don't call it:** slot, sprite partition in prose (that is the node), flash area, storage, 部屋 alone in English, スプライト領域
+
 ### sprite name
-The text under the [[HP bar]] in a [[sprite]] build: the GIF's file name with
-the extension dropped, whitespace trimmed and the first letter upper-cased
-([`assets/sprite-name.sh`](../assets/sprite-name.sh)), which
-`build-zmk.sh --sprite` passes to zmk-beacon as
-[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig).
-It names the GIF's subject, so it never appears in commits, PRs or docs; the
-CI / release build has none and shows no name row.
+The text under the [[HP bar]], carried by the [[sprite pack]] playing: the
+GIF's file name with the extension dropped, whitespace trimmed and the first
+letter upper-cased ([`assets/sprite-name.sh`](../assets/sprite-name.sh)),
+which `build-zmk.sh --sprite` passes to zmk-beacon as
+[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig)
+for an embedded sprite, and a sender writes into a pack for the
+[[sprite room]]. It names the GIF's subject, so it never appears in commits,
+PRs or docs; the name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
 
 ### HP bar
