@@ -314,6 +314,17 @@ Option builds add a suffix to the name (`prospector-sprite.uf2`,
 - The build runs in a container of the Docker image `zmkfirmware/zmk-build-arm` (`ZMK_IMAGE`): call it the Docker image, never "image" alone.
 - **Don't call it:** binary, uf2 artifact (an artifact is the zip a CI run uploads), ファーム本体
 
+### firmware stamp
+The USB manufacturer string of every [[image]], `ZMK Project (canon <shield>
+<12 hex><variant>)`: a digest of the files this repository feeds that
+[[build target]]'s build (the table and the rule: the header of
+`scripts/stamp.py`), set by `scripts/zmk-west.sh build` and read back from a
+device by `python3 scripts/dongle.py check`, which tells whether the firmware on
+USB is what `origin/main` builds.
+- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `_RESET`, `-<tag>`); a plain or sprite build has none.
+- The stamp changes with the inputs, not with the commit: a comment-only change to `config/` keeps it, a pin bump or a patch edit moves every target's.
+- **Don't call it:** version string, build id, firmware version, manufacturer tag, 版の印
+
 ### dtsi
 DeviceTree Source Include: a partial DeviceTree source that the [[keymap]] or a
 [[build target]]'s `*.overlay` pulls in with `#include`. canon's are

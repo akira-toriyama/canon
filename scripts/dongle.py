@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-# Which USB device is which dongle, a serial log reader that follows them, and
-# a PNG of the Prospector Dongle's screen.
+# Which USB device is which dongle, a serial log reader that follows them, a
+# PNG of the Prospector Dongle's screen, and whether the firmware on USB is
+# the one origin/main would build (check: the firmware stamp, scripts/stamp.py).
 #
 # The one place that identifies the dongles on USB: flash-dongle.sh leaves the
 # product strings and the ioreg and df lookups to the plumbing subcommands and
 # parses their US-separated fields, so those fields are a contract with it.
+# `check`'s lines and --json are a contract with the daily check in dotfiles
+# (canon CLAUDE.md, Invariants).
 #
 # Identity is the USB product string alone. Both dongles (and the ist dongle
 # of zmk-hid-host) carry ZMK's default VID/PID 0x1D50/0x615E, and a
@@ -28,6 +31,7 @@ import datetime
 import fcntl
 import glob
 import hashlib
+import json
 import math
 import os
 import plistlib
@@ -43,6 +47,8 @@ import time
 import zlib
 from collections import namedtuple
 
+import stamp  # scripts/stamp.py, beside this file
+
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 # Build target (build.yaml shield) -> USB product string. Contracts:
@@ -55,6 +61,13 @@ DEVICES = {
     "prospector": "Prospector Dongle",
     "imprint_dongle": "Imprint Dongle",
 }
+
+# The product strings of canon's targets before the stamp: the dongles', the
+# halves' "Imprint" (ZMK_KEYBOARD_NAME of Cyboard's imprint shield) and the
+# right half's empty one (its .config has CONFIG_USB_DEVICE_PRODUCT="",
+# 2026-10-13). check reports an unstamped device only with one of these: the
+# ist dongles of zmk-hid-host are ZMK too, and not canon's to report.
+UNSTAMPED_PRODUCTS = set(DEVICES.values()) | {"Imprint", ""}
 
 VOLUME = "/Volumes/XIAO-SENSE"
 FLASHERS = r"flash-(watch|reset|impl)\.sh"  # flash-dongle.sh's guard pattern
@@ -117,7 +130,8 @@ HEXDUMP_ROW = re.compile(r"^\s+(?:[0-9a-f]{2} +){1,16}.*\|")
 # and newline.
 ESCAPES = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-Z\\-_])|[\x00-\x08\x0b-\x1f\x7f]")
 
-UsbDevice = namedtuple("UsbDevice", "product serial session location ports dialins")
+UsbDevice = namedtuple("UsbDevice", "product serial session location ports dialins manufacturer")
+STAMP_IN_IMAGE = re.compile(rb"ZMK Project \(canon [ -~]*?\)")  # the manufacturer string, ASCII in the UF2 payload
 
 
 class Failure(Exception):
@@ -159,6 +173,7 @@ def usb_device(node, ports=(), dialins=()):
         location="0x%08x" % node.get("locationID", 0),
         ports=tuple(sorted(ports)),
         dialins=tuple(sorted(dialins)),
+        manufacturer=str(node.get("kUSBVendorString", "")),  # never "USB Vendor Name": macOS may turn its "-" into "_"
     )
 
 
@@ -190,6 +205,16 @@ def find(products):
         usb_device(node, callouts.get(session, ()), dialins.get(session, ()))
         for session, node in hits.items()
     ]
+
+
+def zmk_devices():
+    """Every USB device whose manufacturer string is ZMK's default or a stamp."""
+    found = []
+    for root in ioreg("-p", "IOUSB", "-l"):
+        for node, usb in walk(root):
+            if node is usb and str(node.get("kUSBVendorString", "")).startswith(stamp.UNSTAMPED):
+                found.append(usb_device(node))
+    return found
 
 
 def mounted_disk(mountpoint):
@@ -823,14 +848,137 @@ def cmd_image(args):
     if len(held) > 1:
         raise Failure("the image holds more than one dongle's USB product string: %s"
                       % ", ".join('"%s"' % DEVICES[name] for name in held))
-    print(US.join([held[0], DEVICES[held[0]], hashlib.sha256(data).hexdigest()]))
+    stamped = STAMP_IN_IMAGE.search(payload)
+    print(US.join([held[0], DEVICES[held[0]], hashlib.sha256(data).hexdigest(),
+                   stamped.group(0).decode("ascii") if stamped else ""]))
     return 0
 
 
 def cmd_find(args):
     for dev in find({DEVICES[args.device]}):
-        print(US.join([dev.serial, str(dev.session), dev.location, " ".join(dev.ports)]))
+        print(US.join([dev.serial, str(dev.session), dev.location, " ".join(dev.ports), dev.manufacturer]))
     return 0
+
+
+def cmd_check(args):
+    repo = os.path.realpath(args.repo) if args.repo else REPO
+    trees = stamp.BeaconTrees(args.beacon_git or stamp.workspace_beacon_git())
+    digests = {}
+
+    def digest_at(commit, shield, board):
+        if (commit, shield) not in digests:
+            src = stamp.CommitSource(repo, commit)
+            try:
+                digests[(commit, shield)] = stamp.digest(src, board, shield, trees)
+            finally:
+                src.close()
+        return digests[(commit, shield)]
+
+    try:
+        head, head_short, head_subject = stamp.git(
+            repo, "log", "-1", "--format=%H%x1f%h%x1f%s", args.ref + "^{commit}").decode().strip().split(US)
+        src = stamp.CommitSource(repo, head)
+        targets = stamp.pairs(src)
+        src.close()
+    except stamp.Failure as e:
+        raise Failure("%s (is %s fetched?)" % (e, args.ref), 3)
+    boards = dict((shield, board) for board, shield in targets)
+
+    def main(shield):
+        """The digest at ref, computed when a device needs it: the zmk-beacon
+        clone it takes may be missing while no device is plugged in."""
+        try:
+            return digest_at(head, shield, boards[shield])
+        except stamp.Failure as e:
+            raise Failure(str(e), 3)
+
+    history = []
+
+    def chain():
+        """head, then the older commits on ref's first-parent line that
+        touched any input, newest first."""
+        if not history:
+            history.append((head, head_short, head_subject))
+            out = stamp.git(repo, "log", "--first-parent", "--format=%H%x1f%h%x1f%s", "-n", str(args.depth),
+                            head, "--", "config", "patches", *stamp.COMMON).decode()
+            history.extend(tuple(line.split(US)) for line in out.split("\n") if line and not line.startswith(head))
+        return history
+
+    rows = []
+    for dev in zmk_devices():
+        row = {"target": None, "status": None, "stamp": None, "digest": None, "variant": None, "main": None,
+               "inputs": None, "since": [], "serial": dev.serial or None, "product": dev.product or None,
+               "location": dev.location, "note": None}
+        parsed = stamp.parse_stamp(dev.manufacturer)
+        if parsed is None:
+            if dev.product not in UNSTAMPED_PRODUCTS:
+                continue
+            row["status"] = "unstamped"
+            row["target"] = next((name for name, product in DEVICES.items() if product == dev.product), None)
+            if dev.manufacturer != stamp.UNSTAMPED:
+                row["note"] = "manufacturer \"%s\" is no stamp" % dev.manufacturer
+            elif dev.product:
+                row["note"] = "built before the stamp"
+            else:
+                row["note"] = "no product string: the right half built before the stamp, or another ZMK board"
+            rows.append(row)
+            continue
+        shield, hexdigest, variant = parsed
+        row.update(target=shield, stamp=hexdigest + variant, digest=hexdigest, variant=variant or None)
+        if shield not in boards:
+            row.update(status="off-main", note="not a build target of %s" % args.ref)
+            rows.append(row)
+            continue
+        row["main"] = main(shield)
+        if hexdigest == row["main"]:
+            row["inputs"] = "current"
+        else:
+            try:
+                newer, newer_digest, since, found = chain()[0], row["main"], [], False
+                for commit in chain()[1:]:
+                    older_digest = digest_at(commit[0], shield, boards[shield])
+                    if older_digest != newer_digest:
+                        since.append(newer)
+                    if older_digest == hexdigest:
+                        found = True
+                        break
+                    newer, newer_digest = commit, older_digest
+            except stamp.Failure as e:
+                raise Failure(str(e), 3)
+            if found:
+                row.update(inputs="behind", since=[{"sha": sha, "short": short, "subject": subject} for sha, short, subject in since])
+            else:
+                row.update(inputs="off-main", note="no commit of the last %d on %s that touched the inputs built it" % (args.depth, args.ref))
+        row["status"] = "debug" if variant else row["inputs"]
+        rows.append(row)
+    seen = set(row["target"] for row in rows)
+    for board, shield in targets:
+        if shield not in seen:
+            rows.append({"target": shield, "status": "absent", "stamp": None, "digest": None, "variant": None,
+                         "main": digests.get((head, shield)), "inputs": None, "since": [], "serial": None,
+                         "product": None, "location": None, "note": None})
+    order = dict((shield, i) for i, (board, shield) in enumerate(targets))
+    rows.sort(key=lambda row: (order.get(row["target"], len(order)), row["serial"] or ""))
+    if args.json:
+        print(json.dumps({"ref": args.ref, "commit": head, "targets": rows}, indent=2, sort_keys=True))
+    else:
+        for row in rows:
+            fields = [row["target"] or "-", row["status"]]
+            if row["stamp"]:
+                fields.append("stamp=%s" % row["stamp"])
+            if row["main"]:
+                fields.append("main=%s" % row["main"])
+            if row["variant"]:
+                fields.append("inputs=%s" % row["inputs"])
+            if row["serial"] or row["product"]:
+                fields.append("serial=%s" % (row["serial"] or "-"))
+                fields.append('product="%s"' % (row["product"] or ""))
+            if row["since"]:
+                fields.append("since=%s" % ",".join(c["short"] for c in row["since"]))
+            if row["note"]:
+                fields.append(row["note"])
+            print("  ".join(fields))
+    return 0 if all(row["status"] in ("current", "absent") for row in rows) else 1
 
 
 def cmd_at(args):
@@ -878,9 +1026,11 @@ def parser():
     p = argparse.ArgumentParser(
         prog="dongle.py",
         description="Find the Imprint Dongle and the Prospector Dongle on USB by their USB product "
-                    "strings, read their serial logs, and take a PNG of the Prospector Dongle's screen. "
+                    "strings, read their serial logs, take a PNG of the Prospector Dongle's screen, and check "
+                    "the firmware stamp of every ZMK device on USB against origin/main. "
                     "Devices: %s." % names,
-        epilog="Exit status: 0 ok, 1 device or runtime failure, 2 usage.",
+        epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
+               "3 check could not compute the digests.",
     )
     sub = p.add_subparsers(dest="command", metavar="COMMAND")
     sub.required = True
@@ -926,12 +1076,33 @@ def parser():
     s.add_argument("--seconds", type=seconds, default=10.0, metavar="N", help="give up after N seconds (default 10)")
     s.set_defaults(func=cmd_shot)
 
-    s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 of the dongle whose product string "
-                                     "the UF2 payload holds (exit 1 for none or both, 2 for no UF2 or an incomplete one)")
+    s = sub.add_parser(
+        "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",
+        description="Read the USB manufacturer string of every ZMK device on USB (the firmware stamp, scripts/stamp.py) "
+                    "and compare its digest with the one computed from --ref's commit of this repository for that "
+                    "build target. One line per device and per absent target: TARGET STATUS and then stamp=, main=, "
+                    "inputs= (variant builds), serial=, product=, since= (the commits that changed the target's inputs "
+                    "after the stamped ones) and a note. STATUS: current, behind, off-main (no commit of the last --depth "
+                    "built it), debug (a -logging, -kconfig, -beacon, _RESET or tagged build; -sprite counts as plain), "
+                    "unstamped (manufacturer \"ZMK Project\"), absent. Opens no device and no port, and fetches nothing "
+                    "of this repository; a zmk-beacon pin missing from the workspace clone is fetched.",
+        epilog="Exit status: 0 every device current or every target absent, 1 something else to report, 2 usage, "
+               "3 the digests could not be computed (git, the workspace clone, the network).",
+    )
+    s.add_argument("--ref", default="origin/main", help="the commit the devices are compared with (default origin/main)")
+    s.add_argument("--repo", metavar="DIR", help="the canon checkout to read (default: this script's)")
+    s.add_argument("--depth", type=int, default=100, metavar="N", help="commits of --ref's history to try for a behind device (default 100)")
+    s.add_argument("--beacon-git", metavar="DIR", help="the zmk-beacon clone for the pin's tree id (default: $ZMK_WS/cfgrepo/modules/zmk-beacon)")
+    s.add_argument("--json", action="store_true", help="print {ref, commit, targets: [the same fields]} instead of lines")
+    s.set_defaults(func=cmd_check)
+
+    s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 US STAMP of the dongle whose product string "
+                                     "the UF2 payload holds (STAMP empty for an image built before the stamp; "
+                                     "exit 1 for none or both, 2 for no UF2 or an incomplete one)")
     s.add_argument("uf2")
     s.set_defaults(func=cmd_image)
 
-    s = sub.add_parser("find", help="plumbing: SERIAL US SESSION US LOCATION US PORTS, one line per USB "
+    s = sub.add_parser("find", help="plumbing: SERIAL US SESSION US LOCATION US PORTS US MANUFACTURER, one line per USB "
                                     "device with the dongle's product string (none: no output)")
     s.add_argument("device", choices=DEVICES)
     s.set_defaults(func=cmd_find)
