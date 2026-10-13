@@ -116,7 +116,10 @@ Flashing `prospector.uf2` onto a
 (XIAO nRF52840 + 1.69" LCD) turns it into a display of both halves' battery
 levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
 showing their mean (or the one half that has a reading), yellow under 50 % and
-red under 20 %, under a sprite that a Mac can swap over BLE. It listens
+red under 20 %, under a sprite that the Mac swaps over BLE: zmk-beacon's
+sprite sender sends the next GIF of the collection on the external drive once
+a day (zmk-beacon's README, "The sprite sender"; a LaunchAgent in dotfiles;
+on hardware 2026-10-13). It listens
 passively for the keyboard, advertises connectably as `Prospector Dongle` for
 the sprite (zmk-beacon's README, "Swapping the sprite over BLE"; on hardware
 2026-10-12) and never pairs. It appears on the Mac only as

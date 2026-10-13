@@ -87,7 +87,7 @@ unwired) running shield `prospector` of the own module
 [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). It shows both
 halves' battery from the [[Imprint Dongle]]'s [[status advertisement]], which
 it scans for passively, under a [[sprite]]; it advertises connectably only so
-that a Mac can write a [[sprite pack]] into its [[sprite room]], and never
+that the [[sprite sender]] can write a [[sprite pack]] into its [[sprite room]], and never
 pairs, so it does not replace the Imprint Dongle.
 - USB: one CDC ACM port with product string `Prospector Dongle`, no HID. Setting the port to 1200 baud reboots it into the UF2 bootloader, which `scripts/flash-dongle.sh` uses (both seen on hardware 2026-09-26); 2400 baud sends a [[screen dump]].
 - The screen turns off after five minutes without a key press on the [[Cyboard Imprint]] and lights at the next one (zmk-beacon's `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; the cycle seen on hardware 2026-10-04 with a 20 s setting): a dark screen is not a dead device.
@@ -228,7 +228,7 @@ commits, PRs and issues like the GIF.
 ### sprite room
 The 384 KiB flash partition of the [[Prospector Dongle]] (zmk-beacon's shield
 overlay, `sprite_partition`, 0x80000-0xdffff) that holds one [[sprite pack]]
-written over BLE by a Mac; the device plays it at once and again after a
+written over BLE by the [[sprite sender]]; the device plays it at once and again after a
 reboot or a reflash, and erases it for the next (zmk-beacon's
 `CONFIG_BEACON_SPRITE_RECEIVE`, protocol in its `src/ble_receiver.c`). A
 transfer that fails leaves the embedded sprite, or none, until the next one.
@@ -240,7 +240,7 @@ GIF's file name with the extension dropped, whitespace trimmed and the first
 letter upper-cased ([`assets/sprite-name.sh`](../assets/sprite-name.sh)),
 which `build-zmk.sh --sprite` passes to zmk-beacon as
 [`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig)
-for an embedded sprite, and a sender writes into a pack for the
+for an embedded sprite, and the [[sprite sender]] writes into a pack for the
 [[sprite room]]. It names the GIF's subject, so it never appears in commits,
 PRs or docs; the name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
@@ -329,6 +329,17 @@ Swift 6 daemon on CGEventTap, driven by `~/.config/chord/config.toml`). It
 reads the [[vkey]] and [[split battery report]]s from the [[Imprint Dongle]],
 which it finds by USB product string; canon holds only the ZMK side.
 - **Don't call it:** receiver, host side, ホスト側スクリプト
+
+### sprite sender
+The Mac program that writes a [[sprite pack]] into the [[Prospector Dongle]]'s
+[[sprite room]] over BLE: zmk-beacon's
+[`tools/sprite-sender`](https://github.com/akira-toriyama/zmk-beacon/tree/main/tools/sprite-sender)
+(a Swift app, `SpriteSender.app`), which goes through the GIF collection on the
+external drive in file-name order, one GIF a run, packs it with its back view
+and sends it; a LaunchAgent in the user's dotfiles runs it once a day, and a
+failed day is skipped. Its config (`sender.json`) and state live next to the
+collection ([`assets/README.md`](../assets/README.md)), off every repository.
+- **Don't call it:** BLESend, uploader, daily swap script, 送信スクリプト, 送信アプリ
 
 ### keymap-drawer
 The external tool
