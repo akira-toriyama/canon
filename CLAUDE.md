@@ -208,7 +208,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   The player keeps the canvas and picture 0 in the LVGL pool, which zmk-beacon's shield sizes at
   64 KiB with a sprite (48 KiB without; `config/prospector.conf` never sets it), and CMake stops a
   GIF that does not fit, naming the pool size that would. The CI and release
-  `prospector.uf2` carries neither sprite nor name, so flashing it removes both. The GIFs and
+  `prospector.uf2` carries neither sprite nor name, but flashing it removes neither: the sprite
+  room survives a flash and its pack plays at boot (zmk-beacon's README; seen 2026-10-13 after
+  flash-dongle.sh put the pinned image on). The GIFs and
   `SOURCES.md` live off the repository on the user's external drive,
   `/Volumes/HDD/assets/canon/prospector/sprites/` (`shot` PNGs: `.../prospector/shots/`), the same
   absolute path from any checkout or worktree ([assets/README.md](assets/README.md); t-kbjr). The
