@@ -321,8 +321,8 @@ The USB manufacturer string of every [[image]], `ZMK Project (canon <shield>
 `scripts/stamp.py`), set by `scripts/zmk-west.sh build` and read back from a
 device by `python3 scripts/dongle.py check`, which tells whether the firmware on
 USB is what `origin/main` builds.
-- `<variant>` is the image name's suffix without `-sprite` (`-logging`, `_RESET`, `-<tag>`); a plain or sprite build has none.
-- The stamp changes with the inputs, not with the commit: a comment-only change keeps it.
+- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `_RESET`, `-<tag>`); a plain or sprite build has none.
+- The stamp changes with the inputs, not with the commit: a comment-only change to `config/` keeps it, a pin bump or a patch edit moves every target's.
 - **Don't call it:** version string, build id, firmware version, manufacturer tag, 版の印
 
 ### dtsi

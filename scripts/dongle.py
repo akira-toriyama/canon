@@ -880,10 +880,18 @@ def cmd_check(args):
         src = stamp.CommitSource(repo, head)
         targets = stamp.pairs(src)
         src.close()
-        boards = dict((shield, board) for board, shield in targets)
-        main = dict((shield, digest_at(head, shield, board)) for board, shield in targets)
     except stamp.Failure as e:
-        raise Failure("%s (fetch %s first?)" % (e, args.ref), 3)
+        raise Failure("%s (is %s fetched?)" % (e, args.ref), 3)
+    boards = dict((shield, board) for board, shield in targets)
+
+    def main(shield):
+        """The digest at ref, computed when a device needs it: the zmk-beacon
+        clone it takes may be missing while no device is plugged in."""
+        try:
+            return digest_at(head, shield, boards[shield])
+        except stamp.Failure as e:
+            raise Failure(str(e), 3)
+
     history = []
 
     def chain():
@@ -906,6 +914,7 @@ def cmd_check(args):
             if dev.product not in UNSTAMPED_PRODUCTS:
                 continue
             row["status"] = "unstamped"
+            row["target"] = next((name for name, product in DEVICES.items() if product == dev.product), None)
             if dev.manufacturer != stamp.UNSTAMPED:
                 row["note"] = "manufacturer \"%s\" is no stamp" % dev.manufacturer
             elif dev.product:
@@ -920,12 +929,12 @@ def cmd_check(args):
             row.update(status="off-main", note="not a build target of %s" % args.ref)
             rows.append(row)
             continue
-        row["main"] = main[shield]
-        if hexdigest == main[shield]:
+        row["main"] = main(shield)
+        if hexdigest == row["main"]:
             row["inputs"] = "current"
         else:
             try:
-                newer, newer_digest, since, found = chain()[0], main[shield], [], False
+                newer, newer_digest, since, found = chain()[0], row["main"], [], False
                 for commit in chain()[1:]:
                     older_digest = digest_at(commit[0], shield, boards[shield])
                     if older_digest != newer_digest:
@@ -946,8 +955,8 @@ def cmd_check(args):
     for board, shield in targets:
         if shield not in seen:
             rows.append({"target": shield, "status": "absent", "stamp": None, "digest": None, "variant": None,
-                         "main": main[shield], "inputs": None, "since": [], "serial": None, "product": None,
-                         "location": None, "note": None})
+                         "main": digests.get((head, shield)), "inputs": None, "since": [], "serial": None,
+                         "product": None, "location": None, "note": None})
     order = dict((shield, i) for i, (board, shield) in enumerate(targets))
     rows.sort(key=lambda row: (order.get(row["target"], len(order)), row["serial"] or ""))
     if args.json:

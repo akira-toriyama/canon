@@ -58,9 +58,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - Every image carries the firmware stamp (Invariants): `zmk-west.sh build` sets
   `CONFIG_USB_DEVICE_MANUFACTURER` from `scripts/stamp.py stamp` and runs `stamp.py verify` after
   the build, which fails the run when `config/` files the build read and the stamp's table differ
-  (`=== STAMP <image>: ZMK Project (canon <shield> <12 hex><variant>) (N config files, M patches)`
-  in the log). `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]` prints the
-  digest and table by hand.
+  or `.config` lacks the stamp (Zephyr only warns about a value that does not take); its line
+  `=== STAMP <image>: ZMK Project (canon <shield> <12 hex><variant>) (N config files, M patches)`
+  ends `build.log`. `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]`
+  prints the digest and table by hand.
 - Never edit the cached `modules/zmk-beacon`: builds without `--beacon` check out the pin and stop
   on local changes. `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
@@ -133,17 +134,23 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `productName` and `DEVICES` in `scripts/dongle.py` at once.
 - **The USB manufacturer string is the firmware stamp, `ZMK Project (canon <shield> <12 hex><variant>)`**
   (`scripts/stamp.py`, the glossary): a digest of what this repository feeds that target's build,
-  by content (`build.yaml`, `config/west.yml`, `scripts/zmk-west.sh`, `patches/*/*.patch`, the
-  `config/` files ZMK's candidate rule reads for the shield and board plus their includes, and the
-  tree id of the zmk-beacon pin), comments left out, upstream left out; `<variant>` is the image
-  suffix without `-sprite`. Never set `CONFIG_USB_DEVICE_MANUFACTURER` in `config/`, and keep the
-  string under 126 characters (a USB string descriptor's bLength). `dongle.py check` reads it with
-  `kUSBVendorString` (never "USB Vendor Name") and compares it with `origin/main`; its lines and
-  `--json` are the contract with the daily check in dotfiles (t-ajkz). macOS's keyboard type is
-  keyed on VID, PID and country code, not the manufacturer, and chord matches the product string:
-  the stamp changes neither (Imprint Dongle, 2026-10-13). The halves carry it too: plugged in to
-  charge, they show it the same way (unverified on hardware; the right half enumerates without a
-  product string).
+  by content (`build.yaml`, `config/west.yml`, `scripts/zmk-west.sh`, every `patches/*/*.patch`,
+  the `config/` files ZMK's candidate rule reads for the shield and board plus their includes,
+  and the tree id of the zmk-beacon pin in place of its SHA), upstream left out; `<variant>` is
+  the image suffix without its leading `-sprite`. Comments and blank runs drop out of `config/`,
+  `build.yaml`, `west.yml` and `zmk-west.sh` (except Kconfig's `# CONFIG_X is not set`), so a
+  comment-only change to `config/` keeps every stamp (#248); a patch is hashed as it applies and
+  zmk-west.sh's messages count, so #242 moved them, and a pin bump moves all four targets, the
+  halves included. Never set `CONFIG_USB_DEVICE_MANUFACTURER` in `config/`, keep the string under
+  126 characters (a USB string descriptor's bLength), and never `--tag sprite`. `dongle.py check`
+  reads it with `kUSBVendorString` (never "USB Vendor Name") and compares it with `origin/main`
+  through the work tree's `stamp.py` (bumping its `ALGORITHM` turns every flashed device
+  `off-main` until it is flashed again); its lines and `--json` are the contract with the daily
+  check in dotfiles (t-ajkz). macOS's keyboard type is keyed on VID, PID and country code, not the
+  manufacturer, and chord matches the product string: the stamp changes neither (Imprint Dongle,
+  2026-10-13). The halves carry it too: plugged in to charge, they show it the same way
+  (unverified on hardware; the right half enumerates without a product string, so unstamped it is
+  reported without a target).
 - **Cyboard's `ZMK_RGB_UNDERGLOW` default `y` reaches every target**: zmk-keyboards'
   `boards/shields/imprint/Kconfig.defconfig` sets it outside any `SHIELD_` guard, so a target
   without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25). Every

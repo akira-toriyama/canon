@@ -156,13 +156,13 @@ cmd_build() {
   rm -rf "$dir"
   mkdir -p "$dir"
   echo "=== BUILD $board / $shield$suffix"
-  # The stamp goes in as a CMake cache variable, which Zephyr merges last and
-  # checks against the generated .config (a value that does not take fails
-  # the configure step); the quotes are the Kconfig string's.
+  # The stamp goes in as a CMake cache variable, which Zephyr merges last;
+  # the quotes are the Kconfig string's. Zephyr only warns when such a value
+  # does not take: verify reads .config for it, and its line joins build.log.
   west build -p -s zmk/app -d "$dir" -b "$board" -- \
     -DSHIELD="$shield" -DZMK_CONFIG="$TOP/config" \
     -DCONFIG_USB_DEVICE_MANUFACTURER="\"$stamp\"" "$@" 2>&1 | tee "$dir/build.log"
-  python3 scripts/stamp.py verify "$dir" "$board" "$shield" "$suffix"
+  python3 scripts/stamp.py verify "$dir" "$board" "$shield" "$suffix" | tee -a "$dir/build.log"
   echo "=== DONE $shield$suffix"
 }
 

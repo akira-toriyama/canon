@@ -182,6 +182,9 @@ for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
   case "${kv%%=*}" in *[!A-Za-z0-9_]*) die 2 "--kconfig: not a Kconfig symbol: ${kv%%=*}" ;; esac
 done
 case "$TAG" in *[!A-Za-z0-9._-]*) die 2 "--tag takes letters, digits, '.', '_' and '-'" ;; esac
+# The image name would be the sprite build's, and the stamp drops a leading
+# -sprite as the sprite build's (scripts/stamp.py).
+[ "$TAG" != sprite ] || die 2 "--tag sprite is the sprite build's own suffix"
 
 # Targets as board<TAB>shield. The groups come from build.yaml's shield names,
 # never from a list here.
