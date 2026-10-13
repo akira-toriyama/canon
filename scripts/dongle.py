@@ -99,7 +99,8 @@ SIX_BITS = bytes((v << 2) | (v >> 4) for v in range(64))
 # (split/bluetooth/central.c), whose data rows are the bitmap of pressed key
 # positions. A bare "invoking" would also drop central.c's "... before
 # invoking peripheral behavior" error. Kept on purpose: zmk-beacon's keystroke
-# counts and the split discovery line "Found position state characteristic".
+# counts, its broadcaster's minute line ("N modifiers confirmed": a count, no
+# key) and the split discovery line "Found position state characteristic".
 KEY_EVENT = re.compile(
     r"keycode|usage|position|modifier|implicit.?mods|explicit.?mods"
     r"|hold.?tap|retro.?tap|tap.?dance|sticky.?key|caps.?word|combo|macro"
@@ -107,7 +108,7 @@ KEY_EVENT = re.compile(
     r"|behavior.?queue|invoking \S+: 0x",
     re.I,
 )
-KEY_EVENT_KEPT = re.compile(r"characteristic", re.I)
+KEY_EVENT_KEPT = re.compile(r"characteristic|modifiers confirmed", re.I)
 # A LOG_HEXDUMP_* data row (zephyr log_output.c hexdump_line_print): an
 # indented "xx xx ... |ascii" with no words for KEY_EVENT to match.
 HEXDUMP_ROW = re.compile(r"^\s+(?:[0-9a-f]{2} +){1,16}.*\|")

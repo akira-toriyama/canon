@@ -11,7 +11,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   the **Imprint Dongle** (ZMK's `xiao_ble/nrf52840/zmk`, Cyboard's shield `imprint_dongle`).
 - The companion **Prospector Dongle** (`xiao_ble/nrf52840/zmk`, shield `prospector` of the own
   module [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon), documented there) shows both
-  halves' battery from the Imprint Dongle's status advertisement, under a sprite. It scans
+  halves' battery from the Imprint Dongle's status advertisement, under a sprite (its back view
+  while the advertisement reports a modifier held). It scans
   passively for that, and since zmk-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
   shield's default) it also advertises connectably as `Prospector Dongle` so that the sprite sender
   (zmk-beacon's `tools/sprite-sender`, run once a day by a LaunchAgent in dotfiles, config and state
