@@ -7,7 +7,10 @@ path:
 
 - `/Volumes/HDD/assets/canon/prospector/sprites/`: sprite GIFs for the
   Prospector Dongle, and `SOURCES.md` with each file's source URL, so a lost
-  file can be fetched again.
+  file can be fetched again. Also the sprite sender's `sender.json` (the
+  collection's front and back directories and the state file, as paths
+  relative to it; zmk-beacon's README, "The sprite sender") and its state
+  file, which names the GIF tried last.
 - `/Volumes/HDD/assets/canon/prospector/shots/`: `scripts/dongle.py shot` PNGs
   of a sprite build.
 
