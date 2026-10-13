@@ -8,9 +8,11 @@ path:
 - `/Volumes/HDD/assets/canon/prospector/sprites/`: sprite GIFs for the
   Prospector Dongle, and `SOURCES.md` with each file's source URL, so a lost
   file can be fetched again. Also the sprite sender's `sender.json` (the
-  collection's front and back directories and the state file, as paths
-  relative to it; zmk-beacon's README, "The sprite sender") and its state
-  file, which names the GIF tried last.
+  collection's front and back directories, the state file and the order
+  file, as paths relative to it; zmk-beacon's README, "The sprite sender"),
+  its state file, which names the GIF tried last, and its order file, which
+  names the GIFs in National Pokédex order, one a line (built from
+  `SOURCES.md`'s number-and-name table; t-9aga).
 - `/Volumes/HDD/assets/canon/prospector/shots/`: `scripts/dongle.py shot` PNGs
   of a sprite build.
 
