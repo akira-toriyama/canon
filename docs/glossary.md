@@ -194,7 +194,8 @@ half's battery level to the host: usage page `0xFF31`, Report ID `0x21`,
 The BLE advertisement the [[Imprint Dongle]] broadcasts for the
 [[Prospector Dongle]]: 26 bytes of manufacturer data (each half's battery
 level, the highest active [[layer]]'s index and the first 4 bytes of its
-`display-name`, and a count of key presses) on a second, non-connectable
+`display-name`, a count of key presses, and the modifiers held, confirmed as
+holds so that a [[hold-tap]] thumb's tap never counts) on a second, non-connectable
 advertising set next to ZMK's own, every 200 ms; no pairing, no bond, no BLE
 slot on either side. Both ends and the byte layout are zmk-beacon's
 ([`src/status_payload.h`](https://github.com/akira-toriyama/zmk-beacon/blob/main/src/status_payload.h)).
@@ -207,6 +208,9 @@ The animation the [[Prospector Dongle]] plays above the [[HP bar]]: a
 BLE or one the build made from a GIF and embedded (zmk-beacon's
 `CONFIG_BEACON_SPRITE_GIF`; size, tempo, key-press stepping and limits:
 [zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite)).
+A pack from the [[sprite sender]] holds a front and a back view: the back
+plays while a modifier is held on the keyboard (the [[status advertisement]]
+carries the modifiers), the front otherwise.
 The GIF is a personal file: embedded only by a local build,
 `./scripts/build-zmk.sh prospector --sprite <gif>` into
 `firmware/prospector-sprite.uf2`, never committed and never in CI or a release
