@@ -55,6 +55,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   <device>` take) is always a pinned build. West topdir `~/.cache/zmk-canon/cfgrepo` (each run syncs
   `config/`, `patches/`, `scripts/`, `build.yaml` into it); per image, `build/<image name>/` keeps
   `build.log` (FLASH/RAM at its end) and `zephyr/{.config,zephyr.dts,zmk.map,zmk.elf}`.
+- Every image carries the firmware stamp (Invariants): `zmk-west.sh build` sets
+  `CONFIG_USB_DEVICE_MANUFACTURER` from `scripts/stamp.py stamp` and runs `stamp.py verify` after
+  the build, which fails the run when `config/` files the build read and the stamp's table differ
+  (`=== STAMP <image>: ZMK Project (canon <shield> <12 hex><variant>) (N config files, M patches)`
+  in the log). `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]` prints the
+  digest and table by hand.
 - Never edit the cached `modules/zmk-beacon`: builds without `--beacon` check out the pin and stop
   on local changes. `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
@@ -74,6 +80,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Flash either dongle, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display or both halves typing (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222) |
 | Flash the halves and the Imprint Dongle | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
 | Find the dongles | `python3 scripts/dongle.py list` | each dongle with its `/dev/cu.*` port, `location=… serial=…`, `port free`; `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
+| Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
 
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
@@ -124,6 +131,19 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   shield sets only the product string). It comes from the upstream shield's `ZMK_KEYBOARD_NAME`:
   never set `CONFIG_ZMK_KEYBOARD_NAME` for it in `config/`; an upstream rename changes chord's
   `productName` and `DEVICES` in `scripts/dongle.py` at once.
+- **The USB manufacturer string is the firmware stamp, `ZMK Project (canon <shield> <12 hex><variant>)`**
+  (`scripts/stamp.py`, the glossary): a digest of what this repository feeds that target's build,
+  by content (`build.yaml`, `config/west.yml`, `scripts/zmk-west.sh`, `patches/*/*.patch`, the
+  `config/` files ZMK's candidate rule reads for the shield and board plus their includes, and the
+  tree id of the zmk-beacon pin), comments left out, upstream left out; `<variant>` is the image
+  suffix without `-sprite`. Never set `CONFIG_USB_DEVICE_MANUFACTURER` in `config/`, and keep the
+  string under 126 characters (a USB string descriptor's bLength). `dongle.py check` reads it with
+  `kUSBVendorString` (never "USB Vendor Name") and compares it with `origin/main`; its lines and
+  `--json` are the contract with the daily check in dotfiles (t-ajkz). macOS's keyboard type is
+  keyed on VID, PID and country code, not the manufacturer, and chord matches the product string:
+  the stamp changes neither (Imprint Dongle, 2026-10-13). The halves carry it too: plugged in to
+  charge, they show it the same way (unverified on hardware; the right half enumerates without a
+  product string).
 - **Cyboard's `ZMK_RGB_UNDERGLOW` default `y` reaches every target**: zmk-keyboards'
   `boards/shields/imprint/Kconfig.defconfig` sets it outside any `SHIELD_` guard, so a target
   without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25). Every

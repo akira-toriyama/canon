@@ -12,10 +12,14 @@
 #   zmk-west.sh patch                         apply patches/<tree>/*.patch (idempotent)
 #   zmk-west.sh build <board> <shield> <suffix> [cmake args]
 #                                             west build into build/<shield><suffix>,
-#                                             its output also in build.log there
+#                                             its output also in build.log there;
+#                                             the image carries the firmware
+#                                             stamp (scripts/stamp.py), verified
+#                                             against what the build read
 #   zmk-west.sh -h | --help                   this header
 #
-# pairs needs only awk (host or runner); the rest need the Docker image's west.
+# pairs needs only awk (host or runner); the rest need the Docker image's west
+# and python3.
 set -euo pipefail
 
 TOP="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -135,13 +139,15 @@ cmd_patch() {
 
 cmd_build() {
   [ $# -ge 3 ] || usage
-  local board=$1 shield=$2 suffix=$3 dir
+  local board=$1 shield=$2 suffix=$3 dir stamp
   shift 3
   # An empty shield would make $dir build/ itself, and the rm below would
   # take every cached build with it.
   if [ -z "$board" ] || [ -z "$shield" ]; then usage; fi
   dir="build/$shield$suffix"
   trust_workspace
+  # Assigned apart from the declaration: `local x=$(...)` hides the status.
+  stamp="$(python3 scripts/stamp.py stamp "$board" "$shield" "$suffix")"
   # Registers Zephyr in the CMake user package registry for zmk/app's
   # find_package(Zephyr); the registry lives in HOME, new in each container.
   west zephyr-export
@@ -150,8 +156,13 @@ cmd_build() {
   rm -rf "$dir"
   mkdir -p "$dir"
   echo "=== BUILD $board / $shield$suffix"
+  # The stamp goes in as a CMake cache variable, which Zephyr merges last and
+  # checks against the generated .config (a value that does not take fails
+  # the configure step); the quotes are the Kconfig string's.
   west build -p -s zmk/app -d "$dir" -b "$board" -- \
-    -DSHIELD="$shield" -DZMK_CONFIG="$TOP/config" "$@" 2>&1 | tee "$dir/build.log"
+    -DSHIELD="$shield" -DZMK_CONFIG="$TOP/config" \
+    -DCONFIG_USB_DEVICE_MANUFACTURER="\"$stamp\"" "$@" 2>&1 | tee "$dir/build.log"
+  python3 scripts/stamp.py verify "$dir" "$board" "$shield" "$suffix"
   echo "=== DONE $shield$suffix"
 }
 

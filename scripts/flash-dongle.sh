@@ -12,7 +12,10 @@
 #      device at the dongle's USB location
 #   4. cp -X the .uf2 → the volume disappears once the bootloader has taken the
 #      image and rebooted
-#   5. wait for the product string to enumerate again with its /dev/cu.* port
+#   5. wait for the product string to enumerate again with its /dev/cu.* port,
+#      and compare its firmware stamp (the USB manufacturer string,
+#      scripts/stamp.py) with the image's: the same stamp before and after
+#      the touch cannot tell the copy from the old image
 #
 #   ./scripts/flash-dongle.sh prospector        # firmware/prospector.uf2
 #   ./scripts/flash-dongle.sh imprint_dongle    # firmware/imprint_dongle.uf2
@@ -179,7 +182,7 @@ cp "$UF2" "$SNAPSHOT" || die "cannot read $UF2"
 
 image="$(dongle image "$SNAPSHOT" 2>"$ERR")" \
   || refuse "$(sed 's/^dongle\.py: //' "$ERR")"
-IFS=$'\x1f' read -r DEVICE PRODUCT SHA256 <<<"$image"
+IFS=$'\x1f' read -r DEVICE PRODUCT SHA256 IMAGE_STAMP <<<"$image"
 case "$UF2_BASE" in
   "$DEVICE".uf2|"$DEVICE"-*.uf2|"$DEVICE"_RESET.uf2|"$DEVICE"_RESET-*.uf2) ;;
   *) refuse "its payload is the $PRODUCT's, so its name must be $DEVICE.uf2, $DEVICE-*.uf2, ${DEVICE}_RESET.uf2 or ${DEVICE}_RESET-*.uf2 (probe and spike images carry the product string without the 1200 baud entry and would strand the next flash)" ;;
@@ -224,15 +227,16 @@ if [ "$count" -eq 0 ]; then
 fi
 [ "$count" -eq 1 ] || die "$count USB devices named \"$PRODUCT\"; leave exactly one plugged in:
 $(printf '%s\n' "$devices" | tr '\037' ' ')"
-IFS=$'\x1f' read -r SERIAL SESSION LOCATION PORTS <<<"$devices"
+IFS=$'\x1f' read -r SERIAL SESSION LOCATION PORTS MANUFACTURER <<<"$devices"
 PORT="${PORTS%% *}"
 [ -n "$PORT" ] || die "\"$PRODUCT\" (serial $SERIAL) has no /dev/cu.* port"
 say "FOUND $PRODUCT serial=$SERIAL location=$LOCATION port=$PORT"
 [ "$PORT" = "$PORTS" ] || say "      more than one port ($PORTS); the handler listens on all of them"
 say "IMAGE $UF2 sha256=${SHA256:0:12}"
+say "STAMP image: ${IMAGE_STAMP:-none (built before the stamp)}; on the dongle now: \"$MANUFACTURER\""
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  say "PLAN stty -f $PORT 1200, wait up to ${BOOT_TIMEOUT_S}s for $VOL on USB location $LOCATION, cp -X $UF2_BASE, wait for \"$PRODUCT\" to come back with its port"
+  say "PLAN stty -f $PORT 1200, wait up to ${BOOT_TIMEOUT_S}s for $VOL on USB location $LOCATION, cp -X $UF2_BASE, wait for \"$PRODUCT\" to come back with its port and read its stamp"
   say "DRY RUN $DEVICE serial=$SERIAL $UF2 sha256=${SHA256:0:12}: nothing touched"
   exit 0
 fi
@@ -305,7 +309,7 @@ BACK_PORTS=""
 while :; do
   back="$(dongle find "$DEVICE")" || die "ioreg query failed"
   if [ -n "$back" ]; then
-    IFS=$'\x1f' read -r BACK_SERIAL BACK_SESSION BACK_LOCATION BACK_PORTS <<<"$back"
+    IFS=$'\x1f' read -r BACK_SERIAL BACK_SESSION BACK_LOCATION BACK_PORTS BACK_MANUFACTURER <<<"$back"
     [ -z "$BACK_PORTS" ] || break
   fi
   if [ "$(now_ms)" -ge "$deadline" ]; then
@@ -320,5 +324,14 @@ say "BACK $PRODUCT serial=$BACK_SERIAL location=$BACK_LOCATION port=$BACK_PORTS 
 [ "$BACK_SERIAL" = "$SERIAL" ] || say "      WARN serial differs from before the touch ($SERIAL)"
 [ "$BACK_LOCATION" = "$LOCATION" ] || say "      WARN location differs from before the touch ($LOCATION)"
 [ "$BACK_SESSION" != "$SESSION" ] || say "      WARN same registry session as before the touch"
+if [ -z "$IMAGE_STAMP" ]; then
+  say "STAMP the image has none; the dongle reports \"$BACK_MANUFACTURER\""
+elif [ "$BACK_MANUFACTURER" != "$IMAGE_STAMP" ]; then
+  say "      WARN the dongle reports \"$BACK_MANUFACTURER\", not the image's stamp \"$IMAGE_STAMP\": another image booted"
+elif [ "$MANUFACTURER" = "$IMAGE_STAMP" ]; then
+  say "STAMP $BACK_MANUFACTURER (the same as before the touch: the stamp cannot tell this copy from the old image)"
+else
+  say "STAMP $BACK_MANUFACTURER (the image's; before the touch: \"$MANUFACTURER\")"
+fi
 say "TIMES bootloader $(secs "$t0" "$t_boot") / written $(secs "$t0" "$t_written") / back $(secs "$t0" "$t_back"). $CHECK"
 say "DONE $DEVICE serial=$BACK_SERIAL $UF2 sha256=${SHA256:0:12}"
