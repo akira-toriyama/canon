@@ -349,13 +349,13 @@ which it finds by USB product string; canon holds only the ZMK side.
 The Mac program that writes a [[sprite pack]] into the [[Prospector Dongle]]'s
 [[sprite room]] over BLE: zmk-beacon's
 [`tools/sprite-sender`](https://github.com/akira-toriyama/zmk-beacon/tree/main/tools/sprite-sender)
-(a Swift app, `SpriteSender.app`), which goes through the GIF collection on the
-external drive in the order of its order file, the rest by file name, or
-through a range of the order's places only, one GIF a run, packs it with its
-back view and sends it; a LaunchAgent in the user's dotfiles runs it once a
-day, and a failed day is skipped. Its config (`sender.json`) and state live
-next to the collection ([`assets/README.md`](../assets/README.md)), off every
-repository.
+(a Swift app, `SpriteSender.app`), which takes the next GIF of the collection on
+the external drive, one a run, in the order and range its config sets
+([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite-sender)),
+packs it with its back view and sends it; a LaunchAgent in the user's dotfiles
+runs it once a day, and a failed day is skipped. Its config (`sender.json`) and
+state live next to the collection ([`assets/README.md`](../assets/README.md)),
+off every repository.
 - **Don't call it:** BLESend, uploader, daily swap script, 送信スクリプト, 送信アプリ
 
 ### keymap-drawer
