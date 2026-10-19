@@ -114,7 +114,10 @@ refuses an older halves image) also enter the bootloader when their CDC port is
 opened at 1200 baud, the Prospector Dongle's mechanism, so `flash-dongle.sh` needs no
 double-tap except the first time, coming from an image without that entry;
 `flash-watch.sh` / `flash-reset.sh` and a failed `flash-dongle.sh` run take it
-by double-tap (by hand: [docs/recovery.md](docs/recovery.md)). Claude Code
+by double-tap (by hand: [docs/recovery.md](docs/recovery.md)); after a run whose
+bootloader volume never served, `flash-dongle.sh` refuses the Imprint Dongle and
+the halves until a run ends in `DONE` (the Prospector Dongle first) or the Mac
+reboots (its header). Claude Code
 flashes them with `./scripts/flash-dongle.sh imprint_dongle`, `imprint_left` or
 `imprint_right`, which finds the port by the firmware stamp (the Imprint Dongle
 also by its product string `Imprint Dongle`) and copies with `cp -X` only after
