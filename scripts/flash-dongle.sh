@@ -65,9 +65,24 @@
 # prompt). Right before the copy it checks for those scripts again, and step
 # 3's identity check stands in for the mount check.
 #
+# A run whose bootloader came up on USB without a UF2 volume that served (no
+# volume within the wait, the volume gone before the copy, or still mounted
+# long after it) writes the latch, $ZMK_WS/flash-dongle.latch
+# (~/.cache/zmk-canon, build-zmk.sh's workspace, so every session and checkout
+# shares it), and while it stands every run on the Imprint Dongle or a half is
+# refused, --dry-run included. On 2026-10-19 six such runs in a row (two
+# sessions, the same hub) each left their device in its bootloader, a keyboard
+# that typed nothing until replugged, after the monitor's hub had
+# re-enumerated: the bootloader's first mass-storage WRITE timed out
+# (0xe00002ed in /usr/bin/log show, sender IOUSBMassStorageDriver) while READ
+# and the CDC port worked, and a reboot of the Mac cleared it. The Prospector
+# Dongle is never refused: it is the canary, no keyboard. A DONE on any device
+# clears the latch; so does a reboot (the latch names the boot it was written
+# under), or rm of the file by hand.
+#
 # Exit status: 0 image copied, bootloader volume released and the device back
-# on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage or
-# a refused image.
+# on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage,
+# a refused image or a latched run.
 
 set -u
 
@@ -79,6 +94,7 @@ BOOT_TIMEOUT_S=20
 COPY_TIMEOUT_S=120
 WRITE_TIMEOUT_S=120
 ENUM_TIMEOUT_S=30
+LATCH="${ZMK_WS:-$HOME/.cache/zmk-canon}/flash-dongle.latch"
 USAGE="usage: flash-dongle.sh [--dry-run] [--wait SECONDS] [--reset] <image.uf2 | prospector | imprint_dongle | imprint_left | imprint_right>"
 STRANDED=""
 
@@ -118,6 +134,37 @@ run_bounded() {
 
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
+# The latch (header). Its lines: boottime= (kern.boottime's seconds, the boot
+# it was written under), device=, time=, why=.
+boottime() { sysctl -n kern.boottime | sed -E 's/.*sec = ([0-9]+).*/\1/'; }
+latch_set() {
+  mkdir -p "$(dirname "$LATCH")" 2>/dev/null
+  printf 'boottime=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boottime)" "$DEVICE" "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
+    || say "      WARN cannot write $LATCH"
+}
+latch_clear() { rm -f "$LATCH" 2>/dev/null || say "      WARN cannot remove $LATCH"; }
+# Before anything touches USB: a latch from an earlier boot is stale, the
+# Prospector Dongle passes as the canary, a keyboard device is refused.
+latch_check() {
+  [ -f "$LATCH" ] || return 0
+  local boot device time why
+  boot="$(sed -n 's/^boottime=//p' "$LATCH")"
+  device="$(sed -n 's/^device=//p' "$LATCH")"
+  time="$(sed -n 's/^time=//p' "$LATCH")"
+  why="$(sed -n 's/^why=//p' "$LATCH")"
+  if [ "$boot" != "$(boottime)" ]; then
+    say "LATCH from before this boot (${device:-?} at ${time:-?}: ${why:-?}): the reboot cleared it"
+    latch_clear
+    return 0
+  fi
+  case "$DEVICE" in
+    prospector) say "LATCH ${device:-?} at ${time:-?}: ${why:-?}. The Prospector Dongle is the canary: a DONE here clears it" ;;
+    *)
+      echo "refusing the $LABEL: the run on the ${device:-?} at ${time:-?} ended with ${why:-?}, and no run has ended in DONE since (latch $LATCH). That failure stranded a keyboard device in its bootloader six times in a row on 2026-10-19, typing nothing until replugged. Flash the Prospector Dongle first; if that fails the same way, reboot the Mac (which cleared it on 2026-10-19) or power-cycle the hub (untested), then try the Prospector Dongle again. rm the latch to flash the $LABEL anyway." >&2
+      exit 2 ;;
+  esac
+}
+
 # The mounted UF2 bootloader volumes (an INFO_UF2.TXT at the root), one per
 # line: XIAO-SENSE for either dongle, ASSIMILATOR for either half (seen
 # 2026-10-19), a suffixed name for a second one of the same kind.
@@ -138,18 +185,21 @@ uf2_volumes() {
 # reset (the halves' 0.9.2: not seen). The app is known by product string and
 # manufacturer together: the right half's product string is empty.
 no_volume() {
-  local at product serial session manufacturer others="" why="log show --last 5m --predicate 'sender == \"IOUSBMassStorageDriver\"'"
+  local at product serial session manufacturer others="" why="/usr/bin/log show --last 5m --info --debug --predicate 'sender == \"IOUSBMassStorageDriver\"' (zsh's builtin log prints nothing; a WRITE timeout reads 0xe00002ed)"
   [ -z "$OTHER_VOLUMES" ] || others=" (UF2 volumes on other USB locations meanwhile: $OTHER_VOLUMES)"
-  at="$(dongle at "$LOCATION")" || die_touched "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the ioreg query failed."
+  at="$(dongle at "$LOCATION")" || { latch_set "no volume, and the ioreg query failed"; die_touched "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the ioreg query failed. $LATCHED"; }
   IFS=$'\x1f' read -r product serial session manufacturer <<<"$at"
   if [ "$product" = "$PRODUCT" ] && [ "$manufacturer" = "$MANUFACTURER" ] && [ "$session" = "$SESSION" ]; then
     die "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the $LABEL is still the same USB device: the firmware ignored the touch (no handler, or no 1200 baud line coding reached it). Nothing touched."
   elif [ "$product" = "$PRODUCT" ] && [ "$manufacturer" = "$MANUFACTURER" ]; then
-    die "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the $LABEL rebooted into its app: its bootloader went back to the app because macOS had not set up its USB within 3 s (why: $why), or the reboot missed the bootloader. Nothing copied."
+    latch_set "no volume; the device went back to its app"
+    die "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the $LABEL rebooted into its app: its bootloader went back to the app because macOS had not set up its USB within 3 s (why: $why), or the reboot missed the bootloader. Nothing copied. $LATCHED"
   elif [ -n "$at" ]; then
-    die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, but the bootloader (\"${product:-no product string}\", serial ${serial:--}) is on USB at $LOCATION: no mounted UF2 volume's disk sits under it (why: $why), and it stays in the bootloader once its USB is up. Replug the device, then flash again."
+    latch_set "no volume; the bootloader stayed on USB"
+    die "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, but the bootloader (\"${product:-no product string}\", serial ${serial:--}) is on USB at $LOCATION: no mounted UF2 volume's disk sits under it (why: $why), and it stays in the bootloader once its USB is up, typing nothing. Replug the $LABEL to get its app back; a double-tap + cp -X by hand goes through the same path. $LATCHED"
   fi
-  die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, and nothing is on USB at $LOCATION."
+  latch_set "no volume; nothing on USB"
+  die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, and nothing is on USB at $LOCATION. $LATCHED"
 }
 
 DRY_RUN=0
@@ -189,7 +239,7 @@ UF2="$UF2_DIR/$UF2_BASE"
 { [ -n "$UF2_DIR" ] && [ -f "$UF2" ]; } || die "$UF2_PATH not found$BUILD_HINT"
 
 [ "$(uname -s)" = Darwin ] || die "macOS only (ioreg, stty -f, /Volumes)"
-for tool in ioreg stty df pgrep python3 lockf; do
+for tool in ioreg stty df pgrep python3 lockf sysctl; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool not found"
 done
 
@@ -233,6 +283,8 @@ case "$DEVICE" in
     CHECK="Check that the $LABEL types, and lights while USB powers it." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac
+LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE: flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it on 2026-10-19) or power-cycle the hub (untested), then try the Prospector Dongle again."
+latch_check
 
 if [ "$WAIT_S" -gt 0 ]; then
   say "WAIT up to ${WAIT_S}s for the $LABEL with a /dev/cu.* port"
@@ -317,7 +369,7 @@ if running="$(flashers_running)"; then
 $running
 "
 fi
-[ -f "$VOL/INFO_UF2.TXT" ] || die_touched "$VOL went away before the copy. Nothing copied."
+[ -f "$VOL/INFO_UF2.TXT" ] || { latch_set "the volume went away before the copy"; die_touched "$VOL went away before the copy. Nothing copied. $LATCHED"; }
 
 say "COPY $UF2_BASE → $VOL"
 run_bounded "$COPY_TIMEOUT_S" "$ERR" cp -X "$SNAPSHOT" "$VOL/"
@@ -339,7 +391,7 @@ esac
 deadline=$(($(now_ms) + WRITE_TIMEOUT_S * 1000))
 while [ -f "$VOL/INFO_UF2.TXT" ]; do
   [ "$(now_ms)" -lt "$deadline" ] \
-    || die_touched "$VOL still mounted ${WRITE_TIMEOUT_S}s after the copy: the bootloader did not take the image."
+    || { latch_set "the volume stayed mounted ${WRITE_TIMEOUT_S}s after the copy"; die_touched "$VOL still mounted ${WRITE_TIMEOUT_S}s after the copy: the bootloader did not take the image. $LATCHED"; }
   sleep 0.2
 done
 t_written=$(now_ms)
@@ -377,4 +429,5 @@ else
   say "STAMP $BACK_MANUFACTURER (the image's; before the touch: \"$MANUFACTURER\")"
 fi
 say "TIMES bootloader $(secs "$t0" "$t_boot") / written $(secs "$t0" "$t_written") / back $(secs "$t0" "$t_back"). $CHECK"
+latch_clear
 say "DONE $DEVICE serial=$BACK_SERIAL $UF2 sha256=${SHA256:0:12}"
