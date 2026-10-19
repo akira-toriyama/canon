@@ -147,7 +147,10 @@ cmd_build() {
   dir="build/$shield$suffix"
   trust_workspace
   # Assigned apart from the declaration: `local x=$(...)` hides the status.
-  stamp="$(python3 scripts/stamp.py stamp "$board" "$shield" "$suffix")"
+  # The suffix follows --: it starts with - (-logging, -kconfig, -<tag>),
+  # which argparse would read as an option (every variant build failed so,
+  # 2026-10-19).
+  stamp="$(python3 scripts/stamp.py stamp "$board" "$shield" -- "$suffix")"
   # Registers Zephyr in the CMake user package registry for zmk/app's
   # find_package(Zephyr); the registry lives in HOME, new in each container.
   west zephyr-export
@@ -162,7 +165,7 @@ cmd_build() {
   west build -p -s zmk/app -d "$dir" -b "$board" -- \
     -DSHIELD="$shield" -DZMK_CONFIG="$TOP/config" \
     -DCONFIG_USB_DEVICE_MANUFACTURER="\"$stamp\"" "$@" 2>&1 | tee "$dir/build.log"
-  python3 scripts/stamp.py verify "$dir" "$board" "$shield" "$suffix" | tee -a "$dir/build.log"
+  python3 scripts/stamp.py verify "$dir" "$board" "$shield" -- "$suffix" | tee -a "$dir/build.log"
   echo "=== DONE $shield$suffix"
 }
 
