@@ -90,6 +90,21 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
 | Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` and `slot 0 … applied: hue H sat S brt B` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
+- **`ERROR no bootloader volume` or `went away before the copy` once: stop; no other keyboard
+  device is tried.** The device sits in its bootloader, nothing types on it (the Imprint Dongle: the
+  whole keyboard, the user cannot even type an instruction), and only a replug brings its app back
+  (the bootloader leaves for the app 3 s after a USB without enumeration). Flash the Prospector
+  Dongle first when the mass-storage path is in doubt, and a half before the dongle. On 2026-10-19
+  (t-0967) four runs in a row failed this way after the LG monitor's hub (USB location
+  `0x0211x000`, both dongles and the halves) had re-enumerated three times (18:25-19:04, a KVM
+  switch?), while six runs through the same hub earlier that day had passed: `/usr/bin/log show`
+  (`sender == "IOUSBMassStorageDriver"`; zsh's builtin `log` prints nothing) showed the
+  bootloader's first WRITE failing on its bulk OUT endpoint 0x03 with `0xe00002ed` (not
+  responding) five times about 0.4 s apart, macOS resetting the device each time and then
+  terminating the driver, the bootloader re-enumerating without it; READ and the CDC port kept
+  working, and Chrome's user client was not it (its open fails the same way during a good run).
+  Untested ways out: power-cycle the hub, or a port on the Mac itself; try either with the
+  Prospector Dongle.
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
   `src/usb/msc_uf2.c`): not a truncated copy.
