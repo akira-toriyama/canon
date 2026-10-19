@@ -988,7 +988,7 @@ def cmd_find(args):
 
 def cmd_check(args):
     repo = os.path.realpath(args.repo) if args.repo else REPO
-    trees = stamp.BeaconTrees(args.beacon_git or stamp.workspace_beacon_git())
+    trees = stamp.PinTrees(args.topdir or stamp.workspace_topdir())
     digests = {}
 
     def digest_at(commit, shield, board):
@@ -1011,8 +1011,8 @@ def cmd_check(args):
     boards = dict((shield, board) for board, shield in targets)
 
     def main(shield):
-        """The digest at ref, computed when a device needs it: the zmk-beacon
-        clone it takes may be missing while no device is plugged in."""
+        """The digest at ref, computed when a device needs it: the own modules'
+        clones it takes may be missing while no device is plugged in."""
         try:
             return digest_at(head, shield, boards[shield])
         except stamp.Failure as e:
@@ -1228,16 +1228,17 @@ def parser():
                     "build target. One line per device and per absent target: TARGET STATUS and then stamp=, main=, "
                     "inputs= (variant builds), serial=, product=, since= (the commits that changed the target's inputs "
                     "after the stamped ones) and a note. STATUS: current, behind, off-main (no commit of the last --depth "
-                    "built it), debug (a -logging, -kconfig, -beacon, _RESET or tagged build; -sprite counts as plain), "
-                    "unstamped (manufacturer \"ZMK Project\"), absent. Opens no device and no port, and fetches nothing "
-                    "of this repository; a zmk-beacon pin missing from the workspace clone is fetched.",
+                    "built it), debug (a -logging, -kconfig, _RESET or tagged build, or one with a --module tree, "
+                    "-beacon or -lantern; -sprite counts as plain), unstamped (manufacturer \"ZMK Project\"), absent. "
+                    "Opens no device and no port, and fetches nothing of this repository; an own module's pin missing "
+                    "from its workspace clone is fetched.",
         epilog="Exit status: 0 every device current or every target absent, 1 something else to report, 2 usage, "
                "3 the digests could not be computed (git, the workspace clone, the network).",
     )
     s.add_argument("--ref", default="origin/main", help="the commit the devices are compared with (default origin/main)")
     s.add_argument("--repo", metavar="DIR", help="the canon checkout to read (default: this script's)")
     s.add_argument("--depth", type=int, default=100, metavar="N", help="commits of --ref's history to try for a behind device (default 100)")
-    s.add_argument("--beacon-git", metavar="DIR", help="the zmk-beacon clone for the pin's tree id (default: $ZMK_WS/cfgrepo/modules/zmk-beacon)")
+    s.add_argument("--topdir", metavar="DIR", help="the west topdir whose clones resolve the own modules' pins to tree ids (default: $ZMK_WS/cfgrepo)")
     s.add_argument("--json", action="store_true", help="print {ref, commit, targets: [the same fields]} instead of lines")
     s.set_defaults(func=cmd_check)
 

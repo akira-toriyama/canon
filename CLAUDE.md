@@ -49,8 +49,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   target = all, `imprint` = build.yaml's `imprint*` shields). Flags (its header): `--update` (west
   update; otherwise zmk@main and the branches stay at the cached commits), `--clean`, `--reset`
   (`CONFIG_ZMK_SETTINGS_RESET_ON_START=y`: wipes settings and bonds at every boot), `--logging`,
-  `--kconfig CONFIG_X=V`, `--tag <name>`, `--beacon <dir>` (a zmk-beacon tree, not the pin), `--sprite`.
-- Images: `firmware/<shield>[-sprite][-logging][-kconfig][-beacon][_RESET][-<tag>].uf2`; a bare
+  `--kconfig CONFIG_X=V`, `--tag <name>`, `--module <dir>` (a local tree of an own module in place
+  of its pin, or of one not pinned yet; repeatable), `--sprite`.
+- Images: `firmware/<shield>[-sprite][-logging][-kconfig][-<module>…][_RESET][-<tag>].uf2`
+  (`-<module>` is the name without `zmk-`: `-beacon`, `-lantern`, in name order); a bare
   `<shield>.uf2` / `<shield>_RESET.uf2` (what flash-watch.sh, flash-reset.sh and `flash-dongle.sh
   <device>` take) is always a pinned build. West topdir `~/.cache/zmk-canon/cfgrepo` (each run syncs
   `config/`, `patches/`, `scripts/`, `build.yaml` into it); per image, `build/<image name>/` keeps
@@ -62,9 +64,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `=== STAMP <image>: ZMK Project (canon <shield> <12 hex><variant>) (N config files, M patches)`
   ends `build.log`. `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]`
   prints the digest and table by hand.
-- Never edit the cached `modules/zmk-beacon`: builds without `--beacon` check out the pin and stop
-  on local changes. Nor `modules/zmk-lantern`, which nothing checks until t-66ww: a build takes it as
-  `west update` left it, so a pin bump needs `--update`. `zmk-west.sh update` takes the patches off first (west refuses to move a patched
+- Never edit the cached clone of an own module (`modules/zmk-beacon`, `modules/zmk-lantern`: the
+  projects `python3 scripts/stamp.py pins` lists): every build checks each out at its pin (one a
+  `--module` replaces too: the stamp takes the pin's tree id from the clone) and stops on local
+  changes, so a pin bump needs no `--update`.
+  `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
   tree reset once ([patches/zmk/README.md](patches/zmk/README.md)).
 - CI: `build.yml` (PRs, main, Mondays for zmk@main breaks) calls the local reusable `zmk-build.yml`,
@@ -78,7 +82,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 
 | Goal | Command | Healthy result |
 | --- | --- | --- |
-| Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin)` |
+| Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin), zmk-lantern <hash> (pin)` (a `--module` tree: `<dir> @ <describe> (--module)`) |
 | Flash any one device on USB, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| imprint_left \| imprint_right \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`; a half only over a data cable while USB powers it, both halves may stay plugged in) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display, both halves typing, or the flashed half typing and lit (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222); a half's: mount 2.6-2.9 s, volume gone 4.0-4.3 s (an unchanged image), back with its port 5.0-5.3 s (2026-10-19, t-y6dz, two runs per half) |
 | Flash the halves and the Imprint Dongle by double-tap (the first image with the 1200 baud entry, a `_RESET` flow, a failed run) | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
@@ -130,10 +134,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
     connection event), so a half that was away gets it when it is back; a half writes NVS only for
     a changed palette. Slots 1-3 change nothing until t-6ttk. The dongle's `palette ok` says it
-    stored and queued, not that a half has it. Bump the SHA by hand after a merge there. Until t-66ww the scripts know only
-    zmk-beacon: the stamp hashes zmk-lantern's SHA as text in `west.yml`, not its tree id,
-    `zmk-west.sh pin` does not check its checkout (a pin bump needs `--update`), and there is no
-    `--beacon`-like flag for it.
+    stored and queued, not that a half has it. Bump the SHA by hand after a merge there. The
+    scripts treat every project of west.yml's `akira-toriyama` remote alike (`stamp.py pins`;
+    t-66ww, 2026-10-19): the stamp takes its tree id, every build checks its clone out at the pin,
+    and `build-zmk.sh --module <dir>` builds a local tree of it, so a third module needs no script
+    change, only its project written like these two (`- name:` first, `remote: akira-toriyama`,
+    `revision:` a full commit SHA: a branch or tag fails `stamp.py pins`, and the build; the
+    glossary: own module).
 - **ZMK tracks `main`, never a tag**, against ZMK's advice: the HWv2 `assimilator-bt` needs Zephyr's
   new hardware model; `v0.3.0` failed in `arch.cmake`: `Could not find ARCH=cyboard` (2026-05-17).
 - **No local boards or shields**: `imprint_dongle` went upstream with Cyboard#19 (merged
@@ -158,8 +165,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   (`scripts/stamp.py`, the glossary): a digest of what this repository feeds that target's build,
   by content (`build.yaml`, `config/west.yml`, `scripts/zmk-west.sh`, every `patches/*/*.patch`,
   the `config/` files ZMK's candidate rule reads for the shield and board plus their includes,
-  and the tree id of the zmk-beacon pin in place of its SHA), upstream left out; `<variant>` is
-  the image suffix without its leading `-sprite`. Comments and blank runs drop out of `config/`,
+  and the tree id of each own module's pin in place of its SHA), upstream left out; `<variant>` is
+  the image suffix without its leading `-sprite`. The manifests of #263 to #266 (zmk-lantern's
+  first) hashed its SHA as text: a device flashed from them reads `off-main` since t-66ww, until
+  it is flashed again. Comments and blank runs drop out of `config/`,
   `build.yaml`, `west.yml` and `zmk-west.sh` (except Kconfig's `# CONFIG_X is not set`), so a
   comment-only change to `config/` keeps every stamp (#248); a patch is hashed as it applies and
   zmk-west.sh's messages count, so #242 moved them, and a pin bump moves all four targets, the

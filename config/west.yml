@@ -4,6 +4,13 @@ manifest:
       url-base: https://github.com/zmkfirmware
     - name: Cyboard-DigitalTailor
       url-base: https://github.com/Cyboard-DigitalTailor
+    # The own modules' remote: scripts/stamp.py takes every project under it
+    # (`stamp.py pins`), pinned by a full commit SHA, never a branch or tag.
+    # The firmware stamp digests the pin's tree id, zmk-west.sh pin checks
+    # the clone out at it before every build, and build-zmk.sh --module <dir>
+    # builds a local tree in its place. stamp.py reads this file by line:
+    # write such a project as the two below, `- name:` first, then remote:,
+    # revision: and path: as plain scalars.
     - name: akira-toriyama
       url-base: https://github.com/akira-toriyama
   projects:
@@ -26,8 +33,7 @@ manifest:
     # the Imprint Dongle's status broadcaster (CONFIG_BEACON_STATUS_BROADCAST
     # in config/imprint_dongle.conf). Pinned by commit, not by tag, so canon
     # takes a change without a zmk-beacon release; bump the SHA by hand.
-    # scripts/build-zmk.sh checks it out at this pin before every build that
-    # has no --beacon.
+    # scripts/build-zmk.sh checks it out at this pin before every build.
     - name: zmk-beacon
       remote: akira-toriyama
       revision: d8fc541071b7e8fc2e8885a10a9444c1bb741b55
@@ -40,11 +46,7 @@ manifest:
     # palette scripts/dongle.py palette hands the Imprint Dongle, carried
     # to both halves by the palette behavior of config/imprint_behaviors.dtsi
     # (the dongle builds the module's palette side only). Pinned by
-    # commit like zmk-beacon; bump the SHA by hand after a merge there. Until
-    # the scripts take a second module (t-66ww) a build takes
-    # modules/zmk-lantern as west update left it: a pin bump needs
-    # build-zmk.sh --update, and the stamp hashes this SHA as text, not the
-    # tree id.
+    # commit like zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
       revision: ce96fe0119d8d75bf2688350277f3d8932901b60

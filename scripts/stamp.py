@@ -10,9 +10,12 @@
 #                                                   matches what the build read,
 #                                                   and the stamp took
 #   (the -- because a suffix starts with -: -logging, -kconfig, -<tag>)
-#   stamp.py digest <shield> [--ref REF] [--files]  the digest of this tree, or
+#   stamp.py digest <shield> [--ref REF] [--files] [--topdir DIR]
+#                                                   the digest of this tree, or
 #                                                   of REF's commit; --files
 #                                                   lists the table
+#   stamp.py pins                                   the own modules config/west.yml
+#                                                   pins (build-zmk.sh)
 #
 # The stamp is `ZMK Project (canon <shield> <12 hex><variant>)`: ZMK's default
 # manufacturer kept in front, the build target, the digest, and the variant
@@ -30,9 +33,12 @@
 #     .conf of the shield's directory, of every shield-name prefix and of the
 #     board, the first overlay, the keymap, what those include from config/,
 #     and anything under config/boards/ and config/dts/,
-#   - the tree id of the zmk-beacon commit the manifest pins, in place of the
-#     SHA (a PR head and its squash commit share the tree). The pin is an
-#     input of every target, the halves included: a bump moves all four.
+#   - the tree id of each own module's pin (the projects of config/west.yml
+#     under OWN_URL_BASE: zmk-beacon, zmk-lantern), in place of the SHA (a PR
+#     head and its squash commit share the tree). A pin is an input of every
+#     target, the halves included: a bump moves all four. A manifest with
+#     zmk-beacon alone digests as before t-66ww; the first with zmk-lantern
+#     (#263 to #266) had hashed its SHA as text, so those digests moved.
 # Comments are left out of the config/ files, build.yaml, west.yml and
 # zmk-west.sh (#-lines of .conf except Kconfig's `# CONFIG_X is not set`, which
 # assigns n; #-lines of .yml and .sh; C comments of DTS and headers, outside
@@ -56,6 +62,7 @@
 # macOS's /usr/bin/python3 (3.9: no match, no X | Y). Stdlib and git only.
 
 import argparse
+import collections
 import hashlib
 import os
 import re
@@ -72,7 +79,11 @@ MAX_STRING = 126  # bLength = 2 + 2 * len <= 255
 DIGEST_HEX = 12
 COMMON = ("build.yaml", "config/west.yml", "scripts/zmk-west.sh")
 LEGACY_DIRS = ("config/boards", "config/dts")  # ZMK's extra board and binding roots (zmk app/cmake/modules.cmake)
-BEACON = "zmk-beacon"
+# The own modules are the manifest's projects under this url: each pinned by a
+# full commit SHA (CLAUDE.md, Invariants), whose tree id the digest takes.
+OWN_URL_BASE = "https://github.com/akira-toriyama"
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+Pin = collections.namedtuple("Pin", "name path revision url")
 # The directory of each shield under its module, which ZMK tries first
 # (shield_candidate_names). Unknown shields are taken as their own directory;
 # verify catches a wrong guess as a file the build read that the table lacks.
@@ -308,78 +319,104 @@ def collapse_blanks(line):
     return "".join(out)
 
 
-def beacon_pin(src):
-    """(revision, url) of the zmk-beacon project in config/west.yml, or
-    (None, None) for a commit before the pin (2026-09-26)."""
+def own_pins(src):
+    """The own modules of config/west.yml in manifest order: every project
+    under OWN_URL_BASE as (name, west path, revision, url), the revision as
+    written. Empty for a commit before the first pin (2026-09-26). pinned()
+    keeps the ones at a full commit SHA, which the digest takes by tree id;
+    one at a branch (zmk-ble-hid-host at main, 2026-06-19 to 2026-07-13, in
+    commits dongle.py check still walks) is hashed as text like an upstream
+    project, and require_pinned() refuses to build it: its tree id would
+    move. Read by line, not as YAML: an item starts with `- name:`, and its
+    remote:, url:, revision: and path: are plain scalars (so the manifest is
+    written); a nested block such as zmk's `import:` is skipped."""
     text = (src.read("config/west.yml") or b"").decode("utf-8", "replace")
-    remotes, name, remote, revision, section = {}, None, None, None, None
+    remotes, projects, section, item = {}, [], None, None
     for line in text.split("\n"):
         line = line.split("#", 1)[0].rstrip()
-        if re.match(r"^\s*remotes:\s*$", line):
-            section = "remotes"
-        elif re.match(r"^\s*projects:\s*$", line):
-            section = "projects"
+        m = re.match(r"^\s*(remotes|projects|self|defaults):\s*$", line)
+        if m:
+            section = m.group(1)
+            continue
         m = re.match(r"^\s*-\s*name:\s*[\"']?([^\"'\s]+)", line)
         if m:
-            name, remote, revision = m.group(1), None, None
-        m = re.match(r"^\s*url-base:\s*[\"']?([^\"'\s]+)", line)
-        if m and section == "remotes":
-            remotes[name] = m.group(1)
-        m = re.match(r"^\s*remote:\s*[\"']?([^\"'\s]+)", line)
-        if m:
-            remote = m.group(1)
-        m = re.match(r"^\s*revision:\s*[\"']?([^\"'\s]+)", line)
-        if m:
-            revision = m.group(1)
-        if section == "projects" and name == BEACON and revision and remote:
-            return revision, "%s/%s" % (remotes.get(remote, ""), BEACON)
-    return None, None
+            item = {"name": m.group(1)}
+            if section == "remotes":
+                remotes[item["name"]] = item
+            elif section == "projects":
+                projects.append(item)
+            continue
+        m = re.match(r"^\s*(url-base|url|remote|revision|path):\s*[\"']?([^\"'\s]+)", line)
+        if m and item is not None and section in ("remotes", "projects"):
+            item[m.group(1)] = m.group(2)
+    pins = []
+    for p in projects:
+        url = p.get("url") or "%s/%s" % (remotes.get(p.get("remote"), {}).get("url-base", ""), p["name"])
+        if url.startswith(OWN_URL_BASE + "/"):
+            pins.append(Pin(p["name"], p.get("path", p["name"]), p.get("revision", ""), url))
+    return pins
 
 
-def manifest_without_pin(data, revision):
-    """config/west.yml with the zmk-beacon revision blanked: the tree id
+def pinned(pins):
+    return [pin for pin in pins if SHA_RE.match(pin.revision)]
+
+
+def require_pinned(pins):
+    for pin in pins:
+        if not SHA_RE.match(pin.revision):
+            raise Failure("config/west.yml pins the own module %s at %s, not at a full commit SHA, which its tree id in the stamp needs"
+                          % (pin.name, pin.revision or "no revision"))
+    return pins
+
+
+def manifest_without_pins(data, pins):
+    """config/west.yml with each own module's revision blanked: the tree id
     stands for it, so a re-pin to the same tree keeps the digest."""
     text = data.decode("latin-1")
-    if revision:
-        text = re.sub(r"^(\s*revision:\s*)%s(\s*(#.*)?)$" % re.escape(revision), r"\1<pin>\2", text, count=1, flags=re.M)
+    for pin in pins:
+        text = re.sub(r"^(\s*revision:\s*)%s(\s*(#.*)?)$" % re.escape(pin.revision), r"\1<pin>\2", text, count=1, flags=re.M)
     return text.encode("latin-1")
 
 
-class BeaconTrees:
-    """Tree ids of zmk-beacon commits, from the module's clone; a commit the
-    clone lacks is fetched from the manifest's remote (network)."""
+class PinTrees:
+    """Tree ids of the own modules' pins, from their clones under a west
+    topdir; a commit a clone lacks is fetched from the pin's url (network)."""
 
-    def __init__(self, git_dir):
-        self.git_dir = git_dir
+    def __init__(self, topdir):
+        self.topdir = topdir
         self.cache = {}
 
-    def tree(self, revision, url):
-        if revision in self.cache:
-            return self.cache[revision]
-        if not os.path.isdir(self.git_dir):
-            raise Failure("no zmk-beacon clone at %s: build once (scripts/build-zmk.sh), or point ZMK_WS at the workspace" % self.git_dir)
+    def tree(self, pin):
+        key = (pin.path, pin.revision)
+        if key in self.cache:
+            return self.cache[key]
+        git_dir = os.path.join(self.topdir, pin.path)
+        if not os.path.isdir(git_dir):
+            raise Failure("no clone of %s at %s: build once (scripts/build-zmk.sh), or point --topdir or ZMK_WS at the workspace"
+                          % (pin.name, git_dir))
         for attempt in (0, 1):
             try:
-                tree = git(self.git_dir, "rev-parse", "--verify", "-q", revision + "^{tree}").decode().strip()
-                self.cache[revision] = tree
+                tree = git(git_dir, "rev-parse", "--verify", "-q", pin.revision + "^{tree}").decode().strip()
+                self.cache[key] = tree
                 return tree
             except Failure:
-                if attempt or not url:
+                if attempt:
                     raise
-                git(self.git_dir, "fetch", "-q", url, revision)
+                git(git_dir, "fetch", "-q", pin.url, pin.revision)
         raise AssertionError
 
 
 def digest(src, board, shield, trees):
     """The 12 hex digest of the target's inputs in src."""
-    revision, url = beacon_pin(src)
+    pins = pinned(own_pins(src))
     lines = ["algorithm %d" % ALGORITHM]
     for path in inputs(src, board, shield):
         data = src.read(path)
         if path == "config/west.yml":
-            data = manifest_without_pin(data, revision)
+            data = manifest_without_pins(data, pins)
         lines.append("%s %s" % (path, hashlib.sha256(normalized(path, data)).hexdigest()))
-    lines.append("%s-tree %s" % (BEACON, trees.tree(revision, url) if revision else "none"))
+    for pin in sorted(pins):
+        lines.append("%s-tree %s" % (pin.name, trees.tree(pin)))
     return hashlib.sha256("\n".join(lines).encode()).hexdigest()[:DIGEST_HEX]
 
 
@@ -400,20 +437,23 @@ def parse_stamp(manufacturer):
     return m.groups() if m else None
 
 
-def workspace_beacon_git():
-    return os.path.join(os.environ.get("ZMK_WS", os.path.expanduser("~/.cache/zmk-canon")), "cfgrepo", "modules", BEACON)
+def workspace_topdir():
+    """build-zmk.sh's west topdir, whose clones resolve the pins (ZMK_WS)."""
+    return os.path.join(os.environ.get("ZMK_WS", os.path.expanduser("~/.cache/zmk-canon")), "cfgrepo")
 
 
 def cmd_stamp(args):
     src = TreeSource(TOP)
-    trees = BeaconTrees(os.path.join(TOP, "modules", BEACON))
+    require_pinned(own_pins(src))
+    trees = PinTrees(TOP)
     print(stamp_string(args.shield, digest(src, args.board, args.shield, trees), variant_of(args.suffix)))
     return 0
 
 
 def cmd_verify(args):
     src = TreeSource(TOP)
-    trees = BeaconTrees(os.path.join(TOP, "modules", BEACON))
+    require_pinned(own_pins(src))
+    trees = PinTrees(TOP)
     expected = stamp_string(args.shield, digest(src, args.board, args.shield, trees), variant_of(args.suffix))
     table = inputs(src, args.board, args.shield)
     build = os.path.realpath(args.build_dir)
@@ -458,8 +498,14 @@ def cmd_verify(args):
     return 0
 
 
+def cmd_pins(args):
+    for pin in require_pinned(own_pins(TreeSource(TOP))):
+        print("%s\t%s\t%s" % (pin.name, pin.path, pin.revision))
+    return 0
+
+
 def cmd_digest(args):
-    trees = BeaconTrees(args.beacon_git or workspace_beacon_git())
+    trees = PinTrees(args.topdir or workspace_topdir())
     if args.ref:
         commit = git(TOP, "rev-parse", "--verify", args.ref + "^{commit}").decode().strip()
         src = CommitSource(TOP, commit)
@@ -496,9 +542,12 @@ def parser():
     s.add_argument("shield")
     s.add_argument("--ref", metavar="REF", help="a commit, branch or tag of this repository instead of the work tree")
     s.add_argument("--files", action="store_true", help="list the input table first")
-    s.add_argument("--beacon-git", metavar="DIR", help="the zmk-beacon clone that resolves the pin's tree id "
-                   "(default: $ZMK_WS/cfgrepo/modules/zmk-beacon)")
+    s.add_argument("--topdir", metavar="DIR", help="the west topdir whose clones resolve the own modules' pins "
+                   "to tree ids (default: $ZMK_WS/cfgrepo)")
     s.set_defaults(func=cmd_digest)
+    s = sub.add_parser("pins", help="list the own modules config/west.yml pins (the projects under %s): "
+                       "NAME, west path and commit SHA, tab-separated; exit 1 for a pin that is no full SHA" % OWN_URL_BASE)
+    s.set_defaults(func=cmd_pins)
     return p
 
 
