@@ -79,7 +79,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Goal | Command | Healthy result |
 | --- | --- | --- |
 | Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin)` |
-| Flash any one device on USB, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| imprint_left \| imprint_right \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`; a half only over a data cable while USB powers it, both halves may stay plugged in) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display, both halves typing, or the flashed half typing and lit (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222); the halves' are not yet timed on hardware |
+| Flash any one device on USB, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| imprint_left \| imprint_right \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`; a half only over a data cable while USB powers it, both halves may stay plugged in) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display, both halves typing, or the flashed half typing and lit (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222); a half's: mount 2.6-2.9 s, volume gone 4.0-4.3 s (an unchanged image), back with its port 5.0-5.3 s (2026-10-19, t-y6dz, two runs per half) |
 | Flash the halves and the Imprint Dongle by double-tap (the first image with the 1200 baud entry, a `_RESET` flow, a failed run) | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
@@ -133,8 +133,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   by `verify-vkey-sync.yml`. Ids: `0x01` and a 30-id block per Vkey layer at `0x10`, `0x30`, `0x50`,
   `0x70` (last `0x8D`). `0xA0`-`0xBF` is the ist dongle's (zmk-hid-host): chord maps ids in one
   namespace per host, so a reused id fires ist's buttons; `decode()` refuses other ids.
-- **The USB product string `Imprint Dongle` is a contract**: chord's `VKeyHIDSource`, flash-dongle.sh
-  and dongle.py (`DEVICES`) find the dongle by it, as VID/PID `0x1D50`/`0x615E` are ZMK's defaults
+- **The USB product string `Imprint Dongle` is a contract**: chord's `VKeyHIDSource` finds the dongle
+  by it, and flash-dongle.sh / dongle.py (`DEVICES`) by it when the device or image carries no
+  firmware stamp (the stamp names the target first, 2026-10-19), as VID/PID `0x1D50`/`0x615E` are ZMK's defaults
   on all three dongles (the Imprint and ist dongles on one Mac, 2026-09-24; the Prospector Dongle's
   shield sets only the product string). It comes from the upstream shield's `ZMK_KEYBOARD_NAME`:
   never set `CONFIG_ZMK_KEYBOARD_NAME` for it in `config/`; an upstream rename changes chord's
@@ -192,11 +193,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   other**: never put the Prospector Dongle into its bootloader while they run, nor both dongles at
   once. flash-dongle.sh guards this (their shared lock; no start while any UF2 volume is mounted; a
   copy only onto the volume whose disk sits at that device's USB location, which its bootloader
-  keeps, 2026-09-26, so a half's volume name, unrecorded, never matters; details: its header). The
+  keeps (the XIAOs 2026-09-26, the halves 2026-10-19), never onto a volume by name: both halves mount
+  as `ASSIMILATOR` (Adafruit UF2 bootloader 0.9.2); details: its header). The
   first image with the 1200 baud entry, or a failed run, takes a double-tap + `cp -X` (README,
   docs/recovery.md).
 - **A canon device's port rate is a command**: 1200 baud reboots either dongle or either half into
-  its UF2 bootloader, 2400 makes the Prospector Dongle send its screen (zmk-beacon's
+  its UF2 bootloader (the halves seen 2026-10-19, t-y6dz), 2400 makes the Prospector Dongle send its screen (zmk-beacon's
   `CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on in its shield, since 2026-09-27 in
   `config/imprint_dongle.conf`, whose product image has the port too, and since 2026-10-19 in
   `config/imprint_left.conf` / `imprint_right.conf` with the port from `config/cdc_acm_port.dtsi`;

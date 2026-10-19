@@ -70,8 +70,9 @@ The split keyboard: the left and right halves (board `assimilator-bt`, shields
 [[Imprint Dongle]]. [Product page](https://cyboard.digital/products/imprint).
 On USB each half is one CDC ACM port (the left with product string `Imprint`,
 the right with none; `scripts/dongle.py` tells them by their [[firmware stamp]]),
-and 1200 baud on it reboots the half into its UF2 bootloader for
-`scripts/flash-dongle.sh` (images from 2026-10-19 on).
+and 1200 baud on it reboots the half into its UF2 bootloader (Adafruit 0.9.2,
+volume `ASSIMILATOR`) for `scripts/flash-dongle.sh` (images after #263 of
+2026-10-19; both halves on hardware the same day).
 - Config: [`config/imprint_left.conf`](../config/imprint_left.conf), [`config/imprint_right.conf`](../config/imprint_right.conf), [`config/cdc_acm_port.dtsi`](../config/cdc_acm_port.dtsi)
 - **Don't call it:** the keyboard, Cyboard (that is the vendor), imprint alone (that is the `build-zmk.sh` group), キーボード本体
 
@@ -79,7 +80,8 @@ and 1200 baud on it reboots the half into its UF2 bootloader for
 The split central: a XIAO nRF52840 (board `xiao_ble/nrf52840/zmk`) with shield
 `imprint_dongle`, bonded to both halves over BLE and attached to the Mac as a
 USB HID keyboard. Its USB product string `Imprint Dongle` is a contract with the
-[[host bridge]] and `scripts/dongle.py` ([CLAUDE.md](../CLAUDE.md)), and it
+[[host bridge]] and, for a device or image without a [[firmware stamp]],
+`scripts/dongle.py` ([CLAUDE.md](../CLAUDE.md)), and it
 broadcasts the [[status advertisement]] that the [[Prospector Dongle]] shows.
 - Config: [`config/imprint_dongle.conf`](../config/imprint_dongle.conf), [`config/imprint_dongle.overlay`](../config/imprint_dongle.overlay)
 - **Don't call it:** XIAO, XIAO ドングル (both dongles are XIAO nRF52840s), Canon Dongle, receiver, central alone (that is the ZMK role)

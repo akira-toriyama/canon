@@ -72,6 +72,14 @@ DEVICES = {
     "imprint_right": "",
 }
 DONGLES = ("prospector", "imprint_dongle")
+HALVES = ("imprint_left", "imprint_right")
+# Zephyr's device name for config/cdc_acm_port.dtsi's node, in a halves image's
+# payload exactly when the image has the port and, with it, the 1200 baud entry
+# (both come from that dtsi and the halves' confs): a halves image of #263
+# (2026-10-19) or older carries the stamp but neither, and would strand the
+# next flash. Nothing like it tells the dongles' images apart: their board's
+# board_cdc_acm_uart holds the same string in every image.
+HALVES_PORT_MARK = b"cdc_acm_uart"
 
 # Unstamped product string -> target, for check's report of a device built
 # before the stamp; "" is reported without a target (the right half, or another
@@ -176,11 +184,12 @@ def walk(node, usb=None):
 
 
 def target_of(node):
-    """The build target an IOUSBHostDevice node is: its stamp's shield, else
-    the dongle whose product string it carries, else None."""
+    """The build target an IOUSBHostDevice node is: its stamp's shield when
+    that is a target, else the dongle whose product string it carries, else
+    None."""
     parsed = stamp.parse_stamp(str(node.get("kUSBVendorString", "")))
-    if parsed is not None:
-        return parsed[0] if parsed[0] in DEVICES else None
+    if parsed is not None and parsed[0] in DEVICES:
+        return parsed[0]
     product = node.get("kUSBProductString")
     return next((name for name in DONGLES if DEVICES[name] == product), None)
 
@@ -870,6 +879,9 @@ def cmd_image(args):
     stamped = STAMP_IN_IMAGE.search(payload)
     stamp_text = stamped.group(0).decode("ascii") if stamped else ""
     parsed = stamp.parse_stamp(stamp_text)
+    if stamped and parsed is None:
+        raise Failure("the image's manufacturer string %s is no stamp this stamp.py parses (another "
+                      "ALGORITHM, or not canon's)" % stamp_text)
     named = [name for name in DONGLES if DEVICES[name].encode() in payload]
     if parsed is not None:
         device = parsed[0]
@@ -887,6 +899,10 @@ def cmd_image(args):
         raise Failure("the image carries no firmware stamp and no dongle's USB product string (%s): a halves "
                       "image built before the stamp, the Prospector Dongle's USB power-only one or another "
                       "board's" % ", ".join('"%s"' % DEVICES[name] for name in DONGLES))
+    if device in HALVES and HALVES_PORT_MARK not in payload:
+        raise Failure("the %s image lacks the CDC ACM port (built from #263 of 2026-10-19 or older, before "
+                      "config/cdc_acm_port.dtsi), so it has no 1200 baud entry and the next flash would need a "
+                      "double-tap; flash-watch.sh takes it" % device)
     print(US.join([device, DEVICES[device], hashlib.sha256(data).hexdigest(), stamp_text]))
     return 0
 

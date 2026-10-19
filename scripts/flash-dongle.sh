@@ -11,10 +11,10 @@
 #      (scripts/dongle.py holds the names and the ioreg lookups)
 #   2. set that port to 1200 baud (stty) → the firmware reboots into the UF2
 #      bootloader (CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD, zmk-beacon; on the
-#      halves with config/cdc_acm_port.dtsi, images from 2026-10-19 on)
-#   3. wait for a UF2 bootloader volume (both dongles mount as XIAO-SENSE, a
-#      half under its bootloader's own name) whose disk belongs to the USB
-#      device at the touched device's USB location
+#      halves since config/cdc_acm_port.dtsi, after #263 of 2026-10-19)
+#   3. wait for a UF2 bootloader volume (both dongles mount as XIAO-SENSE,
+#      both halves as ASSIMILATOR) whose disk belongs to the USB device at the
+#      touched device's USB location: never a volume by name
 #   4. cp -X the .uf2 → the volume disappears once the bootloader has taken the
 #      image and rebooted
 #   5. wait for the device to enumerate again with its /dev/cu.* port, and
@@ -42,10 +42,15 @@
 # <device>_RESET-*.uf2 (a tagged reset build). The name keeps out images that
 # carry a name but no 1200 baud entry (the probe-*.uf2 spikes carry "Imprint
 # Dongle"): they boot, and then strand the next flash. An imprint_dongle*.uf2
-# built before 2026-09-27 and an imprint_left*.uf2 / imprint_right*.uf2 built
-# before 2026-10-19 lack the entry too. A half is reached only over a data
+# built before 2026-09-27 lacks the entry too, unguarded (its product string
+# is in every image); a halves image without config/cdc_acm_port.dtsi (#263 of
+# 2026-10-19 and older) is refused, as dongle.py image looks for the port's
+# device name, which lands with the entry. A half is reached only over a data
 # cable to this Mac while USB powers it (the port is the touch), one half per
-# run; both may stay plugged in. Re-enumeration shows that an image booted,
+# run; both may stay plugged in. A half running the other half's image
+# (flash-watch.sh's mount order decides which half gets imprint_left) answers
+# here to that image's name; the swap is undone by double-tap, never here.
+# Re-enumeration shows that an image booted,
 # not which one: the display (Prospector Dongle) or typing (Imprint Dongle, a
 # half) is the user's check. The first image with the entry goes on by
 # double-tap + cp -X (README; flash-watch.sh for the halves). The checks, the
@@ -114,7 +119,8 @@ run_bounded() {
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
 # The mounted UF2 bootloader volumes (an INFO_UF2.TXT at the root), one per
-# line: XIAO-SENSE for either dongle, a half's bootloader under its own name.
+# line: XIAO-SENSE for either dongle, ASSIMILATOR for either half (seen
+# 2026-10-19), a suffixed name for a second one of the same kind.
 uf2_volumes() {
   local v
   for v in /Volumes/*/; do
@@ -126,11 +132,11 @@ uf2_volumes() {
 # No volume on the device's USB location after the touch: what is on USB there
 # tells a touch the firmware ignored from a bootloader macOS did not mount.
 # Seen on hardware 2026-09-29: the bootloader enumerated, macOS's write to its
-# FAT failed and the mass storage driver gave up after 5 resets; bootloader
-# 0.6.1 then returns to the app if its USB was not up within 3 s, and otherwise
-# stays in the bootloader with no way out but a replug or a reset. The app is
-# known by product string and manufacturer together: the right half's product
-# string is empty.
+# FAT failed and the mass storage driver gave up after 5 resets; the dongles'
+# bootloader 0.6.1 then returns to the app if its USB was not up within 3 s,
+# and otherwise stays in the bootloader with no way out but a replug or a
+# reset (the halves' 0.9.2: not seen). The app is known by product string and
+# manufacturer together: the right half's product string is empty.
 no_volume() {
   local at product serial session manufacturer others="" why="log show --last 5m --predicate 'sender == \"IOUSBMassStorageDriver\"'"
   [ -z "$OTHER_VOLUMES" ] || others=" (UF2 volumes on other USB locations meanwhile: $OTHER_VOLUMES)"
@@ -141,7 +147,7 @@ no_volume() {
   elif [ "$product" = "$PRODUCT" ] && [ "$manufacturer" = "$MANUFACTURER" ]; then
     die "no bootloader volume on USB location $LOCATION within ${BOOT_TIMEOUT_S}s$others, and the $LABEL rebooted into its app: its bootloader went back to the app because macOS had not set up its USB within 3 s (why: $why), or the reboot missed the bootloader. Nothing copied."
   elif [ -n "$at" ]; then
-    die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, but the bootloader (\"${product:-no product string}\", serial ${serial:--}) is on USB at $LOCATION: macOS mounted no volume (why: $why), and it stays in the bootloader once its USB is up. Replug the device, then flash again."
+    die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, but the bootloader (\"${product:-no product string}\", serial ${serial:--}) is on USB at $LOCATION: no mounted UF2 volume's disk sits under it (why: $why), and it stays in the bootloader once its USB is up. Replug the device, then flash again."
   fi
   die_touched "no bootloader volume within ${BOOT_TIMEOUT_S}s$others, and nothing is on USB at $LOCATION."
 }
@@ -188,9 +194,8 @@ for tool in ioreg stty df pgrep python3 lockf; do
 done
 
 # One run at a time, whichever device: both dongles' bootloaders mount as
-# XIAO-SENSE, a half's under a name this script does not know, and the mount
-# check below cannot see a sibling run's touch until its volume mounts about
-# 2.5 s later. A fixed path, not $TMPDIR, so that every session
+# XIAO-SENSE and both halves' as ASSIMILATOR, and the mount check below cannot
+# see a sibling run's touch until its volume mounts about 2.5 s later. A fixed path, not $TMPDIR, so that every session
 # shares it; the kernel drops the lock when the last holder of fd 9 closes it.
 LOCK="/tmp/flash-dongle-$(id -u).lock"
 exec 9>>"$LOCK" || die "cannot open $LOCK"
@@ -278,8 +283,8 @@ run_bounded "$STTY_TIMEOUT_S" "$ERR" stty -f "$PORT" 1200
 say "      stty exit=$BOUNDED_RC$([ "$BOUNDED_RC" -ne 124 ] || echo " (killed after ${STTY_TIMEOUT_S}s)") $(tr '\n' ' ' <"$ERR")"
 
 # Identity, not presence: the device having left USB does not make a mounted
-# volume its own (the other dongle may hold XIAO-SENSE while this one's mounts
-# under a suffixed name; a half's bootloader has a name of its own). Its
+# volume its own (the other dongle may hold XIAO-SENSE, the other half
+# ASSIMILATOR, while this one's mounts under a suffixed name). Its
 # bootloader enumerates on the same USB port, so the volume taken is the one
 # whose disk sits under the device at LOCATION; every other is left alone. A
 # volume still mounting fails the owner lookup and is tried again.

@@ -103,17 +103,18 @@ wipe NVS (every BLE bond and setting, on all three devices) first, build
 `scripts/flash-reset.sh`; the re-pairing procedure is in
 [docs/recovery.md](docs/recovery.md).
 
-The Imprint Dongle (images from 2026-09-27 on) and both halves (images from
-2026-10-19 on) also enter the bootloader when their CDC port is opened at 1200
-baud, the Prospector Dongle's mechanism, so `flash-dongle.sh` needs no
+The Imprint Dongle (images from 2026-09-27 on) and both halves (images after
+#263 of 2026-10-19, which carry `config/cdc_acm_port.dtsi`; `flash-dongle.sh`
+refuses an older halves image) also enter the bootloader when their CDC port is
+opened at 1200 baud, the Prospector Dongle's mechanism, so `flash-dongle.sh` needs no
 double-tap except the first time, coming from an image without that entry;
 `flash-watch.sh` / `flash-reset.sh` and a failed `flash-dongle.sh` run take it
 by double-tap (by hand: [docs/recovery.md](docs/recovery.md)). Claude Code
 flashes them with `./scripts/flash-dongle.sh imprint_dongle`, `imprint_left` or
 `imprint_right`, which finds the port by the firmware stamp (the Imprint Dongle
 also by its product string `Imprint Dongle`) and copies with `cp -X` only after
-checking that the mounted bootloader volume (`XIAO-SENSE` for a dongle) carries
-that device's USB location; a half is reached only over a data cable while USB
+checking that the mounted bootloader volume (`XIAO-SENSE` for a dongle,
+`ASSIMILATOR` for a half) carries that device's USB location; a half is reached only over a data cable while USB
 powers it. Never open any of their ports at 1200 baud while `flash-watch.sh` /
 `flash-reset.sh` runs.
 
