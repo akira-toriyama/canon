@@ -68,6 +68,11 @@ flowchart TB
 The split keyboard: the left and right halves (board `assimilator-bt`, shields
 `imprint_left` / `imprint_right`), both BLE split peripherals of the
 [[Imprint Dongle]]. [Product page](https://cyboard.digital/products/imprint).
+On USB each half is one CDC ACM port (the left with product string `Imprint`,
+the right with none; `scripts/dongle.py` tells them by their [[firmware stamp]]),
+and 1200 baud on it reboots the half into its UF2 bootloader for
+`scripts/flash-dongle.sh` (images from 2026-10-19 on).
+- Config: [`config/imprint_left.conf`](../config/imprint_left.conf), [`config/imprint_right.conf`](../config/imprint_right.conf), [`config/cdc_acm_port.dtsi`](../config/cdc_acm_port.dtsi)
 - **Don't call it:** the keyboard, Cyboard (that is the vendor), imprint alone (that is the `build-zmk.sh` group), キーボード本体
 
 ### Imprint Dongle

@@ -31,7 +31,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 ## Where to look
 
 - `config/`: `imprint.keymap` (includes `behavior_macros.h` and the keymap-side `*.dtsi`; the halves'
-  overlays include `lantern_rail.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
+  overlays include `lantern_rail.dtsi` and `cdc_acm_port.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
   `imprint.json` (keymap-drawer's physical layout), and confs and overlays per shield: ZMK merges the
   `.conf` of every shield-name prefix (`imprint.conf` serves all three imprint targets) but takes only
   the first matching overlay: a `config/imprint.overlay` would silently replace `imprint_left.overlay`
@@ -79,9 +79,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Goal | Command | Healthy result |
 | --- | --- | --- |
 | Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin)` |
-| Flash either dongle, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display or both halves typing (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222) |
-| Flash the halves and the Imprint Dongle | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
-| Find the dongles | `python3 scripts/dongle.py list` | each dongle with its `/dev/cu.*` port, `location=… serial=…`, `port free`; `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
+| Flash any one device on USB, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| imprint_left \| imprint_right \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`; a half only over a data cable while USB powers it, both halves may stay plugged in) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display, both halves typing, or the flashed half typing and lit (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222); the halves' are not yet timed on hardware |
+| Flash the halves and the Imprint Dongle by double-tap (the first image with the 1200 baud entry, a `_RESET` flow, a failed run) | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
+| Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
 
@@ -188,19 +188,23 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `patches/zephyr/`). Hardware 2026-09-26/27 (t-eray): reconnects unchanged over 5 reboots and a
   half's power cycle, 0 advertising errors, 255-269 payloads a minute.
 - **Both dongles mount the same `XIAO-SENSE` bootloader volume, and flash-watch.sh / flash-reset.sh
-  copy `imprint_dongle*.uf2` onto the first XIAO bootloader they see**: never put the Prospector
-  Dongle into its bootloader while they run, nor both dongles at once. flash-dongle.sh guards this
-  (their shared lock; no start while `XIAO-SENSE` is mounted; a copy only onto the disk at that
-  dongle's USB location, which its bootloader keeps, 2026-09-26; details: its header). The first image
-  with the 1200 baud entry, or a failed run, takes a double-tap + `cp -X` (README, docs/recovery.md).
-- **A dongle port's rate is a command**: 1200 baud reboots either dongle into its UF2 bootloader,
-  2400 makes the Prospector Dongle send its screen (zmk-beacon's
-  `CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on in its shield and, since 2026-09-27, in
-  `config/imprint_dongle.conf`, whose product image has the port too; `CONFIG_BEACON_SCREEN_DUMP`).
-  Any program that sets the rate does it (`stty`, a serial monitor): never open a dongle port at
-  either rate by hand. Find ports by USB product string, never by VID/PID or a `/dev/cu.usbmodem*`
-  name (it follows the USB location). The option depends on `USB_CDC_ACM`, without which `=y` drops
-  out with a mere warning: after a ZMK bump, grep it in `build/imprint_dongle/zephyr/.config`.
+  copy `imprint_dongle*.uf2` onto the first XIAO bootloader they see and the halves' images onto any
+  other**: never put the Prospector Dongle into its bootloader while they run, nor both dongles at
+  once. flash-dongle.sh guards this (their shared lock; no start while any UF2 volume is mounted; a
+  copy only onto the volume whose disk sits at that device's USB location, which its bootloader
+  keeps, 2026-09-26, so a half's volume name, unrecorded, never matters; details: its header). The
+  first image with the 1200 baud entry, or a failed run, takes a double-tap + `cp -X` (README,
+  docs/recovery.md).
+- **A canon device's port rate is a command**: 1200 baud reboots either dongle or either half into
+  its UF2 bootloader, 2400 makes the Prospector Dongle send its screen (zmk-beacon's
+  `CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on in its shield, since 2026-09-27 in
+  `config/imprint_dongle.conf`, whose product image has the port too, and since 2026-10-19 in
+  `config/imprint_left.conf` / `imprint_right.conf` with the port from `config/cdc_acm_port.dtsi`;
+  `CONFIG_BEACON_SCREEN_DUMP`). Any program that sets the rate does it (`stty`, a serial monitor):
+  never open a canon device's port at either rate by hand. Find ports by the firmware stamp or a
+  dongle's USB product string, never by VID/PID or a `/dev/cu.usbmodem*` name (it follows the USB
+  location). The option depends on `USB_CDC_ACM`, without which `=y` drops out with a mere warning:
+  after a ZMK bump, grep it in `build/<shield>/zephyr/.config` of the Imprint Dongle and both halves.
 - **A split peripheral's slot index is the order the dongle first hears it, persisted**: ZMK's
   `zmk_ble_put_peripheral_addr()` (`app/src/ble.c`) saves a new advertiser in the first free slot,
   before pairing and even if pairing fails, and `reserve_peripheral_slot()` (`central.c`) maps it back

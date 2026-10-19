@@ -18,8 +18,11 @@ images are in the main checkout, `/Volumes/workspace/github.com/akira-toriyama/c
 - A `*_RESET.uf2` is the normal build plus `CONFIG_ZMK_SETTINGS_RESET_ON_START=y`
   ([build-zmk.sh](../scripts/build-zmk.sh) `--reset`): it erases at every boot,
   before Bluetooth starts, until a normal image replaces it.
-- The halves reach their bootloader only by a reset double-tap; a single tap
-  reboots. No key in the keymap uses the `&bt` or `&bootloader` behavior.
+- The halves reach their bootloader by a reset double-tap or, on an image from
+  2026-10-19 on, by `scripts/flash-dongle.sh imprint_left` / `imprint_right`
+  over their USB CDC port (1200 baud; `config/cdc_acm_port.dtsi`) while a data
+  cable powers them; a single tap reboots. No key in the keymap uses the `&bt`
+  or `&bootloader` behavior.
 - The Cyboard Imprint may be the Mac's only keyboard. Nothing types from an
   erase until the halves pair again: have another USB keyboard or the macOS
   Accessibility Keyboard ready first.
