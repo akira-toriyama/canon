@@ -33,8 +33,10 @@ manifest:
       revision: d8fc541071b7e8fc2e8885a10a9444c1bb741b55
       path: modules/zmk-beacon
     # zmk-lantern (own module): the halves' key LEDs, lit only while USB
-    # powers the half, and the boot light (config/lantern_rail.dtsi, the
-    # underglow lines of imprint_left.conf / imprint_right.conf). Pinned by
+    # powers the half and it is in use (ZMK's idle state after
+    # CONFIG_ZMK_IDLE_TIMEOUT turns them off), and the boot light
+    # (config/lantern_rail.dtsi, the underglow and idle lines of
+    # imprint_left.conf / imprint_right.conf). Pinned by
     # commit like zmk-beacon; bump the SHA by hand after a merge there. Until
     # the scripts take a second module (t-66ww) a build takes
     # modules/zmk-lantern as west update left it: a pin bump needs
@@ -42,7 +44,7 @@ manifest:
     # tree id.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 13af1eea39582dfdadac2305bbe19dbc57c44522
+      revision: 30baf118ea245f61ad11881b77487c6e60a6aa50
       path: modules/zmk-lantern
   self:
     path: config

@@ -115,8 +115,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     release (2026-09-26, t-5gxp): the `prospector` shield and the Imprint Dongle's status
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
   - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
-    LEDs, lit only while USB powers the half, and the boot light; the LED rail is its (the
-    invariant below). Bump the SHA by hand after a merge there. Until t-66ww the scripts know only
+    LEDs, lit only while USB powers the half and it is in use, and the boot light; the LED rail is
+    its (the invariant below). Bump the SHA by hand after a merge there. Until t-66ww the scripts know only
     zmk-beacon: the stamp hashes zmk-lantern's SHA as text in `west.yml`, not its tree id,
     `zmk-west.sh pin` does not check its checkout (a pin bump needs `--update`), and there is no
     `--beacon`-like flag for it.
@@ -170,7 +170,14 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   holds the pin low with a hog until the module takes it, and declares the `lantern,rail` node;
   `imprint_left.conf` / `imprint_right.conf` carry the five underglow lines the module asserts
   (`CONFIG_ZMK_RGB_UNDERGLOW=y`, `_EXT_POWER=n`, `_AUTO_OFF_USB=n`, `_AUTO_OFF_IDLE=n`, `_ON_START=n`;
-  a wrong line is a build error). Never re-enable the node: the driver turns the rail on at init and
+  a wrong line is a build error) and `CONFIG_ZMK_IDLE_TIMEOUT=300000`, the module's idle rule
+  (`CONFIG_LANTERN_OFF_WHEN_IDLE`, its default): five minutes without a key, sensor or pointing
+  input on a half, and its LEDs go dark on USB too, lit again at the next input; each half counts
+  for itself, and a cable plugged into an idle half lights nothing until its next key (the module's
+  source says why). The timeout is ZMK's, not the module's (ZMK's activity state already counts
+  the inputs, and t-6ttk's effects read the same); with `CONFIG_ZMK_SLEEP=n` it moves nothing
+  else in a half but the battery sampling, paused while idle (the half's zmk.map, 2026-10-19).
+  Never re-enable the node: the driver turns the rail on at init and
   restores a stored `ext_power/state/EXT_POWER` at settings load, and the left half's NVS holds off
   (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
   2026-10-19); erasing it is a settings reset, bonds included. No `&ext_power` or `&rgb_ug` key:

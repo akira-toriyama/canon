@@ -277,12 +277,14 @@ path inside any git work tree.
 ### zmk-lantern
 The own ZMK module
 ([akira-toriyama/zmk-lantern](https://github.com/akira-toriyama/zmk-lantern))
-that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half,
-and for a second at boot: it drives the half's LED rail (assimilator-bt P1.02,
-the pin ZMK's `ext_power` driver would own) itself, on with a cable and off on
-battery, and switches ZMK's underglow with it, so the LEDs cost the battery
-nothing. Each half decides from its own port; nothing crosses the split.
-- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node) and the underglow lines of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the dongles build none of it.
+that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half
+and the half is in use, and for a second at boot: it drives the half's LED
+rail (assimilator-bt P1.02, the pin ZMK's `ext_power` driver would own)
+itself, on with a cable and off on battery or after five minutes without a key
+(ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), and switches ZMK's underglow
+with it, so the LEDs cost the battery nothing. Each half decides from its own
+port and its own keys; nothing crosses the split.
+- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node) and the underglow and idle lines of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the dongles build none of it.
 - The colour is ZMK's underglow default (hue 40, saturation 100, brightness 25 %, solid); `CONFIG_ZMK_RGB_UNDERGLOW_{HUE,SAT,BRT,EFF}_START` in the halves' confs change it. No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature that paints the LEDs; the module switches it), lantern alone in prose, LED module, バックライトモジュール
 
