@@ -284,9 +284,23 @@ itself, on with a cable and off on battery or after five minutes without a key
 (ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), and switches ZMK's underglow
 with it, so the LEDs cost the battery nothing. Each half decides from its own
 port and its own keys; nothing crosses the split.
-- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node) and the underglow and idle lines of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the dongles build none of it.
-- The colour is ZMK's underglow default (hue 40, saturation 100, brightness 25 %, solid); `CONFIG_ZMK_RGB_UNDERGLOW_{HUE,SAT,BRT,EFF}_START` in the halves' confs change it. No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
+- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node) and the underglow and idle lines of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]] side only (the behavior, the port, the resend), the Prospector Dongle none of it.
+- The colour is the [[palette]]'s slot 0 (hue and saturation) at the conf's brightness (`CONFIG_ZMK_RGB_UNDERGLOW_BRT_START`, 25 %), and ZMK's underglow default (hue 40, saturation 100, solid) until the first palette; `CONFIG_ZMK_RGB_UNDERGLOW_{HUE,SAT,EFF}_START` in the halves' confs set only that. No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature that paints the LEDs; the module switches it), lantern alone in prose, LED module, バックライトモジュール
+
+### palette
+The four colours (`0xRRGGBB`, slots 0..3) the Mac hands the [[Imprint Dongle]]
+with `python3 scripts/dongle.py palette`, which the dongle and both halves of
+the [[Cyboard Imprint]] keep in their settings across boots, and whose slot 0
+is the hue and saturation [[zmk-lantern]] paints the key LEDs with (slots 1..3
+change nothing yet). The dongle invokes the [[behavior]] node `palette` of
+[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
+ZMK's split transport carries to both halves by its name, and resends the
+palette after each battery report of a half, so a half that was away gets it
+when it is back.
+- The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/palette_port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette_port.c); the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
+- A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
+- **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state that slot 0 writes), パレット設定
 
 ---
 

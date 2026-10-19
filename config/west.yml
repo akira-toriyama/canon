@@ -36,7 +36,10 @@ manifest:
     # powers the half and it is in use (ZMK's idle state after
     # CONFIG_ZMK_IDLE_TIMEOUT turns them off), and the boot light
     # (config/lantern_rail.dtsi, the underglow and idle lines of
-    # imprint_left.conf / imprint_right.conf). Pinned by
+    # imprint_left.conf / imprint_right.conf), and their colour: the
+    # palette scripts/dongle.py palette hands the Imprint Dongle, carried
+    # to both halves by the palette behavior of config/imprint_behaviors.dtsi
+    # (the dongle builds the module's palette side only). Pinned by
     # commit like zmk-beacon; bump the SHA by hand after a merge there. Until
     # the scripts take a second module (t-66ww) a build takes
     # modules/zmk-lantern as west update left it: a pin bump needs
@@ -44,7 +47,7 @@ manifest:
     # tree id.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 30baf118ea245f61ad11881b77487c6e60a6aa50
+      revision: ce96fe0119d8d75bf2688350277f3d8932901b60
       path: modules/zmk-lantern
   self:
     path: config
