@@ -925,13 +925,14 @@ def wait_for_device(device, seconds):
         time.sleep(min(WAIT_POLL_S, deadline - now))
 
 
-def cmd_palette(args):
-    if len(args.colours) > PALETTE_SLOTS:
-        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
-    if args.wait:
-        waited = wait_for_device("imprint_dongle", args.wait)
-        print("dongle.py: waited %.1f s for the %s" % (waited, label("imprint_dongle")), file=sys.stderr)
-    dev = the_device("imprint_dongle")
+# The dongle's reply while its settings have not loaded yet (zmk-lantern's
+# palette_port.c): one that just booted, its USB up before them.
+NOT_READY = PALETTE_WORD + " error: not ready"
+
+
+def exchange(dev, line, seconds):
+    """Write the line on the dongle's port and return its reply line, or
+    None at the deadline."""
     port = dev.ports[0]
     holders = port_holders(dev)
     if holders:
@@ -943,12 +944,29 @@ def cmd_palette(args):
         raise Failure("cannot open %s: %s" % (port, e.args[-1]))
     try:
         drain(fd, port)
-        line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
         # The newline first ends whatever partial line the port may hold.
         os.write(fd, ("\n" + line + "\n").encode("ascii"))
-        reply = read_palette_reply(fd, port, args.seconds)
+        return read_palette_reply(fd, port, seconds)
     finally:
         os.close(fd)
+
+
+def cmd_palette(args):
+    if len(args.colours) > PALETTE_SLOTS:
+        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
+    line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
+    deadline = time.monotonic() + args.wait
+    if args.wait:
+        waited = wait_for_device("imprint_dongle", args.wait)
+        print("dongle.py: waited %.1f s for the %s" % (waited, label("imprint_dongle")), file=sys.stderr)
+    while True:
+        reply = exchange(the_device("imprint_dongle"), line, args.seconds)
+        if reply is None or not reply.startswith(NOT_READY) or time.monotonic() >= deadline:
+            break
+        # A KVM switch that cut the dongle's power rebooted it, and its USB
+        # came up before its settings: --wait's budget covers that too.
+        print("dongle.py: %s; asking again" % reply, file=sys.stderr)
+        time.sleep(WAIT_POLL_S)
     if reply is None:
         raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-lantern's "
                       "CONFIG_LANTERN_PALETTE_PORT ignores the line" % args.seconds)
@@ -1162,6 +1180,17 @@ def seconds(text):
     return value
 
 
+def wait_seconds(text):
+    """--wait: seconds from 0 (0 = no wait)."""
+    try:
+        value = float(text)
+    except ValueError:
+        value = math.nan
+    if not (math.isfinite(value) and value >= 0):
+        raise argparse.ArgumentTypeError("a number of seconds from 0, not %r" % text)
+    return value
+
+
 def regex(text):
     try:
         return re.compile(text)
@@ -1243,9 +1272,11 @@ def parser():
                    help="slots 0.. in order, one to six, six hex digits each (# or 0x allowed in front)")
     s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
                    help="give up on the reply after N seconds (default 3)")
-    s.add_argument("--wait", type=seconds, default=0.0, metavar="N",
-                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port "
-                        "(a KVM switch hides it for a while; default: no wait)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (a KVM switch hides it "
+                        "for a while, and may have rebooted it: its USB comes up before its settings; "
+                        "default 0, no wait)")
     s.set_defaults(func=cmd_palette)
 
     s = sub.add_parser(

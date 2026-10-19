@@ -31,12 +31,14 @@ manifest:
       import: config/west.yml
     # zmk-beacon (own module): the Prospector Dongle's `prospector` shield and
     # the Imprint Dongle's status broadcaster (CONFIG_BEACON_STATUS_BROADCAST
-    # in config/imprint_dongle.conf). Pinned by commit, not by tag, so canon
+    # in config/imprint_dongle.conf), and tools/ (the sprite sender and
+    # sprite_colours.py, which dotfiles builds from zmk-beacon's main, not
+    # from this pin). Pinned by commit, not by tag, so canon
     # takes a change without a zmk-beacon release; bump the SHA by hand.
     # scripts/build-zmk.sh checks it out at this pin before every build.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: d8fc541071b7e8fc2e8885a10a9444c1bb741b55
+      revision: f136a0fdc6eb28e2cc45e4b87c8ea3f9087ef036
       path: modules/zmk-beacon
     # zmk-lantern (own module): the halves' key LEDs, lit only while USB
     # powers the half and it is in use (ZMK's idle state after
