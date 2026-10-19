@@ -32,5 +32,17 @@ manifest:
       remote: akira-toriyama
       revision: d8fc541071b7e8fc2e8885a10a9444c1bb741b55
       path: modules/zmk-beacon
+    # zmk-lantern (own module): the halves' key LEDs, lit only while USB
+    # powers the half, and the boot light (config/lantern_rail.dtsi, the
+    # underglow lines of imprint_left.conf / imprint_right.conf). Pinned by
+    # commit like zmk-beacon; bump the SHA by hand after a merge there. Until
+    # the scripts take a second module (t-66ww) a build takes
+    # modules/zmk-lantern as west update left it: a pin bump needs
+    # build-zmk.sh --update, and the stamp hashes this SHA as text, not the
+    # tree id.
+    - name: zmk-lantern
+      remote: akira-toriyama
+      revision: 13af1eea39582dfdadac2305bbe19dbc57c44522
+      path: modules/zmk-lantern
   self:
     path: config

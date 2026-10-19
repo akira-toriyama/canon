@@ -1,0 +1,58 @@
+// The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's (config/west.yml),
+// not ZMK's ext_power driver's: the module turns the rail on while USB powers
+// the half and for the boot light, and off on battery (its README; CLAUDE.md,
+// Invariants). For the halves' overlays only: the dongle has no EXT_POWER
+// node, and a target without a lantern,rail node builds none of the module.
+//
+// Why the EXT_POWER node stays disabled, and must never come back: with
+// status = "disabled" zmk,ext-power-generic's whole file, its settings
+// handler included, leaves the build. Enabled, ext_power_generic_init() turns
+// the rail on at every boot and settings_load() then restores
+// "ext_power/state/EXT_POWER" from NVS: the left half's NVS holds off (the
+// stock Cyboard keymap's &ext_power EP_OFF), which kept the left half dark
+// while the right half lit (t-y4ec, 2026-10-19), and erasing that value is a
+// settings reset, bonds included. With CONFIG_ZMK_SLEEP=n nothing would turn
+// the rail off again either: 10-18 mA per half at rest with the rail on,
+// 0.79 mA off (#207, 2026-09-15). CONFIG_ZMK_RGB_UNDERGLOW_EXT_POWER=n in the
+// halves' confs keeps rgb_underglow.c off the disabled node (DEVICE_DT_GET of
+// it fails the build).
+//
+// Why the hog: with the driver gone nothing configures P1.02 before the
+// module's init at APPLICATION, and in its reset state (input, high-Z) the
+// rail's state cannot be told without the schematic. Zephyr's
+// gpio_hogs_init() drives the pin low at POST_KERNEL, after the GPIO
+// controller (PRE_KERNEL_1); nothing reserves a hogged pin, so the module
+// takes it from there.
+//
+// Why not a key (&ext_power EP_OFF / EP_ON, &rgb_ug): with the dongle the
+// central has no EXT_POWER device, and zmk_behavior_invoke_binding() stops
+// with -EIO in the convert step before the GLOBAL forwarding (ZMK
+// app/src/behavior.c, app/src/behaviors/behavior_ext_power.c), so the press
+// never reaches the halves; an &rgb_ug that did would run the strip with the
+// rail off on battery (zmk-lantern's README).
+//
+// gpios and settle-ms copy the board's EXT_POWER control-gpios and
+// init-delay-ms (zmk-keyboards boards/cyboard/assimilator-bt/assimilator-bt.dts):
+// a renamed node fails the build here, a moved pin does not.
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+&{/EXT_POWER} {
+    status = "disabled";
+};
+
+&gpio1 {
+    lantern_rail_hog {
+        gpio-hog;
+        gpios = <2 GPIO_ACTIVE_HIGH>;
+        output-low;
+    };
+};
+
+/ {
+    lantern_rail: lantern_rail {
+        compatible = "lantern,rail";
+        gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+        settle-ms = <100>;
+    };
+};

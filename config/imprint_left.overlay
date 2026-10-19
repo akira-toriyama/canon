@@ -1,4 +1,4 @@
-#include "ext_power_off.dtsi"
+#include "lantern_rail.dtsi"
 
 // The left trackball goes to the Imprint Dongle: the left half is a split
 // peripheral, and upstream imprint.dtsi carries the sending input-split node
