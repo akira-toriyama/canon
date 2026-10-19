@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # Which USB device is which of canon's build targets (the two dongles and the
 # two halves of the Cyboard Imprint), a serial log reader that follows them, a
-# PNG of the Prospector Dongle's screen, and whether the firmware on USB is
-# the one origin/main would build (check: the firmware stamp, scripts/stamp.py).
+# PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
+# through the Imprint Dongle (palette: zmk-lantern's port), and whether the
+# firmware on USB is the one origin/main would build (check: the firmware
+# stamp, scripts/stamp.py).
 #
 # The one place that identifies canon's devices on USB: flash-dongle.sh leaves
 # the names and the ioreg and df lookups to the plumbing subcommands and parses
@@ -21,7 +23,7 @@
 # bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
-# again, never 1200. Neither sets TIOCEXCL: flash-dongle.sh's stty must still
+# again, never 1200; `palette` writes its line at 115200. Neither sets TIOCEXCL: flash-dongle.sh's stty must still
 # open a port that a reader holds, and a log reader then follows the dongle
 # through the bootloader into the new image's boot log.
 #
@@ -865,6 +867,77 @@ def cmd_shot(args):
     return 0
 
 
+PALETTE_WORD = "palette"
+PALETTE_SLOTS = 4
+
+
+def colour(text):
+    """A colour argument: RRGGBB, six hex digits, after an optional # or 0x."""
+    t = text
+    for prefix in ("0x", "0X", "#"):
+        if t.startswith(prefix):
+            t = t[len(prefix):]
+            break
+    if not re.fullmatch(r"[0-9A-Fa-f]{6}", t):
+        raise argparse.ArgumentTypeError("a colour is RRGGBB, six hex digits, not %r" % text)
+    return t.upper()
+
+
+# The reply, found in a line: the firmware starts it on a line of its own, but
+# a logging image's log thread, interrupted mid-line, finishes its line after
+# it, and the word also ends a log module's name ("lantern_palette:").
+PALETTE_REPLY = re.compile(r"(?<![A-Za-z_])palette(?: |$)")
+
+
+def read_palette_reply(fd, port, seconds):
+    """The dongle's first reply line from the port, cleaned, or None at the
+    deadline. A logging image's log lines pass by."""
+    buf = b""
+    deadline = time.monotonic() + seconds
+    while True:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return None
+        buf += read_some(fd, port, min(left, 0.5))
+        lines, buf = split_lines(buf)
+        for raw in lines:
+            m = PALETTE_REPLY.search(clean(raw))
+            if m is not None:
+                return m.string[m.start():]
+
+
+def cmd_palette(args):
+    if len(args.colours) > PALETTE_SLOTS:
+        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
+    dev = the_device("imprint_dongle")
+    port = dev.ports[0]
+    holders = port_holders(dev)
+    if holders:
+        raise Failure("%s is held by %s: it would take the dongle's reply; stop it first"
+                      % (port, ", ".join(holders)))
+    try:
+        fd = open_port(port)
+    except (OSError, termios.error) as e:  # termios.error is no OSError
+        raise Failure("cannot open %s: %s" % (port, e.args[-1]))
+    try:
+        drain(fd, port)
+        line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
+        # The newline first ends whatever partial line the port may hold.
+        os.write(fd, ("\n" + line + "\n").encode("ascii"))
+        reply = read_palette_reply(fd, port, args.seconds)
+    finally:
+        os.close(fd)
+    if reply is None:
+        raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-lantern's "
+                      "CONFIG_LANTERN_PALETTE_PORT ignores the line" % args.seconds)
+    print(reply)
+    if reply.startswith(PALETTE_WORD + " error"):
+        return 1
+    if args.colours and not reply.startswith(PALETTE_WORD + " ok "):
+        return 1
+    return 0
+
+
 def cmd_image(args):
     # Messages leave out the path: flash-dongle.sh passes a snapshot and names
     # the image itself.
@@ -1080,8 +1153,9 @@ def parser():
         prog="dongle.py",
         description="Find canon's devices on USB (the Imprint Dongle and the Prospector Dongle by their firmware "
                     "stamp or USB product string, the halves of the Cyboard Imprint by their stamp), read their "
-                    "serial logs, take a PNG of the Prospector Dongle's screen, and check the firmware stamp of "
-                    "every ZMK device on USB against origin/main. Devices: %s." % names,
+                    "serial logs, take a PNG of the Prospector Dongle's screen, set or ask the key LEDs' palette "
+                    "through the Imprint Dongle, and check the firmware stamp of every ZMK device on USB against "
+                    "origin/main. Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
                "3 check could not compute the digests.",
     )
@@ -1128,6 +1202,24 @@ def parser():
                                                  "(default: prospector-<date>-<time>-<microseconds>.png in the temporary directory)")
     s.add_argument("--seconds", type=seconds, default=10.0, metavar="N", help="give up after N seconds (default 10)")
     s.set_defaults(func=cmd_shot)
+
+    s = sub.add_parser(
+        "palette", help="set or ask the key LEDs' palette through the Imprint Dongle",
+        description="Write 'palette RRGGBB ...' (with no colour: 'palette?') on the Imprint Dongle's port at 115200 "
+                    "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
+                    "stay), sends them to both halves over the split (zmk-lantern's palette behavior; a half that is "
+                    "away gets them when it is back) and answers 'palette ok' with the four slots; each half keeps "
+                    "the four across boots and paints its key LEDs with slot 0's hue and saturation. With no colour "
+                    "the reply is 'palette' with the dongle's four slots, or 'palette none'. Refuses while another "
+                    "process holds the port (it would take the reply). Never sets 1200 baud.",
+        epilog="Exit status: 0 'palette ok' (set) or the slots (ask), 1 'palette error', no reply, or no "
+               "Imprint Dongle on USB (a KVM switch hides it; no retry), 2 usage.",
+    )
+    s.add_argument("colours", type=colour, nargs="*", metavar="RRGGBB",
+                   help="slots 0.. in order, one to four, six hex digits each (# or 0x allowed in front)")
+    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
+                   help="give up on the reply after N seconds (default 3)")
+    s.set_defaults(func=cmd_palette)
 
     s = sub.add_parser(
         "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",

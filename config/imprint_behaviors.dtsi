@@ -14,3 +14,15 @@
         compatible = "zmk,behavior-vkey";
         #binding-cells = <1>;
     };
+
+    // &palette: zmk-lantern's palette behavior (config/west.yml; its
+    // src/palette.c), never on a key. The Imprint Dongle's code invokes it
+    // with the colours `scripts/dongle.py palette` sends, and ZMK's split
+    // transport carries the invocation to both halves by this node's name,
+    // so the node is the same on all three (the keymap's behaviors reach
+    // every imprint target); a half stores the four colours and paints its
+    // key LEDs with slot 0 (CLAUDE.md, Invariants; the glossary: palette).
+    palette: palette {
+        compatible = "lantern,behavior-palette";
+        #binding-cells = <2>;
+    };
