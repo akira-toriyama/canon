@@ -3,12 +3,13 @@
 # manufacturer string, so that a Mac can tell from ioreg which inputs a
 # device runs (dongle.py check) without opening it.
 #
-#   stamp.py stamp <board> <shield> <suffix>        the manufacturer string for
+#   stamp.py stamp <board> <shield> -- <suffix>     the manufacturer string for
 #                                                   this tree (zmk-west.sh build)
-#   stamp.py verify <build-dir> <board> <shield> <suffix>
+#   stamp.py verify <build-dir> <board> <shield> -- <suffix>
 #                                                   after a build: the table
 #                                                   matches what the build read,
 #                                                   and the stamp took
+#   (the -- because a suffix starts with -: -logging, -kconfig, -<tag>)
 #   stamp.py digest <shield> [--ref REF] [--files]  the digest of this tree, or
 #                                                   of REF's commit; --files
 #                                                   lists the table
