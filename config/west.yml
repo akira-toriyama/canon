@@ -45,11 +45,12 @@ manifest:
     # imprint_left.conf / imprint_right.conf), and their colour: the
     # palette scripts/dongle.py palette hands the Imprint Dongle, carried
     # to both halves by the palette behavior of config/imprint_behaviors.dtsi
-    # (the dongle builds the module's palette side only). Pinned by
+    # (the dongle builds the module's palette side only; its conf sizes the
+    # split run queue for a whole palette, six slots). Pinned by
     # commit like zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: ce96fe0119d8d75bf2688350277f3d8932901b60
+      revision: 240680987ce811869a775709e39a566b41eb1876
       path: modules/zmk-lantern
   self:
     path: config

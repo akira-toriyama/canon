@@ -300,16 +300,18 @@ port and its own keys; nothing crosses the split.
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature that paints the LEDs; the module switches it), lantern alone in prose, LED module, バックライトモジュール
 
 ### palette
-The four colours (`0xRRGGBB`, slots 0..3) the Mac hands the [[Imprint Dongle]]
+The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
 with `python3 scripts/dongle.py palette`, which the dongle and both halves of
 the [[Cyboard Imprint]] keep in their settings across boots, and whose slot 0
-is the hue and saturation [[zmk-lantern]] paints the key LEDs with (slots 1..3
+is the hue and saturation [[zmk-lantern]] paints the key LEDs with (slots 1..5
 change nothing yet). The dongle invokes the [[behavior]] node `palette` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
 when it is back.
 - The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/palette_port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette_port.c); the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
+- The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the liveliest colour first), which the LaunchAgent in the user's dotfiles is to hand to `python3 scripts/dongle.py palette --wait 600` after each successful swap, so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
+- The dongle's split run queue holds a whole palette for both halves at once, three invocations a half: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
 - **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state that slot 0 writes), パレット設定
 
@@ -400,7 +402,8 @@ The Mac program that writes a [[sprite pack]] into the [[Prospector Dongle]]'s
 the external drive, one a run, in the order and range its config sets
 ([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite-sender)),
 packs it with its back view and sends it; a LaunchAgent in the user's dotfiles
-runs it once a day, and a failed day is skipped. Its config (`sender.json`) and
+runs it once a day, and a failed day is skipped; its `colours` subcommand prints
+the colours of the GIF it last sent, for the [[palette]]. Its config (`sender.json`) and
 state live next to the collection ([`assets/README.md`](../assets/README.md)),
 off every repository.
 - **Don't call it:** BLESend, uploader, daily swap script, 送信スクリプト, 送信アプリ

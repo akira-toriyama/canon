@@ -88,7 +88,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [RRGGBB …]` (one to four colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, no retry) | stdout `palette ok RRGGBB RRGGBB RRGGBB RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask), exit 0; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` and `slot 0 … applied: hue H sat S brt B` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
+| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s: a KVM switch hides it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` and `slot 0 … applied: hue H sat S brt B` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
@@ -121,20 +121,30 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
   - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
     LEDs, lit only while USB powers the half and it is in use, and the boot light; the LED rail is
-    its (the invariant below); and their colour, the palette (the glossary; t-k9e9): four colours
+    its (the invariant below); and their colour, the palette (the glossary; t-k9e9; six slots since
+    t-0967): six colours
     `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle as a line on its CDC ACM
     port (`palette` alone asks; the dongle answers `palette ok …`, `palette …`, `palette none` or
     `palette error: …`). The dongle stores them in NVS (`lantern/palette/colours`) and forwards them
     to both halves through the behavior node `palette` of `config/imprint_behaviors.dtsi`: ZMK's
     split transport names a behavior by its node name, so the node is the same on all three imprint
     targets, and the dongle builds the module's palette side (the Prospector Dongle none of the
-    module). Each half stores the four and paints its LEDs with slot 0's hue and saturation at the
+    module). Each half stores the six and paints its LEDs with slot 0's hue and saturation at the
     conf's brightness, at arrival and at every boot (its settings commit runs after ZMK restored
     `rgb/underglow/state`); the dongle resends the palette a second after each battery report of a
     half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
     connection event), so a half that was away gets it when it is back; a half writes NVS only for
-    a changed palette. Slots 1-3 change nothing until t-6ttk. The dongle's `palette ok` says it
-    stored and queued, not that a half has it. Bump the SHA by hand after a merge there. The
+    a changed palette, and ignores a stored palette of another slot count (an image from before
+    t-0967): `palette none` until the Mac sends again. Slots 1-5 change nothing until t-69g7. The
+    dongle's `palette ok` says it stored and queued, not that a half has it: a set or a resend
+    queues three split invocations a half (two slots each), so `config/imprint_dongle.conf` sets
+    `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6` (ZMK's default 5 holds five of the six;
+    a put into a full queue waits 100 ms for the drain and then drops the oldest, the left half's
+    slots 0-1; the module asserts the size). The daily palette (t-0967): the five colours of the
+    sprite GIF the sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the
+    LaunchAgent in dotfiles is to hand to `dongle.py palette --wait 600` after each successful
+    swap (the values are GIF-derived: never in a commit, PR or doc, the Privacy section). Bump
+    the SHA by hand after a merge there. The
     scripts treat every project of west.yml's `akira-toriyama` remote alike (`stamp.py pins`;
     t-66ww, 2026-10-19): the stamp takes its tree id, every build checks its clone out at the pin,
     and `build-zmk.sh --module <dir>` builds a local tree of it, so a third module needs no script
