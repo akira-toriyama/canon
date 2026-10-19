@@ -868,7 +868,9 @@ def cmd_shot(args):
 
 
 PALETTE_WORD = "palette"
-PALETTE_SLOTS = 4
+PALETTE_SLOTS = 6
+# `palette --wait` polls for the dongle at flash-dongle.sh --wait's rate.
+WAIT_POLL_S = 0.5
 
 
 def colour(text):
@@ -906,10 +908,31 @@ def read_palette_reply(fd, port, seconds):
                 return m.string[m.start():]
 
 
-def cmd_palette(args):
-    if len(args.colours) > PALETTE_SLOTS:
-        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
-    dev = the_device("imprint_dongle")
+def wait_for_device(device, seconds):
+    """Poll for the device with a port, up to seconds (a KVM switch hides the
+    dongles for a while), and return the time waited. The caller's lookup
+    decides afterwards, so a device still absent gets its usual message."""
+    start = time.monotonic()
+    deadline = start + seconds
+    while True:
+        try:
+            present = any(d.ports for d in find({device}))
+        except Failure:
+            present = False
+        now = time.monotonic()
+        if present or now >= deadline:
+            return now - start
+        time.sleep(min(WAIT_POLL_S, deadline - now))
+
+
+# The dongle's reply while its settings have not loaded yet (zmk-lantern's
+# palette_port.c): one that just booted, its USB up before them.
+NOT_READY = PALETTE_WORD + " error: not ready"
+
+
+def exchange(dev, line, seconds):
+    """Write the line on the dongle's port and return its reply line, or
+    None at the deadline."""
     port = dev.ports[0]
     holders = port_holders(dev)
     if holders:
@@ -921,12 +944,29 @@ def cmd_palette(args):
         raise Failure("cannot open %s: %s" % (port, e.args[-1]))
     try:
         drain(fd, port)
-        line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
         # The newline first ends whatever partial line the port may hold.
         os.write(fd, ("\n" + line + "\n").encode("ascii"))
-        reply = read_palette_reply(fd, port, args.seconds)
+        return read_palette_reply(fd, port, seconds)
     finally:
         os.close(fd)
+
+
+def cmd_palette(args):
+    if len(args.colours) > PALETTE_SLOTS:
+        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
+    line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
+    deadline = time.monotonic() + args.wait
+    if args.wait:
+        waited = wait_for_device("imprint_dongle", args.wait)
+        print("dongle.py: waited %.1f s for the %s" % (waited, label("imprint_dongle")), file=sys.stderr)
+    while True:
+        reply = exchange(the_device("imprint_dongle"), line, args.seconds)
+        if reply is None or not reply.startswith(NOT_READY) or time.monotonic() >= deadline:
+            break
+        # A KVM switch that cut the dongle's power rebooted it, and its USB
+        # came up before its settings: --wait's budget covers that too.
+        print("dongle.py: %s; asking again" % reply, file=sys.stderr)
+        time.sleep(WAIT_POLL_S)
     if reply is None:
         raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-lantern's "
                       "CONFIG_LANTERN_PALETTE_PORT ignores the line" % args.seconds)
@@ -1140,6 +1180,17 @@ def seconds(text):
     return value
 
 
+def wait_seconds(text):
+    """--wait: seconds from 0 (0 = no wait)."""
+    try:
+        value = float(text)
+    except ValueError:
+        value = math.nan
+    if not (math.isfinite(value) and value >= 0):
+        raise argparse.ArgumentTypeError("a number of seconds from 0, not %r" % text)
+    return value
+
+
 def regex(text):
     try:
         return re.compile(text)
@@ -1208,17 +1259,24 @@ def parser():
         description="Write 'palette RRGGBB ...' (with no colour: 'palette?') on the Imprint Dongle's port at 115200 "
                     "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
                     "stay), sends them to both halves over the split (zmk-lantern's palette behavior; a half that is "
-                    "away gets them when it is back) and answers 'palette ok' with the four slots; each half keeps "
-                    "the four across boots and paints its key LEDs with slot 0's hue and saturation. With no colour "
-                    "the reply is 'palette' with the dongle's four slots, or 'palette none'. Refuses while another "
+                    "away gets them when it is back) and answers 'palette ok' with the six slots; each half keeps "
+                    "the six across boots and paints its key LEDs with slot 0's hue and saturation. With no colour "
+                    "the reply is 'palette' with the dongle's six slots, or 'palette none' (also from a device "
+                    "flashed across the change from four slots to six, until the next set). Refuses while another "
                     "process holds the port (it would take the reply). Never sets 1200 baud.",
         epilog="Exit status: 0 'palette ok' (set) or the slots (ask), 1 'palette error', no reply, or no "
-               "Imprint Dongle on USB (a KVM switch hides it; no retry), 2 usage.",
+               "Imprint Dongle on USB (a KVM switch hides it: --wait N polls for it first, otherwise no retry), "
+               "2 usage.",
     )
     s.add_argument("colours", type=colour, nargs="*", metavar="RRGGBB",
-                   help="slots 0.. in order, one to four, six hex digits each (# or 0x allowed in front)")
+                   help="slots 0.. in order, one to six, six hex digits each (# or 0x allowed in front)")
     s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
                    help="give up on the reply after N seconds (default 3)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (a KVM switch hides it "
+                        "for a while, and may have rebooted it: its USB comes up before its settings; "
+                        "default 0, no wait)")
     s.set_defaults(func=cmd_palette)
 
     s = sub.add_parser(
