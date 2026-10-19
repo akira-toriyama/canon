@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-# Which USB device is which dongle, a serial log reader that follows them, a
+# Which USB device is which of canon's build targets (the two dongles and the
+# two halves of the Cyboard Imprint), a serial log reader that follows them, a
 # PNG of the Prospector Dongle's screen, and whether the firmware on USB is
 # the one origin/main would build (check: the firmware stamp, scripts/stamp.py).
 #
-# The one place that identifies the dongles on USB: flash-dongle.sh leaves the
-# product strings and the ioreg and df lookups to the plumbing subcommands and
-# parses their US-separated fields, so those fields are a contract with it.
-# `check`'s lines and --json are a contract with the daily check in dotfiles
-# (canon CLAUDE.md, Invariants).
+# The one place that identifies canon's devices on USB: flash-dongle.sh leaves
+# the names and the ioreg and df lookups to the plumbing subcommands and parses
+# their US-separated fields, so those fields are a contract with it. `check`'s
+# lines and --json are a contract with the daily check in dotfiles (canon
+# CLAUDE.md, Invariants).
 #
-# Identity is the USB product string alone. Both dongles (and the ist dongle
-# of zmk-hid-host) carry ZMK's default VID/PID 0x1D50/0x615E, and a
-# /dev/cu.usbmodem* name is derived from the USB location (0x02112000 ->
-# usbmodem211201): never identify a dongle by either.
+# Identity is the firmware stamp (the USB manufacturer string names the build
+# target) or, for a dongle built before the stamp, its USB product string
+# (DEVICES). Never VID/PID: every ZMK device (the ist dongle of zmk-hid-host
+# too) carries ZMK's default 0x1D50/0x615E. Never a /dev/cu.usbmodem* name: it
+# is derived from the USB location (0x02112000 -> usbmodem211201).
 #
 # The rate of a port is a command to the firmware, whichever program sets it,
-# acted on when the rate changes: 1200 reboots either dongle into its UF2
+# acted on when the rate changes: 1200 reboots any of the four into its UF2
 # bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
@@ -57,17 +59,33 @@ REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 #   imprint_dongle  ZMK_KEYBOARD_NAME in zmk-keyboards'
 #                   boards/shields/imprint_dongle/Kconfig.defconfig, which
 #                   chord's VKeyHIDSource matches too (canon CLAUDE.md)
+#   imprint_left    ZMK_KEYBOARD_NAME of Cyboard's imprint shield, set under
+#                   SHIELD_IMPRINT_LEFT only
+#   imprint_right   none: its .config has CONFIG_USB_DEVICE_PRODUCT="" (2026-10-13)
+# A dongle is told by its product string as well as by its stamp (an image
+# built before the stamp has no other name); a half by its stamp alone: ""
+# names nothing, and "Imprint" is a prefix of "Imprint Dongle" in a payload.
 DEVICES = {
     "prospector": "Prospector Dongle",
     "imprint_dongle": "Imprint Dongle",
+    "imprint_left": "Imprint",
+    "imprint_right": "",
 }
+DONGLES = ("prospector", "imprint_dongle")
+HALVES = ("imprint_left", "imprint_right")
+# Zephyr's device name for config/cdc_acm_port.dtsi's node, in a halves image's
+# payload exactly when the image has the port and, with it, the 1200 baud entry
+# (both come from that dtsi and the halves' confs): a halves image of #263
+# (2026-10-19) or older carries the stamp but neither, and would strand the
+# next flash. Nothing like it tells the dongles' images apart: their board's
+# board_cdc_acm_uart holds the same string in every image.
+HALVES_PORT_MARK = b"cdc_acm_uart"
 
-# The product strings of canon's targets before the stamp: the dongles', the
-# halves' "Imprint" (ZMK_KEYBOARD_NAME of Cyboard's imprint shield) and the
-# right half's empty one (its .config has CONFIG_USB_DEVICE_PRODUCT="",
-# 2026-10-13). check reports an unstamped device only with one of these: the
-# ist dongles of zmk-hid-host are ZMK too, and not canon's to report.
-UNSTAMPED_PRODUCTS = set(DEVICES.values()) | {"Imprint", ""}
+# Unstamped product string -> target, for check's report of a device built
+# before the stamp; "" is reported without a target (the right half, or another
+# ZMK board). The ist dongles of zmk-hid-host are ZMK too, and not canon's.
+UNSTAMPED_TARGETS = dict((DEVICES[name], name) for name in DONGLES + ("imprint_left",))
+UNSTAMPED_PRODUCTS = set(UNSTAMPED_TARGETS) | {""}
 
 VOLUME = "/Volumes/XIAO-SENSE"
 FLASHERS = r"flash-(watch|reset|impl)\.sh"  # flash-dongle.sh's guard pattern
@@ -130,7 +148,7 @@ HEXDUMP_ROW = re.compile(r"^\s+(?:[0-9a-f]{2} +){1,16}.*\|")
 # and newline.
 ESCAPES = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|[@-Z\\-_])|[\x00-\x08\x0b-\x1f\x7f]")
 
-UsbDevice = namedtuple("UsbDevice", "product serial session location ports dialins manufacturer")
+UsbDevice = namedtuple("UsbDevice", "target product serial session location ports dialins manufacturer")
 STAMP_IN_IMAGE = re.compile(rb"ZMK Project \(canon [ -~]*?\)")  # the manufacturer string, ASCII in the UF2 payload
 
 
@@ -165,8 +183,26 @@ def walk(node, usb=None):
         yield from walk(kid, usb)
 
 
+def target_of(node):
+    """The build target an IOUSBHostDevice node is: its stamp's shield when
+    that is a target, else the dongle whose product string it carries, else
+    None."""
+    parsed = stamp.parse_stamp(str(node.get("kUSBVendorString", "")))
+    if parsed is not None and parsed[0] in DEVICES:
+        return parsed[0]
+    product = node.get("kUSBProductString")
+    return next((name for name in DONGLES if DEVICES[name] == product), None)
+
+
+def label(device):
+    """How messages name a target: a dongle by its product string, a half by
+    the target (the right half has no product string)."""
+    return '"%s"' % DEVICES[device] if device in DONGLES else "%s half" % device[len("imprint_"):]
+
+
 def usb_device(node, ports=(), dialins=()):
     return UsbDevice(
+        target=target_of(node),
         product=str(node.get("kUSBProductString", "")),
         serial=str(node.get("kUSBSerialNumberString", "")),
         session=node.get("sessionID"),
@@ -177,19 +213,20 @@ def usb_device(node, ports=(), dialins=()):
     )
 
 
-def find(products):
-    """The USB devices whose product string is in products, with their ports.
+def find(targets):
+    """The USB devices that are one of the build targets, with their ports.
 
-    Product strings are the descriptor strings (kUSBProductString; "USB
-    Product Name" can be macOS's sanitised copy, with "-" as "_"). The IOUSB
-    plane has no class subtrees, so it stays fast behind USB disks. Serial
-    clients come with their ancestors (-t), so the nearest IOUSBHostDevice
-    above a port is the device it belongs to.
+    The strings read are the descriptor strings (kUSBProductString,
+    kUSBVendorString; "USB Product Name" and "USB Vendor Name" can be macOS's
+    sanitised copies, with "-" as "_"). The IOUSB plane has no class subtrees,
+    so it stays fast behind USB disks. Serial clients come with their
+    ancestors (-t), so the nearest IOUSBHostDevice above a port is the device
+    it belongs to.
     """
     hits = {}
     for root in ioreg("-p", "IOUSB", "-l"):
         for node, usb in walk(root):
-            if node is usb and node.get("kUSBProductString") in products:
+            if node is usb and target_of(node) in targets:
                 hits.setdefault(node.get("sessionID"), node)
     if not hits:
         return []
@@ -359,7 +396,6 @@ def open_port(path):
 class Reader:
     def __init__(self, device):
         self.device = device
-        self.product = DEVICES[device]
         self.fd = None
         self.port = None
         self.buf = b""
@@ -416,23 +452,23 @@ class LogSession:
 
     @staticmethod
     def waiting(reader):
-        return 'waiting for "%s" with a port, polling every %.1f s' % (reader.product, POLL_S)
+        return "waiting for the %s with a port, polling every %.1f s" % (label(reader.device), POLL_S)
 
     def reopen(self, closed):
-        by_product = {}
+        by_target = {}
         try:
-            devices = find({r.product for r in closed})
+            devices = find({r.device for r in closed})
         except Failure as e:
             for r in closed:
                 self.say_state(r, str(e))
             return
         for dev in devices:
-            by_product.setdefault(dev.product, []).append(dev)
+            by_target.setdefault(dev.target, []).append(dev)
         for r in closed:
-            with_port = [d for d in by_product.get(r.product, []) if d.ports]
+            with_port = [d for d in by_target.get(r.device, []) if d.ports]
             if len(with_port) != 1:
                 if len(with_port) > 1:
-                    self.say_state(r, '%d USB devices named "%s"; leave exactly one plugged in' % (len(with_port), r.product))
+                    self.say_state(r, "%d USB devices are the %s; leave exactly one plugged in" % (len(with_port), label(r.device)))
                 else:
                     self.say_state(r, self.waiting(r))
                 continue
@@ -530,22 +566,22 @@ class LogSession:
 
 
 def cmd_list(_args):
-    devices = find(set(DEVICES.values()))
+    devices = find(set(DEVICES))
     width = max(len(name) for name in DEVICES)
     product_width = max(len(product) for product in DEVICES.values()) + 2
     for name, product in DEVICES.items():
-        label = "%-*s  %-*s" % (width, name, product_width, '"%s"' % product)
-        hits = [d for d in devices if d.product == product]
+        head = "%-*s  %-*s" % (width, name, product_width, '"%s"' % product)
+        hits = [d for d in devices if d.target == name]
         if not hits:
-            print("%s  absent" % label)
+            print("%s  absent" % head)
         for d in hits:
             ids = "location=%s serial=%s" % (d.location, d.serial or "-")
             if not d.ports:
-                print("%s  on USB, no /dev/cu.* port  %s" % (label, ids))
+                print("%s  on USB, no /dev/cu.* port  %s" % (head, ids))
                 continue
             holders = port_holders(d)
             held = "held by " + ", ".join(holders) if holders else "port free"
-            print("%s  %s  %s  %s" % (label, " ".join(d.ports), ids, held))
+            print("%s  %s  %s  %s" % (head, " ".join(d.ports), ids, held))
     volumes = sorted(v for v in glob.glob("/Volumes/*") if os.path.isfile(os.path.join(v, "INFO_UF2.TXT")))
     if VOLUME not in volumes:
         print("%s  %s" % (VOLUME, "exists without INFO_UF2.TXT" if os.path.exists(VOLUME) else "not mounted"))
@@ -565,17 +601,16 @@ def cmd_list(_args):
     return 0
 
 
-def the_dongle(device):
-    """The one USB device with the dongle's product string; it must have a port."""
-    product = DEVICES[device]
-    hits = find({product})
+def the_device(device):
+    """The one USB device that is the target; it must have a port."""
+    hits = find({device})
     if not hits:
-        raise Failure('no USB device named "%s"' % product)
+        raise Failure("no %s on USB" % label(device))
     if len(hits) > 1:
-        raise Failure('%d USB devices named "%s"; leave exactly one plugged in' % (len(hits), product))
+        raise Failure("%d USB devices are the %s; leave exactly one plugged in" % (len(hits), label(device)))
     dev = hits[0]
     if not dev.ports:
-        raise Failure('"%s" (serial %s) has no /dev/cu.* port' % (dev.product, dev.serial or "-"))
+        raise Failure("the %s (serial %s) has no /dev/cu.* port" % (label(device), dev.serial or "-"))
     if len(dev.ports) > 1:
         print("dongle.py: more than one port: %s" % " ".join(dev.ports), file=sys.stderr)
     return dev
@@ -591,7 +626,7 @@ def refuse_inside_repository(path, why):
 
 
 def cmd_port(args):
-    print(the_dongle(args.device).ports[0])
+    print(the_device(args.device).ports[0])
     return 0
 
 
@@ -795,7 +830,7 @@ def cmd_shot(args):
     path = args.out or os.path.join(
         tempfile.gettempdir(), datetime.datetime.now().strftime("prospector-%Y%m%d-%H%M%S-%f.png"))
     refuse_inside_repository(path, "the screen of a sprite build shows its personal GIF")
-    dev = the_dongle("prospector")
+    dev = the_device("prospector")
     port = dev.ports[0]
     holders = port_holders(dev)
     if holders:
@@ -841,21 +876,39 @@ def cmd_image(args):
     payload = uf2_payload(data)
     if payload is None:
         raise Failure("not a UF2 file", 2)
-    held = [name for name, product in DEVICES.items() if product.encode() in payload]
-    if not held:
-        raise Failure("the image holds no dongle's USB product string (%s): a halves image, the Prospector "
-                      "Dongle's USB power-only one or another board's" % ", ".join('"%s"' % p for p in DEVICES.values()))
-    if len(held) > 1:
-        raise Failure("the image holds more than one dongle's USB product string: %s"
-                      % ", ".join('"%s"' % DEVICES[name] for name in held))
     stamped = STAMP_IN_IMAGE.search(payload)
-    print(US.join([held[0], DEVICES[held[0]], hashlib.sha256(data).hexdigest(),
-                   stamped.group(0).decode("ascii") if stamped else ""]))
+    stamp_text = stamped.group(0).decode("ascii") if stamped else ""
+    parsed = stamp.parse_stamp(stamp_text)
+    if stamped and parsed is None:
+        raise Failure("the image's manufacturer string %s is no stamp this stamp.py parses (another "
+                      "ALGORITHM, or not canon's)" % stamp_text)
+    named = [name for name in DONGLES if DEVICES[name].encode() in payload]
+    if parsed is not None:
+        device = parsed[0]
+        if device not in DEVICES:
+            raise Failure("the image's stamp names %s, which is no build target this dongle.py knows" % device)
+        if named and named != [device]:
+            raise Failure("the image's stamp names %s, but its payload holds the USB product string of %s"
+                          % (device, ", ".join('"%s"' % DEVICES[name] for name in named)))
+    elif len(named) == 1:
+        device = named[0]
+    elif named:
+        raise Failure("the image holds more than one dongle's USB product string: %s"
+                      % ", ".join('"%s"' % DEVICES[name] for name in named))
+    else:
+        raise Failure("the image carries no firmware stamp and no dongle's USB product string (%s): a halves "
+                      "image built before the stamp, the Prospector Dongle's USB power-only one or another "
+                      "board's" % ", ".join('"%s"' % DEVICES[name] for name in DONGLES))
+    if device in HALVES and HALVES_PORT_MARK not in payload:
+        raise Failure("the %s image lacks the CDC ACM port (built from #263 of 2026-10-19 or older, before "
+                      "config/cdc_acm_port.dtsi), so it has no 1200 baud entry and the next flash would need a "
+                      "double-tap; flash-watch.sh takes it" % device)
+    print(US.join([device, DEVICES[device], hashlib.sha256(data).hexdigest(), stamp_text]))
     return 0
 
 
 def cmd_find(args):
-    for dev in find({DEVICES[args.device]}):
+    for dev in find({args.device}):
         print(US.join([dev.serial, str(dev.session), dev.location, " ".join(dev.ports), dev.manufacturer]))
     return 0
 
@@ -914,7 +967,7 @@ def cmd_check(args):
             if dev.product not in UNSTAMPED_PRODUCTS:
                 continue
             row["status"] = "unstamped"
-            row["target"] = next((name for name, product in DEVICES.items() if product == dev.product), None)
+            row["target"] = UNSTAMPED_TARGETS.get(dev.product)
             if dev.manufacturer != stamp.UNSTAMPED:
                 row["note"] = "manufacturer \"%s\" is no stamp" % dev.manufacturer
             elif dev.product:
@@ -990,7 +1043,7 @@ def cmd_at(args):
         for node, usb in walk(root):
             if node is usb and node.get("locationID") == location:
                 dev = usb_device(node)
-                print(US.join([dev.product, dev.serial, str(dev.session)]))
+                print(US.join([dev.product, dev.serial, str(dev.session), dev.manufacturer]))
     return 0
 
 
@@ -1025,32 +1078,32 @@ def parser():
     names = ", ".join(DEVICES)
     p = argparse.ArgumentParser(
         prog="dongle.py",
-        description="Find the Imprint Dongle and the Prospector Dongle on USB by their USB product "
-                    "strings, read their serial logs, take a PNG of the Prospector Dongle's screen, and check "
-                    "the firmware stamp of every ZMK device on USB against origin/main. "
-                    "Devices: %s." % names,
+        description="Find canon's devices on USB (the Imprint Dongle and the Prospector Dongle by their firmware "
+                    "stamp or USB product string, the halves of the Cyboard Imprint by their stamp), read their "
+                    "serial logs, take a PNG of the Prospector Dongle's screen, and check the firmware stamp of "
+                    "every ZMK device on USB against origin/main. Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
                "3 check could not compute the digests.",
     )
     sub = p.add_subparsers(dest="command", metavar="COMMAND")
     sub.required = True
 
-    s = sub.add_parser("list", help="each dongle's port, USB location, serial and the processes holding "
+    s = sub.add_parser("list", help="each device's port, USB location, serial and the processes holding "
                                     "its port; UF2 bootloader volumes; running flash scripts")
     s.set_defaults(func=cmd_list)
 
-    s = sub.add_parser("port", help="print the dongle's /dev/cu.* port (exit 1 if it is absent)")
+    s = sub.add_parser("port", help="print the device's /dev/cu.* port (exit 1 if it is absent)")
     s.add_argument("device", choices=DEVICES)
     s.set_defaults(func=cmd_port)
 
     s = sub.add_parser(
-        "log", help="read the dongles' serial logs for a fixed time",
-        description="Read the dongles' serial logs (a --logging image) at 115200 8N1, never another rate: "
-                    "1200 baud reboots a dongle into its bootloader, and 2400 makes the Prospector Dongle "
+        "log", help="read the devices' serial logs for a fixed time",
+        description="Read the devices' serial logs (a --logging image) at 115200 8N1, never another rate: "
+                    "1200 baud reboots a device into its bootloader, and 2400 makes the Prospector Dongle "
                     "send its screen (shot). Each line is "
                     "'MM-DD HH:MM:SS.mmm DEVICE | text' for the device's output and "
                     "'MM-DD HH:MM:SS.mmm DEVICE # event' for the port opening, going away and coming "
-                    "back: when a port goes away the reader polls for the dongle every 0.2 s and "
+                    "back: when a port goes away the reader polls for the device every 0.2 s and "
                     "reopens it, so a reader started before a flash catches the new image's boot log. "
                     "Prints its pid on stderr at the start; ends at the deadline with exit 0, or 1 when "
                     "a device never appeared.",
@@ -1096,19 +1149,20 @@ def parser():
     s.add_argument("--json", action="store_true", help="print {ref, commit, targets: [the same fields]} instead of lines")
     s.set_defaults(func=cmd_check)
 
-    s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 US STAMP of the dongle whose product string "
-                                     "the UF2 payload holds (STAMP empty for an image built before the stamp; "
-                                     "exit 1 for none or both, 2 for no UF2 or an incomplete one)")
+    s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 US STAMP of the build target the UF2 "
+                                     "payload names, by its firmware stamp or, built before the stamp, by a dongle's "
+                                     "USB product string (STAMP then empty; exit 1 for no name or two that disagree, "
+                                     "2 for no UF2 or an incomplete one)")
     s.add_argument("uf2")
     s.set_defaults(func=cmd_image)
 
     s = sub.add_parser("find", help="plumbing: SERIAL US SESSION US LOCATION US PORTS US MANUFACTURER, one line per USB "
-                                    "device with the dongle's product string (none: no output)")
+                                    "device that is the target (none: no output)")
     s.add_argument("device", choices=DEVICES)
     s.set_defaults(func=cmd_find)
 
-    s = sub.add_parser("at", help="plumbing: PRODUCT US SERIAL US SESSION of the USB device at LOCATION, "
-                                  "whatever it is (a dongle's bootloader too; none: no output)")
+    s = sub.add_parser("at", help="plumbing: PRODUCT US SERIAL US SESSION US MANUFACTURER of the USB device at "
+                                  "LOCATION, whatever it is (a bootloader too; none: no output)")
     s.add_argument("location")
     s.set_defaults(func=cmd_at)
 

@@ -1,0 +1,32 @@
+// The half's one USB CDC ACM port: the 1200 baud entry into the UF2 bootloader
+// (zmk-beacon src/bootloader_on_1200_baud.c; the Kconfig lines are in
+// imprint_left.conf / imprint_right.conf), so scripts/flash-dongle.sh flashes a
+// half without a reset double-tap, as it does the dongles. For the halves'
+// overlays only, never a shared imprint overlay: the Imprint Dongle's board
+// (xiao_ble) already carries board_cdc_acm_uart, and every okay
+// zephyr,cdc-acm-uart node is one more USB serial port (dongle.py opens a
+// device's first port; two ports broke canon's earlier flash script, #219).
+//
+// zephyr,console is inert in the product image (CONFIG_CONSOLE stays off) and
+// names the port ZMK's USB logging writes to in a --logging build:
+// CONFIG_ZMK_USB_LOGGING selects UART_CONSOLE, and assimilator-bt.dts names no
+// console. build-zmk.sh sets that Kconfig itself, never ZMK's zmk-usb-logging
+// snippet, whose own CDC node would be a second port beside this one.
+//
+// The boot mode the module sets is the board's already: assimilator-bt.dts
+// includes ZMK's nrf52840_uf2_boot_mode.dtsi (CONFIG_RETENTION_BOOT_MODE=y in
+// every image), so the touch reaches the same Adafruit UF2 bootloader as on
+// the dongles (0.9.2 on the halves, volume ASSIMILATOR; both halves flashed
+// this way on 2026-10-19).
+
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart;
+    };
+};
+
+&zephyr_udc0 {
+    cdc_acm_uart: cdc_acm_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
