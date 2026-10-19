@@ -267,6 +267,18 @@ path inside any git work tree.
 - A [[sprite]] build's PNG shows the sprite and its [[sprite name]]: it never goes into a commit, a PR or an issue.
 - **Don't call it:** screen capture, screenshot, framebuffer dump, snapshot (that is LVGL's `lv_snapshot`), 画面キャプチャ, スクショ
 
+### zmk-lantern
+The own ZMK module
+([akira-toriyama/zmk-lantern](https://github.com/akira-toriyama/zmk-lantern))
+that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half,
+and for a second at boot: it drives the half's LED rail (assimilator-bt P1.02,
+the pin ZMK's `ext_power` driver would own) itself, on with a cable and off on
+battery, and switches ZMK's underglow with it, so the LEDs cost the battery
+nothing. Each half decides from its own port; nothing crosses the split.
+- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node) and the underglow lines of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the dongles build none of it.
+- The colour is ZMK's underglow default (hue 40, saturation 100, brightness 25 %, solid); `CONFIG_ZMK_RGB_UNDERGLOW_{HUE,SAT,BRT,EFF}_START` in the halves' confs change it. No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
+- **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature that paints the LEDs; the module switches it), lantern alone in prose, LED module, バックライトモジュール
+
 ---
 
 ## Hardware and build terms
@@ -330,7 +342,7 @@ DeviceTree Source Include: a partial DeviceTree source that the [[keymap]] or a
 [[build target]]'s `*.overlay` pulls in with `#include`. canon's are
 `combos.dtsi`, `macros.dtsi`, `imprint_behaviors.dtsi`, `eiji_macros.dtsi`,
 `arrow_behaviors.dtsi` and `letter_morphs.dtsi` on the keymap side, and
-`ext_power_off.dtsi` in both halves' overlays.
+`lantern_rail.dtsi` in both halves' overlays.
 - **Don't call it:** include file, dts fragment, ヘッダ
 
 ---
@@ -376,6 +388,6 @@ hand.
 - One canonical name per concept. When several names circulate, pick the winner here and list the others on its `Don't call it:` line.
 - A canonical name is spelled as in the code: ZMK identifiers keep their form (`&mt`, `&mo`, `DEFAULT_LAYER`, `imprint_left`).
 - A definition is 1–2 sentences; link to the config or source for behavior instead of restating it.
-- Where a term meets another repository ([chord](https://github.com/akira-toriyama/chord), [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)), link to the meeting point.
+- Where a term meets another repository ([chord](https://github.com/akira-toriyama/chord), [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon), [zmk-lantern](https://github.com/akira-toriyama/zmk-lantern)), link to the meeting point.
 - A new term goes into this file in the PR that introduces it; rename a term in code, docs and this file in the same PR.
 - The glossary site builds from this file (`.github/workflows/glossary.yml` → akira-toriyama/glossary-site): one H1, H2 sections, H3 entries, wikilinks to H3 terms. Its renderer ends a list item at the line end, so a bullet stays on one line; it splits a `Don't call it:` line into aliases at every `,` and `、`, so a note inside an alias has no comma; and in an entry it reads a `#` after a space as a tag.

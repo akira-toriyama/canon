@@ -31,7 +31,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 ## Where to look
 
 - `config/`: `imprint.keymap` (includes `behavior_macros.h` and the keymap-side `*.dtsi`; the halves'
-  overlays include `ext_power_off.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
+  overlays include `lantern_rail.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
   `imprint.json` (keymap-drawer's physical layout), and confs and overlays per shield: ZMK merges the
   `.conf` of every shield-name prefix (`imprint.conf` serves all three imprint targets) but takes only
   the first matching overlay: a `config/imprint.overlay` would silently replace `imprint_left.overlay`
@@ -63,7 +63,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   ends `build.log`. `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]`
   prints the digest and table by hand.
 - Never edit the cached `modules/zmk-beacon`: builds without `--beacon` check out the pin and stop
-  on local changes. `zmk-west.sh update` takes the patches off first (west refuses to move a patched
+  on local changes. Nor `modules/zmk-lantern`, which nothing checks until t-66ww: a build takes it as
+  `west update` left it, so a pin bump needs `--update`. `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
   tree reset once ([patches/zmk/README.md](patches/zmk/README.md)).
 - CI: `build.yml` (PRs, main, Mondays for zmk@main breaks) calls the local reusable `zmk-build.yml`,
@@ -103,7 +104,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 
 - **The west manifest is [config/west.yml](config/west.yml), with the repository root as topdir**,
   so never `west init` / `west update` in the repository: the work tree would take clones of zmk,
-  zephyr and every module (build-zmk.sh builds in its workspace copy). Besides ZMK it lists two
+  zephyr and every module (build-zmk.sh builds in its workspace copy). Besides ZMK it lists three
   modules (zmk-keyboards' imported manifest adds `zmk-pmw3610-driver`):
   - **Cyboard `zmk-keyboards` at branch `zephyr-4.1`, never `main`**: since 2026-07-07 `main` pins ZMK
     `v0.3.0` with the HWv1 `assimilator-bt` (`boards/arm/`), which fails against zmk@main with
@@ -113,6 +114,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   - **Own `zmk-beacon`, pinned by commit SHA** so that canon takes a change without a zmk-beacon
     release (2026-09-26, t-5gxp): the `prospector` shield and the Imprint Dongle's status
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
+  - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
+    LEDs, lit only while USB powers the half, and the boot light; the LED rail is its (the
+    invariant below). Bump the SHA by hand after a merge there. Until t-66ww the scripts know only
+    zmk-beacon: the stamp hashes zmk-lantern's SHA as text in `west.yml`, not its tree id,
+    `zmk-west.sh pin` does not check its checkout (a pin bump needs `--update`), and there is no
+    `--beacon`-like flag for it.
 - **ZMK tracks `main`, never a tag**, against ZMK's advice: the HWv2 `assimilator-bt` needs Zephyr's
   new hardware model; `v0.3.0` failed in `arch.cmake`: `Could not find ARCH=cyboard` (2026-05-17).
 - **No local boards or shields**: `imprint_dongle` went upstream with Cyboard#19 (merged
@@ -149,12 +156,29 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   check in dotfiles (t-ajkz). macOS's keyboard type is keyed on VID, PID and country code, not the
   manufacturer, and chord matches the product string: the stamp changes neither (Imprint Dongle,
   2026-10-13). The halves carry it too: plugged in to charge, they show it the same way
-  (unverified on hardware; the right half enumerates without a product string, so unstamped it is
-  reported without a target).
+  (the right half on 2026-10-19: it enumerates without a product string, and stamped it is reported
+  with its target; unstamped it would be reported without one).
 - **Cyboard's `ZMK_RGB_UNDERGLOW` default `y` reaches every target**: zmk-keyboards'
   `boards/shields/imprint/Kconfig.defconfig` sets it outside any `SHIELD_` guard, so a target
-  without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25). Every
-  non-imprint conf sets `CONFIG_ZMK_RGB_UNDERGLOW=n` (`config/prospector.conf` does).
+  without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25).
+  `config/imprint.conf` sets `CONFIG_ZMK_RGB_UNDERGLOW=n` for the Imprint Dongle and
+  `config/prospector.conf` for the Prospector Dongle; the halves' confs, merged after `imprint.conf`,
+  set it back to `y` for zmk-lantern (2026-10-19).
+- **The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's, never ZMK's `ext_power` driver's**:
+  `config/lantern_rail.dtsi` (both halves' overlays) keeps the board's `EXT_POWER` node disabled,
+  holds the pin low with a hog until the module takes it, and declares the `lantern,rail` node;
+  `imprint_left.conf` / `imprint_right.conf` carry the five underglow lines the module asserts
+  (`CONFIG_ZMK_RGB_UNDERGLOW=y`, `_EXT_POWER=n`, `_AUTO_OFF_USB=n`, `_AUTO_OFF_IDLE=n`, `_ON_START=n`;
+  a wrong line is a build error). Never re-enable the node: the driver turns the rail on at init and
+  restores a stored `ext_power/state/EXT_POWER` at settings load, and the left half's NVS holds off
+  (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
+  2026-10-19); erasing it is a settings reset, bonds included. No `&ext_power` or `&rgb_ug` key:
+  through the dongle a press never reaches the halves, and an `&rgb_ug` on battery would run the
+  strip with the rail off (zmk-lantern's README). On battery the rail is off, as since #207 (10-18 mA
+  per half at rest with it on, 0.79 mA off; 2026-09-15). A half that boots on battery within a minute
+  of a plugged spell shows ZMK's saved colour for about 0.1 s first: by design, not a fault.
+  On hardware 2026-10-19 (t-26y4, both halves): the boot light on battery, then dark; lit on plugging
+  in and dark on unplugging, per half; lit through a boot on USB.
 - **The Imprint Dongle builds with `CONFIG_BT_EXT_ADV` and needs `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`**
   (`config/imprint_dongle.conf`): `CONFIG_BEACON_STATUS_BROADCAST` selects it for a second
   advertising set, and the host serves ZMK's legacy `bt_le_adv_start()` from the same pool; a pool
