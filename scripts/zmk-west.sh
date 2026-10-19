@@ -8,7 +8,7 @@
 #
 #   zmk-west.sh pairs                         board<TAB>shield per build.yaml entry
 #   zmk-west.sh update [west update args]     west init if needed, patches out, west update
-#   zmk-west.sh pin <project>                 <project> at its manifest revision, unedited
+#   zmk-west.sh pin <project>...              each <project> at its manifest revision, unedited
 #   zmk-west.sh patch                         apply patches/<tree>/*.patch (idempotent)
 #   zmk-west.sh build <board> <shield> <suffix> [cmake args]
 #                                             west build into build/<shield><suffix>,
@@ -94,23 +94,25 @@ cmd_update() {
 }
 
 # A hand checkout in a cached clone, or a pin bump without a full update,
-# would otherwise go into the image unnoticed. Updates this one project only:
-# a full update also moves the branches the manifest follows (zmk@main).
+# would otherwise go into the image unnoticed. Updates the named projects
+# only: a full update also moves the branches the manifest follows (zmk@main).
 cmd_pin() {
-  [ $# -eq 1 ] || usage
-  local project=$1 path rev head
+  [ $# -ge 1 ] || usage
+  local project path rev head
   trust_workspace
-  read -r path rev < <(west list -f '{path} {revision}' "$project")
-  head="$(git -C "$path" rev-parse HEAD 2>/dev/null || true)"
-  if [ "$head" != "$rev" ]; then
-    echo "=== PIN $project: ${head:-not cloned} -> $rev"
-    west update "$project"
-  fi
-  if [ -n "$(git -C "$path" status --porcelain --untracked-files=no)" ]; then
-    echo "error: $path has local changes to tracked files; an image takes $project at its pin only." >&2
-    echo "  Build a local checkout with build-zmk.sh --beacon <dir>, or discard the changes: git -C <workspace>/$path checkout -- ." >&2
-    exit 1
-  fi
+  for project in "$@"; do
+    read -r path rev < <(west list -f '{path} {revision}' "$project")
+    head="$(git -C "$path" rev-parse HEAD 2>/dev/null || true)"
+    if [ "$head" != "$rev" ]; then
+      echo "=== PIN $project: ${head:-not cloned} -> $rev"
+      west update "$project"
+    fi
+    if [ -n "$(git -C "$path" status --porcelain --untracked-files=no)" ]; then
+      echo "error: $path has local changes to tracked files; an image takes $project at its pin only." >&2
+      echo "  Build a local checkout with build-zmk.sh --module <dir>, or discard the changes: git -C <workspace>/$path checkout -- ." >&2
+      exit 1
+    fi
+  done
 }
 
 cmd_patch() {

@@ -9,7 +9,8 @@
 #   ./scripts/build-zmk.sh imprint_dongle --logging
 #   ./scripts/build-zmk.sh imprint --reset
 #   ./scripts/build-zmk.sh prospector --sprite /Volumes/HDD/assets/canon/prospector/sprites/<name>.gif
-#   ./scripts/build-zmk.sh prospector --beacon ../zmk-beacon
+#   ./scripts/build-zmk.sh prospector --module ../zmk-beacon
+#   ./scripts/build-zmk.sh imprint --module ../zmk-lantern --module ../zmk-beacon
 #   ./scripts/build-zmk.sh prospector --kconfig CONFIG_LV_USE_SYSMON=y \
 #     --kconfig CONFIG_LV_USE_PERF_MONITOR=y --tag perf
 #   ./scripts/build-zmk.sh --update          # west update first
@@ -33,9 +34,12 @@
 #                     personal files kept off the repository (assets/README.md):
 #                     never committed, never in CI or a release, and this script
 #                     prints neither the GIF's path nor the name.
-#   --beacon <dir>    build against the zmk-beacon checkout <dir>, its working
-#                     tree as it is, instead of the revision config/west.yml pins.
-#                     The images carry -beacon.
+#   --module <dir>    build against the Zephyr module checkout <dir>, its working
+#                     tree as it is: in place of the revision config/west.yml pins
+#                     when an own module has that name (its zephyr/module.yml),
+#                     added when the manifest lacks it yet. Repeatable. The
+#                     images carry -<name> without a leading zmk- (-beacon,
+#                     -lantern), in name order.
 #   --kconfig CONFIG_NAME=VALUE
 #                     one more Kconfig line for every target, merged after
 #                     config/<shield>.conf and the sprite and logging lines.
@@ -49,7 +53,7 @@
 #   -h, --help        print this header and exit.
 # --reset combines with neither --logging nor --sprite.
 #
-# Images: firmware/<shield>[-sprite][-logging][-kconfig][-beacon][_RESET][-<tag>].uf2
+# Images: firmware/<shield>[-sprite][-logging][-kconfig][-<module>...][_RESET][-<tag>].uf2
 # (git-ignored), copied once every target of the run has built. A bare
 # <shield>.uf2 or <shield>_RESET.uf2, which flash-watch.sh, flash-reset.sh and
 # `flash-dongle.sh <device>` take, is therefore always a pinned build. The run ends with one line
@@ -58,17 +62,19 @@
 # Workspace: $ZMK_WS/cfgrepo is the west topdir (manifest config/west.yml). West's
 # clones (zmk/, zephyr/, modules/, ...) and build/<name>/ (build.log included)
 # stay between runs; each run syncs config/, patches/, scripts/ and build.yaml
-# into it and clears the per-run inputs .sprite/, .kconfig/ and .beacon/.
+# into it and clears the per-run inputs .sprite/, .kconfig/ and .modules/.
 # west update runs on the first build, when zmk/app is missing, or with
-# --update. Every build without --beacon first checks out modules/zmk-beacon
-# at its pin (that project only), so a pin bump needs no --update. The steps
-# inside the container are scripts/zmk-west.sh, which CI runs too.
+# --update. Every build first checks out each own module (the projects
+# `stamp.py pins` lists from config/west.yml) at its pin, those projects only,
+# so a pin bump needs no --update; one a --module replaces too, since the
+# stamp takes the pin's tree id from that clone. The steps inside the
+# container are scripts/zmk-west.sh, which CI runs too.
 #
 # Environment: ZMK_WS (default ~/.cache/zmk-canon), ZMK_IMAGE (default
 # zmkfirmware/zmk-build-arm:stable).
 set -euo pipefail
 
-# Relative --sprite and --beacon paths are the caller's.
+# Relative --sprite and --module paths are the caller's.
 CALLER_DIR="$PWD"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
@@ -81,8 +87,9 @@ LOGGING=0
 RESET=0
 SPRITE=""
 SPRITE_NAME=""
-BEACON=""
-BEACON_REV=""
+MODULE_DIRS=()
+MODULE_NAMES=()
+MODULE_REVS=()
 TAG=""
 KCONFIG=()
 ARGS=()
@@ -116,11 +123,11 @@ while [ $# -gt 0 ]; do
     --update) FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
     --reset) RESET=1 ;;
-    --sprite | --beacon | --kconfig | --tag)
+    --sprite | --module | --kconfig | --tag)
       if [ $# -eq 0 ] || [ -z "$1" ]; then die 2 "$arg needs a value"; fi
       case "$arg" in
         --sprite) SPRITE="$1" ;;
-        --beacon) BEACON="$1" ;;
+        --module) MODULE_DIRS+=("$1") ;;
         --kconfig) KCONFIG+=("$1") ;;
         --tag) TAG="$1" ;;
       esac
@@ -149,20 +156,63 @@ if [ -n "$SPRITE" ]; then
   if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
   SPRITE_NAME="$("$REPO/assets/sprite-name.sh" "$SPRITE")"
 fi
-if [ -n "$BEACON" ]; then
-  case "$BEACON" in /*) ;; *) BEACON="$CALLER_DIR/$BEACON" ;; esac
-  [ -d "$BEACON" ] || die 2 "--beacon: $BEACON is not a directory"
-  BEACON="$(cd "$BEACON" && pwd)"
-  if ! grep -Eq '^name:[[:space:]]*zmk-beacon[[:space:]]*$' "$BEACON/zephyr/module.yml" 2>/dev/null; then
-    die 2 "--beacon: $BEACON/zephyr/module.yml does not declare name: zmk-beacon"
-  fi
-  BEACON_REV="$(git -C "$BEACON" describe --always --dirty 2>/dev/null || echo 'no git revision')"
+# The own modules config/west.yml pins (name, west path, commit): every build
+# checks each out at its pin, and a --module of the same name stands in.
+pins="$(python3 "$REPO/scripts/stamp.py" pins)" || die 1 "cannot list the own modules of config/west.yml (above)"
+OWN_NAMES=()
+OWN_PATHS=()
+OWN_REVS=()
+if [ -n "$pins" ]; then
+  while IFS=$'\t' read -r name path rev; do
+    OWN_NAMES+=("$name")
+    OWN_PATHS+=("$path")
+    OWN_REVS+=("$rev")
+  done <<<"$pins"
+fi
+
+# The index of module NAME in OWN_NAMES or MODULE_NAMES; nothing when absent.
+own_index() {
+  local i
+  for i in ${OWN_NAMES[@]+"${!OWN_NAMES[@]}"}; do
+    if [ "${OWN_NAMES[$i]}" = "$1" ]; then echo "$i"; return; fi
+  done
+}
+module_index() {
+  local j
+  for j in ${MODULE_NAMES[@]+"${!MODULE_NAMES[@]}"}; do
+    if [ "${MODULE_NAMES[$j]}" = "$1" ]; then echo "$j"; return; fi
+  done
+}
+
+# Zephyr keys modules by the name in zephyr/module.yml (zephyr_module.py
+# parse_modules): that name decides which pin, if any, the checkout replaces.
+for i in ${MODULE_DIRS[@]+"${!MODULE_DIRS[@]}"}; do
+  dir="${MODULE_DIRS[$i]}"
+  case "$dir" in /*) ;; *) dir="$CALLER_DIR/$dir" ;; esac
+  [ -d "$dir" ] || die 2 "--module: $dir is not a directory"
+  dir="$(cd "$dir" && pwd)"
+  [ -f "$dir/zephyr/module.yml" ] || die 2 "--module: $dir has no zephyr/module.yml, so it is no Zephyr module"
+  name="$(sed -nE 's/^name:[[:space:]]*([^[:space:]]+)[[:space:]]*$/\1/p' "$dir/zephyr/module.yml" | head -n 1)"
+  [ -n "$name" ] || die 2 "--module: $dir/zephyr/module.yml declares no name:"
+  case "$name" in *[!A-Za-z0-9._-]*) die 2 "--module: the module name $name does not fit an image name" ;; esac
+  # Its suffix would be the sprite build's, which the stamp drops (scripts/stamp.py).
+  [ "${name#zmk-}" != sprite ] || die 2 "--module: the module name $name would give the image the sprite build's suffix"
+  [ -z "$(module_index "$name")" ] || die 2 "--module: two checkouts of $name"
+  MODULE_DIRS[i]="$dir"
+  MODULE_NAMES+=("$name")
+  MODULE_REVS+=("$(git -C "$dir" describe --always --dirty 2>/dev/null || echo 'no git revision')")
   # Kconfig quotes the value it was given for an undefined symbol, and the
   # sprite's name is private: a zmk-beacon before 0a64fc9 (or one that renamed
   # the symbol) would print it on the way to failing.
-  if [ -n "$SPRITE" ] && ! grep -Eq '^[[:space:]]*config[[:space:]]+BEACON_SPRITE_NAME[[:space:]]*$' "$BEACON/Kconfig" 2>/dev/null; then
-    die 2 "--beacon: $BEACON/Kconfig defines no BEACON_SPRITE_NAME, so Kconfig would print the sprite's name; build this checkout without --sprite"
+  if [ "$name" = zmk-beacon ] && [ -n "$SPRITE" ] && ! grep -Eq '^[[:space:]]*config[[:space:]]+BEACON_SPRITE_NAME[[:space:]]*$' "$dir/Kconfig" 2>/dev/null; then
+    die 2 "--module: $dir/Kconfig defines no BEACON_SPRITE_NAME, so Kconfig would print the sprite's name; build this checkout without --sprite"
   fi
+done
+# The image suffix and ZMK_EXTRA_MODULES follow name order, not the command
+# line's, so that the same checkouts build into the same directory.
+MODULES_SORTED=()
+if [ ${#MODULE_NAMES[@]} -gt 0 ]; then
+  while IFS= read -r name; do MODULES_SORTED+=("$name"); done < <(printf '%s\n' "${MODULE_NAMES[@]}" | LC_ALL=C sort)
 fi
 for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
   case "$kv" in
@@ -172,7 +222,7 @@ for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
       # zmk-beacon's BEACON_SPRITE_GIF depends on the custom status screen,
       # which such a line can turn off, and Kconfig only warns about an
       # assignment that does not take: the -sprite image would lack the sprite.
-      # A --beacon zmk-beacon from 0a64fc9 to before 7e86e58, whose
+      # A --module zmk-beacon from 0a64fc9 to before 7e86e58, whose
       # BEACON_SPRITE_NAME depends on BEACON_SPRITE, would also print the name.
       if [ -n "$SPRITE" ]; then die 2 "--kconfig: ${kv%%=*} does not combine with --sprite"; fi
       ;;
@@ -245,12 +295,16 @@ plan() {
   if [ ${#conf[@]} -gt 0 ]; then
     CMAKE_ARGS+=("-DEXTRA_CONF_FILE=$(IFS=';' && echo "${conf[*]}")")
   fi
-  # Zephyr keys modules by the name in zephyr/module.yml and takes extra
-  # modules after west's projects (zephyr_module.py parse_modules), so this
-  # one replaces modules/zmk-beacon.
-  if [ -n "$BEACON" ]; then
-    CMAKE_ARGS+=(-DZMK_EXTRA_MODULES=/workspace/.beacon)
-    SUFFIX="$SUFFIX-beacon"
+  # Zephyr takes extra modules after west's projects and keys them by name
+  # (zephyr_module.py parse_modules), so each replaces the project of its name;
+  # ZMK_EXTRA_MODULES is a CMake list (zmk app/CMakeLists.txt).
+  if [ ${#MODULES_SORTED[@]} -gt 0 ]; then
+    local extra=() name
+    for name in "${MODULES_SORTED[@]}"; do
+      extra+=("/workspace/.modules/$name")
+      SUFFIX="$SUFFIX-${name#zmk-}"
+    done
+    CMAKE_ARGS+=("-DZMK_EXTRA_MODULES=$(IFS=';' && echo "${extra[*]}")")
   fi
   if [ "$RESET" -eq 1 ]; then
     CMAKE_ARGS+=(-DCONFIG_ZMK_SETTINGS_RESET_ON_START=y)
@@ -269,9 +323,9 @@ fi
 mkdir -p "$CFG"
 rsync -a --delete "$REPO/config" "$REPO/patches" "$REPO/scripts" "$REPO/build.yaml" "$CFG/"
 # Cleared on every run: after a run without --sprite neither the GIF nor its
-# name stays in .sprite/, and the .beacon copy below, which has no --delete,
-# keeps no file of an earlier tree.
-rm -rf "$CFG/.sprite" "$CFG/.kconfig" "$CFG/.beacon"
+# name stays in .sprite/, and the .modules/ copies below, which have no
+# --delete, keep no file of an earlier tree.
+rm -rf "$CFG/.sprite" "$CFG/.kconfig" "$CFG/.modules"
 
 # The container sees only the workspace, so the GIF is copied in under a fixed
 # name. Its path and the sprite name reach the build in a Kconfig fragment
@@ -294,10 +348,10 @@ if [ ${#KCONFIG[@]} -gt 0 ]; then
   mkdir -p "$CFG/.kconfig"
   printf '%s\n' "${KCONFIG[@]}" >"$CFG/.kconfig/extra.conf"
 fi
-if [ -n "$BEACON" ]; then
-  mkdir -p "$CFG/.beacon"
-  rsync -a --exclude '/.git' --exclude '/.claude/' --exclude '/firmware/' "$BEACON/" "$CFG/.beacon/"
-fi
+for i in ${MODULE_DIRS[@]+"${!MODULE_DIRS[@]}"}; do
+  mkdir -p "$CFG/.modules/${MODULE_NAMES[$i]}"
+  rsync -a --exclude '/.git' --exclude '/.claude/' --exclude '/firmware/' "${MODULE_DIRS[$i]}/" "$CFG/.modules/${MODULE_NAMES[$i]}/"
+done
 
 NEED_UPDATE=0
 if [ ! -d "$CFG/.west" ] || [ ! -d "$CFG/zmk/app" ] || [ "$FORCE_UPDATE" -eq 1 ]; then
@@ -308,11 +362,18 @@ echo "=========================================="
 echo " workspace   : $CFG"
 echo " docker image: $IMAGE"
 echo " west update : $([ "$NEED_UPDATE" -eq 1 ] && echo yes || echo 'no (cached; --update forces it)')"
-if [ -n "$BEACON" ]; then
-  echo " zmk-beacon  : $BEACON @ $BEACON_REV (--beacon, overrides the pin in config/west.yml)"
-else
-  echo " zmk-beacon  : the revision config/west.yml pins"
-fi
+for i in ${OWN_NAMES[@]+"${!OWN_NAMES[@]}"}; do
+  j="$(module_index "${OWN_NAMES[$i]}")"
+  if [ -n "$j" ]; then
+    echo " module      : ${OWN_NAMES[$i]} ${MODULE_DIRS[$j]} @ ${MODULE_REVS[$j]} (--module, in place of the pin ${OWN_REVS[$i]:0:12})"
+  else
+    echo " module      : ${OWN_NAMES[$i]} @ ${OWN_REVS[$i]:0:12} (the pin in config/west.yml)"
+  fi
+done
+for j in ${MODULE_NAMES[@]+"${!MODULE_NAMES[@]}"}; do
+  [ -z "$(own_index "${MODULE_NAMES[$j]}")" ] || continue
+  echo " module      : ${MODULE_NAMES[$j]} ${MODULE_DIRS[$j]} @ ${MODULE_REVS[$j]} (--module, not in config/west.yml)"
+done
 if [ "$LOGGING" -eq 1 ]; then echo " logging     : ${LOGGING_CONF[*]}"; fi
 if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
 if [ -n "$SPRITE" ]; then
@@ -333,7 +394,9 @@ in_container() {
 }
 
 if [ "$NEED_UPDATE" -eq 1 ]; then in_container update; fi
-if [ -z "$BEACON" ]; then in_container pin zmk-beacon; fi
+# Also a module a --module stands in for: the build takes the copy, but the
+# stamp takes the pin's tree id from the clone, which a fresh pin lacks.
+if [ ${#OWN_NAMES[@]} -gt 0 ]; then in_container pin "${OWN_NAMES[@]}"; fi
 in_container patch
 for row in "${TARGETS[@]}"; do
   plan "$row"
@@ -362,10 +425,19 @@ for row in "${TARGETS[@]}"; do
 done
 zmk_rev="$(git -C "$CFG/zmk" log -1 --format='%h %cs' 2>/dev/null || true)"
 keyboards_rev="$(git -C "$CFG/zmk-keyboards" log -1 --format='%h' 2>/dev/null || true)"
-if [ -n "$BEACON" ]; then
-  beacon_rev="$BEACON @ $BEACON_REV (--beacon)"
-else
-  beacon_rev="$(git -C "$CFG/modules/zmk-beacon" log -1 --format='%h' 2>/dev/null || true)"
-  beacon_rev="${beacon_rev:-?} (pin)"
-fi
-echo "revisions: zmk ${zmk_rev:-?}, zmk-keyboards ${keyboards_rev:-?}, zmk-beacon $beacon_rev"
+modules_rev=""
+for i in ${OWN_NAMES[@]+"${!OWN_NAMES[@]}"}; do
+  j="$(module_index "${OWN_NAMES[$i]}")"
+  if [ -n "$j" ]; then
+    rev="${MODULE_DIRS[$j]} @ ${MODULE_REVS[$j]} (--module)"
+  else
+    rev="$(git -C "$CFG/${OWN_PATHS[$i]}" log -1 --format='%h' 2>/dev/null || true)"
+    rev="${rev:-?} (pin)"
+  fi
+  modules_rev="$modules_rev, ${OWN_NAMES[$i]} $rev"
+done
+for j in ${MODULE_NAMES[@]+"${!MODULE_NAMES[@]}"}; do
+  [ -z "$(own_index "${MODULE_NAMES[$j]}")" ] || continue
+  modules_rev="$modules_rev, ${MODULE_NAMES[$j]} ${MODULE_DIRS[$j]} @ ${MODULE_REVS[$j]} (--module)"
+done
+echo "revisions: zmk ${zmk_rev:-?}, zmk-keyboards ${keyboards_rev:-?}$modules_rev"

@@ -274,6 +274,17 @@ path inside any git work tree.
 - A [[sprite]] build's PNG shows the sprite and its [[sprite name]]: it never goes into a commit, a PR or an issue.
 - **Don't call it:** screen capture, screenshot, framebuffer dump, snapshot (that is LVGL's `lv_snapshot`), 画面キャプチャ, スクショ
 
+### own module
+A Zephyr module of the user's own that [`config/west.yml`](../config/west.yml)
+pins under its `akira-toriyama` remote by a full commit SHA, never a branch or
+tag: zmk-beacon and [[zmk-lantern]] today. The scripts treat them alike
+(`python3 scripts/stamp.py pins` lists them): the [[firmware stamp]] digests
+each pin's tree id, every build checks each clone out at its pin, and
+`./scripts/build-zmk.sh --module <dir>` builds a local tree in place of one (the
+[[image]] carries `-beacon`, `-lantern`).
+- A third needs no script change, only its project written like the two ([CLAUDE.md](../CLAUDE.md), Invariants).
+- **Don't call it:** custom module, private module, third-party module (ZMK's and Cyboard's are upstream, not own), 自作モジュール
+
 ### zmk-lantern
 The own ZMK module
 ([akira-toriyama/zmk-lantern](https://github.com/akira-toriyama/zmk-lantern))
@@ -356,8 +367,9 @@ The USB manufacturer string of every [[image]], `ZMK Project (canon <shield>
 `scripts/stamp.py`), set by `scripts/zmk-west.sh build` and read back from a
 device by `python3 scripts/dongle.py check`, which tells whether the firmware on
 USB is what `origin/main` builds.
-- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `_RESET`, `-<tag>`); a plain or sprite build has none.
+- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `-beacon` or `-lantern` for a `--module` tree, `_RESET`, `-<tag>`); a plain or sprite build has none.
 - The stamp changes with the inputs, not with the commit: a comment-only change to `config/` keeps it, a pin bump or a patch edit moves every target's.
+- An [[own module]]'s pin counts by the tree id of the pinned commit, so a re-pin to the same tree keeps every stamp.
 - **Don't call it:** version string, build id, firmware version, manufacturer tag, 版の印
 
 ### dtsi
