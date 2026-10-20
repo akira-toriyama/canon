@@ -75,10 +75,12 @@
 # that typed nothing until replugged, after the monitor's hub had
 # re-enumerated: the bootloader's first mass-storage WRITE timed out
 # (0xe00002ed in /usr/bin/log show, sender IOUSBMassStorageDriver) while READ
-# and the CDC port worked, and a reboot of the Mac cleared it. The Prospector
-# Dongle is never refused: it is the canary, no keyboard. A DONE on any device
-# clears the latch; so does a reboot (the latch names the boot it was written
-# under), or rm of the file by hand.
+# and the CDC port worked, and a reboot of the Mac cleared it; on 2026-10-20
+# three more such runs ended when the user unplugged the monitor's 4-port hub
+# and plugged it back (the state is that hub's: CLAUDE.md, Debugging). The
+# Prospector Dongle is never refused: it is the canary, no keyboard. A DONE on
+# any device clears the latch; so does a reboot (the latch names the boot it
+# was written under), or rm of the file by hand.
 #
 # Exit status: 0 image copied, bootloader volume released and the device back
 # on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage,
@@ -283,7 +285,7 @@ case "$DEVICE" in
     CHECK="Check that the $LABEL types, and lights while USB powers it." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac
-LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE: flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it on 2026-10-19) or power-cycle the hub (untested), then try the Prospector Dongle again."
+LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub and plug it back (the state is the hub's; this cleared it on 2026-10-20, a reboot of the Mac on 2026-10-19), then flash the Prospector Dongle first (no keyboard) and the keyboard devices after its DONE."
 latch_check
 
 if [ "$WAIT_S" -gt 0 ]; then
