@@ -49,7 +49,8 @@ shields: imprint_dongle is upstreamed to Cyboard, and the Prospector Dongle's
 shield lives in [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)). See [CLAUDE.md](CLAUDE.md).
 
 The halves' key LEDs light only while USB powers the half and it is in use
-(five minutes without a key on that half turn them off until the next one),
+(five minutes without a key on that half turn them off until the next one;
+on the way there the half goes solid in one palette colour after another),
 and for a second at boot, so on battery they cost nothing: the own module
 [zmk-lantern](https://github.com/akira-toriyama/zmk-lantern), pinned by commit
 in `config/west.yml` like zmk-beacon, drives their LED rail (its README says

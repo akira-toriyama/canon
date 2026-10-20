@@ -14,7 +14,9 @@
 // half's inner three, its outer three (t-69g7; the five colours of the day's
 // sprite, slot 0 the liveliest, t-0967). Slot 5 is the palette's spare and
 // appears nowhere. A slot the host left black shows slot 0's colour (the
-// module's rule), so one colour paints a solid keyboard.
+// module's rule), so one colour paints a solid keyboard. The bands are the
+// countdown's stage 0; its later stages paint the whole half in one colour
+// (the glossary: countdown).
 
 / {
     lantern_keys: lantern_keys {
