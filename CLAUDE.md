@@ -106,7 +106,20 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   re-enumerating without it; READ and the CDC port kept working, and Chrome's user client was not
   it (its open fails the same way during a good run). A reboot of the Mac cleared it (23:32; the
   Prospector Dongle at 23:36 with no WRITE timeout in the log, then the Imprint Dongle, through the
-  same hub). A power-cycle of the hub and a port on the Mac itself are untested.
+  same hub). **The state is the monitor hub's 4-port downstream hub's (`0x1a40/0101` at
+  `0x02110000`, a single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at
+  12 Mbps), and unplugging that hub from the monitor and plugging it back clears it** (2026-10-20,
+  t-v31c): three more runs had failed the same way at 09:26-09:49 on port 4 after the monitor's
+  hub had reconnected at 09:12-09:16, the evening's on ports 1 and 3 that passed at other times,
+  and the same device, cable, port and image had failed at 23:08 and passed at 23:36; the host's
+  re-enumeration of the hub (a bus reset, the hub powered throughout) and a replug of the device
+  did not clear it, 26 s without power at 10:27 did (Prospector Dongle `DONE` at 10:29 and 10:31
+  on port 4, the write's only log line the normal `0xe0005000 (pipe stalled)` at its reboot). The
+  Mac's reboot most likely worked the same way (not measured). What puts the hub into the state
+  is open: it followed a reconnection of the monitor's hub (a KVM switch) three times out of four.
+  Recovery: replug the stranded device, replug the 4-port hub at the monitor, one Prospector
+  Dongle run, then the keyboard devices. The devices stay on that hub (the external drives sit on
+  the Mac's own ports, the Imprint devices on the monitor: the layout is fixed).
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
   `src/usb/msc_uf2.c`): not a truncated copy.
