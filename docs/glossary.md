@@ -296,7 +296,7 @@ itself, on with a cable and off on battery or after five minutes without a key
 with it, so the LEDs cost the battery nothing. Each half decides from its own
 port and its own keys; nothing crosses the split.
 - Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]] side only (the behavior, the port, the resend), the Prospector Dongle none of it.
-- The colours are the [[palette]]'s, painted by the module itself in five bands (slots 0..4 left to right across both halves) at `CONFIG_LANTERN_BRIGHTNESS` (16 %), white until the first palette, and stepped through by the [[countdown]] as the idle dark nears; ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
+- The colours are the [[palette]]'s, painted by the module itself in five bands (slots 0..4 left to right across both halves) at `CONFIG_LANTERN_BRIGHTNESS` (16 %), white until the first palette, and cycled through by the [[countdown]] on the way to the idle dark; ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature, off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
 
 ### palette
@@ -311,17 +311,17 @@ when it is back.
 - The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the liveliest colour first), which the LaunchAgent in the user's dotfiles is to hand to `python3 scripts/dongle.py palette --wait 600` after each successful swap, so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
 - The dongle's split run queue holds a whole palette for both halves at once, three invocations a half for every set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0): `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
-- The [[countdown]] to the idle dark steps through the palette's distinct colours, the whole half in one at a time.
+- The [[countdown]] to the idle dark cycles through the palette's distinct colours, the whole half in one at a time, ten seconds each.
 - **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state; the underglow is off), パレット設定
 
 ### countdown
-How a half's key LEDs show how near the idle dark is: from the half's last
-key, the five minutes of `CONFIG_ZMK_IDLE_TIMEOUT` are cut into as many stages
-as the [[palette]] has distinct colours, stage 0 the bands and stage k the
-whole half in colour k, until ZMK's idle state turns the LEDs off; a key
-brings the bands back ([[zmk-lantern]]'s `CONFIG_LANTERN_COUNTDOWN`, on by
-default, its [`src/keys.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/keys.c); t-gsm2).
-- Each half counts its own keys, while dark too (a trackball input moves ZMK's idle, not the stages; a cable plugged in lights the stage the keys say). Colours that paint alike at the LEDs' brightness count once, so a day of three colours has three stages of a hundred seconds; one colour is one stage, the bands until the dark.
+What a half's key LEDs do between its last key and the idle dark: every ten
+seconds a new picture, the bands, then the whole half in each colour of the
+[[palette]] in turn, then the bands again, until the five minutes of
+`CONFIG_ZMK_IDLE_TIMEOUT` turn the LEDs off; a key brings the bands back
+([[zmk-lantern]]'s `CONFIG_LANTERN_COUNTDOWN` and `CONFIG_LANTERN_COUNTDOWN_STAGE_MS`,
+on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/keys.c); t-gsm2, t-x82q).
+- Each half counts its own keys, while dark too (a trackball input moves ZMK's idle, not the pictures; a cable plugged in lights the picture the keys say). Colours that paint alike at the LEDs' brightness count once, so a day of three colours cycles through four pictures; one colour is the bands until the dark. In canon#272 (2026-10-20) a stage was a minute, the five minutes over the colour count, and the last colour held until the dark; the user chose the ten-second cycle on hardware the same day.
 - **Don't call it:** fade, dimming, idle animation, timeout display, 段階表示, 消灯カウントダウン
 
 ---
