@@ -1258,9 +1258,10 @@ def parser():
         "palette", help="set or ask the key LEDs' palette through the Imprint Dongle",
         description="Write 'palette RRGGBB ...' (with no colour: 'palette?') on the Imprint Dongle's port at 115200 "
                     "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
-                    "stay), sends them to both halves over the split (zmk-lantern's palette behavior; a half that is "
-                    "away gets them when it is back) and answers 'palette ok' with the six slots; each half keeps "
-                    "the six across boots and paints its key LEDs with slot 0's hue and saturation. With no colour "
+                    "cleared to 000000), sends them to both halves over the split (zmk-lantern's palette behavior; "
+                    "a half that is away gets them when it is back) and answers 'palette ok' with the six slots; "
+                    "each half keeps the six across boots and paints its key LEDs with slots 0..4 in five bands, "
+                    "left to right across both halves (a black slot shows slot 0). With no colour "
                     "the reply is 'palette' with the dongle's six slots, or 'palette none' (also from a device "
                     "flashed across the change from four slots to six, until the next set). Refuses while another "
                     "process holds the port (it would take the reply). Never sets 1200 baud.",

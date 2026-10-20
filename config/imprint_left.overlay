@@ -1,5 +1,29 @@
 #include "lantern_rail.dtsi"
 #include "cdc_acm_port.dtsi"
+#include "lantern_keys.dtsi"
+
+// This half's 29 key LEDs (the chain's length; Cyboard's overlay says 150,
+// a placeholder) and the key under each, in chain order: the chain starts
+// at the inner column's home row and runs home, lower, upper on that column
+// (it has no bottom-row key), then home, lower, bottom, upper on each column
+// outwards, and ends on the thumb keys. From Cyboard's wired Imprint
+// (vial-qmk keyboards/cyboard/imprint/imprint_letters_only_5key_bottom_row,
+// t-1ee6), to be confirmed LED by LED on this half (t-69g7's probe).
+&led_strip {
+    chain-length = <29>;
+};
+
+&lantern_keys {
+    positions = <
+        17 29  5
+        16 28 40  4
+        15 27 39  3
+        14 26 38  2
+        13 25 37  1
+        12 24 36  0
+        46 47 48 52 53 54
+    >;
+};
 
 // The left trackball goes to the Imprint Dongle: the left half is a split
 // peripheral, and upstream imprint.dtsi carries the sending input-split node

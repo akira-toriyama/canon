@@ -53,11 +53,12 @@ The halves' key LEDs light only while USB powers the half and it is in use
 and for a second at boot, so on battery they cost nothing: the own module
 [zmk-lantern](https://github.com/akira-toriyama/zmk-lantern), pinned by commit
 in `config/west.yml` like zmk-beacon, drives their LED rail (its README says
-how; on hardware 2026-10-19). Their colour is the palette:
-`python3 scripts/dongle.py palette RRGGBB` hands it to the Imprint Dongle, which
-sends it to both halves over the split, where it survives a power cycle;
-`python3 scripts/dongle.py palette` asks the dongle for the six slots
-(the glossary: palette).
+how; on hardware 2026-10-19). Their colours are the palette, shown in five
+bands from the left half's outer columns to the right half's (one colour
+paints the keyboard solid): `python3 scripts/dongle.py palette RRGGBB ...`
+hands it to the Imprint Dongle, which sends it to both halves over the split,
+where it survives a power cycle; `python3 scripts/dongle.py palette` asks the
+dongle for the six slots (the glossary: palette).
 
 ## ZMK firmware build
 

@@ -30,8 +30,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 
 ## Where to look
 
-- `config/`: `imprint.keymap` (includes `behavior_macros.h` and the keymap-side `*.dtsi`; the halves'
-  overlays include `lantern_rail.dtsi` and `cdc_acm_port.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
+- `config/`: `imprint.keymap` (includes `behavior_macros.h` and the keymap-side `*.dtsi`; the halves' overlays include `lantern_rail.dtsi`, `cdc_acm_port.dtsi` and `lantern_keys.dtsi`), `west.yml`, the generated `vkey-aliases.toml`,
   `imprint.json` (keymap-drawer's physical layout), and confs and overlays per shield: ZMK merges the
   `.conf` of every shield-name prefix (`imprint.conf` serves all three imprint targets) but takes only
   the first matching overlay: a `config/imprint.overlay` would silently replace `imprint_left.overlay`
@@ -88,7 +87,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` and `slot 0 … applied: hue H sat S brt B` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
+| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - **`ERROR … no bootloader volume` or `went away before the copy` once: stop; no other keyboard
   device is tried.** flash-dongle.sh enforces it with a latch (`~/.cache/zmk-canon/flash-dongle.latch`,
@@ -159,17 +158,20 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     to both halves through the behavior node `palette` of `config/imprint_behaviors.dtsi`: ZMK's
     split transport names a behavior by its node name, so the node is the same on all three imprint
     targets, and the dongle builds the module's palette side (the Prospector Dongle none of the
-    module). Each half stores the six and paints its LEDs with slot 0's hue and saturation at the
-    conf's brightness, at arrival and at every boot (its settings commit runs after ZMK restored
-    `rgb/underglow/state`); the dongle resends the palette a second after each battery report of a
-    half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
+    module). Each half stores the six and paints its key LEDs itself from them
+    (`config/lantern_keys.dtsi`: the slot each key shows, slots 0..4 left to right in five bands
+    across both halves, a black slot showing slot 0; each half's overlay: the key under each LED in
+    chain order and the strip's real length, 29) at `CONFIG_LANTERN_BRIGHTNESS` (the module's
+    default, 16 %), at arrival while lit and at every boot; the dongle resends the palette a second
+    after each battery report of a half, the first of which follows every reconnection (ZMK 4dd95d78
+    raises no central-side
     connection event), so a half that was away gets it when it is back; a half writes NVS only for
     a changed palette. Every device, the dongle too, ignores a stored palette of another slot
     count (an image from before t-0967) at load, so the dongle answers `palette none` until the
-    Mac sends again. Slots 1-5 change nothing until t-69g7. The dongle's `palette ok` says it
-    stored and queued, not that a half has it: a set of five or six colours, or a resend, queues
-    three split invocations a half (two slots each; one or two colours take one, three or four
-    two), so `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6`
+    Mac sends again. The dongle's `palette ok` says it stored and queued, not that a half has it: a
+    set of any count (the slots not sent are cleared to black, which the halves show as slot 0), or
+    a resend, queues three split invocations a half (two slots each), so
+    `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6`
     (ZMK's default 5 holds five of the six: a put into a full queue waits 100 ms for the drain and
     then drops the oldest, the left half's slots 0-1, only when the drain stalls on a half that
     stopped acknowledging, never on an idle link; the module asserts the size). The daily palette
@@ -228,16 +230,16 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - **Cyboard's `ZMK_RGB_UNDERGLOW` default `y` reaches every target**: zmk-keyboards'
   `boards/shields/imprint/Kconfig.defconfig` sets it outside any `SHIELD_` guard, so a target
   without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25).
-  `config/imprint.conf` sets `CONFIG_ZMK_RGB_UNDERGLOW=n` for the Imprint Dongle and
-  `config/prospector.conf` for the Prospector Dongle; the halves' confs, merged after `imprint.conf`,
-  set it back to `y` for zmk-lantern (2026-10-19).
+  `config/imprint.conf` sets `CONFIG_ZMK_RGB_UNDERGLOW=n` for every imprint target, the halves included
+  since t-69g7 (zmk-lantern paints the strip itself and asserts the `n`: ZMK's tick would repaint
+  it; up to #268 the halves' confs set it back to `y` for the module), and `config/prospector.conf`
+  for the Prospector Dongle.
 - **The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's, never ZMK's `ext_power` driver's**:
   `config/lantern_rail.dtsi` (both halves' overlays) keeps the board's `EXT_POWER` node disabled,
   holds the pin low with a hog until the module takes it, and declares the `lantern,rail` node;
-  `imprint_left.conf` / `imprint_right.conf` carry the five underglow lines the module asserts
-  (`CONFIG_ZMK_RGB_UNDERGLOW=y`, `_EXT_POWER=n`, `_AUTO_OFF_USB=n`, `_AUTO_OFF_IDLE=n`, `_ON_START=n`;
-  a wrong line is a build error) and `CONFIG_ZMK_IDLE_TIMEOUT=300000`, the module's idle rule
-  (`CONFIG_LANTERN_OFF_WHEN_IDLE`, its default): five minutes without a key, sensor or pointing
+  `imprint_left.conf` / `imprint_right.conf` carry `CONFIG_ZMK_IDLE_TIMEOUT=300000`, the module's
+  idle rule (`CONFIG_LANTERN_OFF_WHEN_IDLE`, its default): five minutes without a key, sensor or
+  pointing
   input on a half, and its LEDs go dark on USB too, lit again at the next input; each half counts
   for itself, and a cable plugged into an idle half lights nothing until its next key (the module's
   source says why). The timeout is ZMK's, not the module's (ZMK's activity state already counts
@@ -247,12 +249,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   restores a stored `ext_power/state/EXT_POWER` at settings load, and the left half's NVS holds off
   (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
   2026-10-19); erasing it is a settings reset, bonds included. No `&ext_power` or `&rgb_ug` key:
-  through the dongle a press never reaches the halves, and an `&rgb_ug` on battery would run the
-  strip with the rail off (zmk-lantern's README). On battery the rail is off, as since #207 (10-18 mA
-  per half at rest with it on, 0.79 mA off; 2026-09-15). A half that boots on battery within a minute
-  of a plugged spell shows ZMK's saved colour for about 0.1 s first: by design, not a fault.
-  On hardware 2026-10-19 (t-26y4, both halves): the boot light on battery, then dark; lit on plugging
-  in and dark on unplugging, per half; lit through a boot on USB.
+  through the dongle a press never reaches the halves, and with the underglow off `&rgb_ug` has no
+  driver (zmk-lantern's README). On battery the rail is off, as since #207 (10-18 mA per half at
+  rest with it on, 0.79 mA off; 2026-09-15). On hardware 2026-10-19 (t-26y4, both halves): the boot
+  light on battery, then dark; lit on plugging in and dark on unplugging, per half; lit through a
+  boot on USB.
 - **The Imprint Dongle builds with `CONFIG_BT_EXT_ADV` and needs `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`**
   (`config/imprint_dongle.conf`): `CONFIG_BEACON_STATUS_BROADCAST` selects it for a second
   advertising set, and the host serves ZMK's legacy `bt_le_adv_start()` from the same pool; a pool
