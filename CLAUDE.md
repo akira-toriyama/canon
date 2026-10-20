@@ -168,10 +168,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     connection event), so a half that was away gets it when it is back; a half writes NVS only for
     a changed palette. Every device, the dongle too, ignores a stored palette of another slot
     count (an image from before t-0967) at load, so the dongle answers `palette none` until the
-    Mac sends again. The dongle's `palette ok` says it
-    stored and queued, not that a half has it: a set of five or six colours, or a resend, queues
-    three split invocations a half (two slots each; one or two colours take one, three or four
-    two), so `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6`
+    Mac sends again. The dongle's `palette ok` says it stored and queued, not that a half has it: a
+    set of any count (the slots not sent are cleared to black, which the halves show as slot 0), or
+    a resend, queues three split invocations a half (two slots each), so
+    `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6`
     (ZMK's default 5 holds five of the six: a put into a full queue waits 100 ms for the drain and
     then drops the oldest, the left half's slots 0-1, only when the drain stalls on a half that
     stopped acknowledging, never on an idle link; the module asserts the size). The daily palette
