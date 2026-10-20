@@ -1,0 +1,32 @@
+// The halves' key LEDs are zmk-lantern's (config/west.yml): its lantern,keys
+// node names the strip (Cyboard's ws2812 node, chosen zmk,underglow), the key
+// under each LED and the palette slot each key shows (CLAUDE.md, Invariants;
+// the glossary: palette). ZMK's underglow is off on the halves (imprint.conf),
+// the module paints the strip itself and asserts that. For both halves'
+// overlays, which add the half's own positions and chain-length: the two
+// tables below are the keymap's and so the same on both.
+//
+// slots: one entry per key position of imprint.keymap's chosen transform
+// (imprint_letters_only_full_bottom_row, 58 keys; keypos.h numbers them), in
+// the transform's shape: the palette slot the key's LED shows. Slots 0..4
+// left to right in five bands of about twelve keys: the outer three
+// columns of the left half, its inner three, both thumb clusters, the right
+// half's inner three, its outer three (t-69g7; the five colours of the day's
+// sprite, slot 0 the liveliest, t-0967). Slot 5 is the palette's spare and
+// appears nowhere. A slot the host left black shows slot 0's colour (the
+// module's rule), so one colour paints a solid keyboard.
+
+/ {
+    lantern_keys: lantern_keys {
+        compatible = "lantern,keys";
+        strip = <&led_strip>;
+        slots = <
+            0 0 0 1 1 1          3 3 3 4 4 4
+            0 0 0 1 1 1          3 3 3 4 4 4
+            0 0 0 1 1 1          3 3 3 4 4 4
+            0 0 0 1 1              3 3 4 4 4
+                      2 2 2    2 2 2
+                      2 2 2    2 2 2
+        >;
+    };
+};
