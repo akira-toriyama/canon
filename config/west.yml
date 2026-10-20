@@ -48,14 +48,15 @@ manifest:
     # palette hands the Imprint Dongle, carried to both halves by the
     # palette behavior of config/imprint_behaviors.dtsi and painted by the
     # module itself in five bands (config/lantern_keys.dtsi; ZMK's underglow
-    # is off on every target), stepping through the palette's colours as the
-    # idle dark nears, the countdown (the dongle builds the module's palette side
+    # is off on every target), cycling through the palette's colours every
+    # ten seconds on the way to the idle dark, the countdown (the dongle builds
+    # the module's palette side
     # only; its conf sizes the split run queue for a whole palette, six
     # slots). Pinned by
     # commit like zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 750f4133167bb738d3514526de9be88beb809ef2
+      revision: 50714b9344c331d7f337812b21200ddb475dd37f
       path: modules/zmk-lantern
   self:
     path: config
