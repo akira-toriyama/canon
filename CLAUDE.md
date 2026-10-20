@@ -162,7 +162,14 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     (`config/lantern_keys.dtsi`: the slot each key shows, slots 0..4 left to right in five bands
     across both halves, a black slot showing slot 0; each half's overlay: the key under each LED in
     chain order and the strip's real length, 29) at `CONFIG_LANTERN_BRIGHTNESS` (the module's
-    default, 16 %), at arrival while lit and at every boot; the dongle resends the palette a second
+    default, 16 %), at arrival while lit and at every boot, and counts down to the idle dark in them
+    (t-gsm2; the glossary: countdown): from the half's last key, the five minutes of
+    `CONFIG_ZMK_IDLE_TIMEOUT` cut into as many stages as the palette has distinct colours (two
+    that paint alike at the LEDs' brightness count once), stage 0 the bands and stage k the whole
+    half in colour k, so a solid colour reads how near the dark is; the clock is the half's own
+    keys, kept while dark (a trackball input moves ZMK's idle, not the stages; a cable plugged in
+    lights the stage the keys say), a key brings the bands back, and one colour is one stage
+    (`CONFIG_LANTERN_COUNTDOWN`, the module's default); the dongle resends the palette a second
     after each battery report of a half, the first of which follows every reconnection (ZMK 4dd95d78
     raises no central-side
     connection event), so a half that was away gets it when it is back; a half writes NVS only for
