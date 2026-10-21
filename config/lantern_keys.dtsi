@@ -26,6 +26,13 @@
 // layout is fixed. zmk-lantern's effects
 // measure the board with it (t-6ttk: the thin ring); the module asserts an x
 // and a y per key position.
+//
+// scatter-weights: the scatter (zmk-lantern's CONFIG_LANTERN_SCATTER, t-skdt),
+// a picture in place of the bands: each half throws the slots over its own 29
+// keys at random, slot s on this percentage of them (slots 1.. rounded, slot
+// 0 the rest, the 10 % the shares leave included: 18 / 6 / 3 / 1 / 1 of 29),
+// a new throw every ten seconds while lit. The user's shares of 2026-10-21;
+// slot 5, the spare, 0.
 
 / {
     lantern_keys: lantern_keys {
@@ -47,5 +54,6 @@
              550 550    650 550    750 550    900 550   1000 550   1100 550
              550 650    650 650    750 650    900 650   1000 650   1100 650
         >;
+        scatter-weights = <50 20 10 5 5 0>;
     };
 };
