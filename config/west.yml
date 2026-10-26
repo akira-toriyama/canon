@@ -42,21 +42,22 @@ manifest:
       path: modules/zmk-beacon
     # zmk-lantern (own module): the halves' key LEDs, lit only while USB
     # powers the half and it is in use (ZMK's idle state after
-    # CONFIG_ZMK_IDLE_TIMEOUT turns them off), and the boot light
-    # (config/lantern_rail.dtsi, the idle line of imprint_left.conf /
-    # imprint_right.conf), and their picture: the palette scripts/dongle.py
-    # palette hands the Imprint Dongle, carried to both halves by the
-    # palette behavior of config/imprint_behaviors.dtsi and painted by the
-    # module itself in five bands (config/lantern_keys.dtsi; ZMK's underglow
-    # is off on every target), cycling through the palette's colours every
-    # ten seconds on the way to the idle dark, the countdown (the dongle builds
-    # the module's palette side
-    # only; its conf sizes the split run queue for a whole palette, six
-    # slots). Pinned by
-    # commit like zmk-beacon; bump the SHA by hand after a merge there.
+    # CONFIG_ZMK_IDLE_TIMEOUT turns them off), the intro as the boot light
+    # (config/lantern_rail.dtsi, imprint_left.conf / imprint_right.conf), and
+    # what they show: every key black until a press draws the effect of the
+    # day, four built into the halves' images and the pick scripts/dongle.py
+    # effect hands the Imprint Dongle saying which draws, in the colours of
+    # the palette scripts/dongle.py palette hands it the same way; the dongle
+    # carries both to the halves by the behavior nodes effect and palette of
+    # config/imprint_behaviors.dtsi and relays each half's key presses to the
+    # other through hit, for the crossing ring (the dongle builds the module's
+    # palette, pick and hit sides only; its conf sizes the split run queue for
+    # a whole palette and the pick). ZMK's underglow is off on every target;
+    # config/lantern_keys.dtsi is the module's node. Pinned by commit like
+    # zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 50714b9344c331d7f337812b21200ddb475dd37f
+      revision: 705872f4e05167ace653e7279990f9d99474f7fc
       path: modules/zmk-lantern
   self:
     path: config
