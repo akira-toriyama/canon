@@ -49,17 +49,23 @@ shields: imprint_dongle is upstreamed to Cyboard, and the Prospector Dongle's
 shield lives in [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)). See [CLAUDE.md](CLAUDE.md).
 
 The halves' key LEDs light only while USB powers the half and it is in use
-(five minutes without a key on that half turn them off until the next one;
-on the way there the half cycles through its palette colours, ten seconds each),
-and for a second at boot, so on battery they cost nothing: the own module
+(five minutes without a key on that half turn them off until the next one),
+so on battery they cost nothing: the own module
 [zmk-lantern](https://github.com/akira-toriyama/zmk-lantern), pinned by commit
 in `config/west.yml` like zmk-beacon, drives their LED rail (its README says
-how; on hardware 2026-10-19). Their colours are the palette, shown in five
-bands from the left half's outer columns to the right half's (one colour
-paints the keyboard solid): `python3 scripts/dongle.py palette RRGGBB ...`
-hands it to the Imprint Dongle, which sends it to both halves over the split,
-where it survives a power cycle; `python3 scripts/dongle.py palette` asks the
-dongle for the six slots (the glossary: palette).
+how; on hardware 2026-10-19). Lit, the keys stay black until you type: each
+key press draws the effect of the day, a thin ring, a disc, a stain or a ring
+crossing both halves (the glossary: effect), and a cable plugged in plays a
+six-second intro in red, blue and green. `python3 scripts/dongle.py effect
+<name>` (`thin-ring`, `disc`, `stain`, `cross-ring`) picks the effect through
+the Imprint Dongle, which sends it to both halves over the split, where it
+survives a power cycle, and `python3 scripts/dongle.py effect` asks for it;
+until the first pick the halves draw the crossing ring. The effects' colours
+are the palette: `python3 scripts/dongle.py palette RRGGBB ...` hands six
+colours to the dongle the same way (slots 0..4 are five bands from the left
+half's outer columns to the right half's; the crossing ring takes the pressed
+key's band), and `python3 scripts/dongle.py palette` asks for them (the
+glossary: palette).
 
 ## ZMK firmware build
 
