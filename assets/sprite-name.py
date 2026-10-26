@@ -15,17 +15,20 @@ and the `names` file's entry of that place gives `ja`, composed
 (NFC), taken when it is 15 bytes of UTF-8 at most and every character is in
 the katakana font (KATAKANA_RANGES, a copy of zmk-beacon's
 sprite_pack.KATAKANA_RANGES: change the two together). Without a config, an
-order, a dictionary or an entry, or with one the HP bar cannot show, the
-name as before (projects t-er81): the GIF's file name with its extension
-dropped (`.gif` alone leaves nothing), whitespace trimmed at both ends, the
-first letter upper-cased ("my sprite.gif" -> "My sprite"), cut to the 15
-bytes a sprite pack's name holds (zmk-beacon's build stops on a longer one
-since c92ffcf). That name is printable ASCII on one line without a double
-quote, a backslash or "??": the name row's ASCII font has no other glyphs,
-Kconfig would need escaping, and "??x" is a C trigraph in autoconf.h, so
-anything else is an error (exit 2) and a build never shows a wrong name. A
-katakana name has none of those characters. One line on stderr says where
-the name came from, as the sender's log does, naming nothing.
+order, a dictionary or an entry, or with one the HP bar cannot show, or
+with a file that is not what the sender reads (where the sender's daily run
+is a config error, a build falls back and says so), the
+name as before (projects t-er81, the sender's SpriteName.from): the GIF's
+file name with its extension dropped (`.gif` alone leaves nothing), spaces
+and tabs trimmed at both ends, the first letter upper-cased ("my sprite.gif"
+-> "My sprite"), cut to the 15 bytes a sprite pack's name holds (zmk-beacon's
+build stops on a longer one since c92ffcf) and trimmed again. That name is
+printable ASCII on one line without a double quote, a backslash or "??": the
+name row's ASCII font has no other glyphs, Kconfig would need escaping, and
+"??x" is a C trigraph in autoconf.h, so anything else is an error (exit 2)
+and a build never shows a wrong name. A katakana name has none of those
+characters. One line on stderr says where the name came from, as the
+sender's log does, naming nothing; stdout is UTF-8 whatever the locale.
 
 build-zmk.sh passes the name to zmk-beacon as CONFIG_BEACON_SPRITE_NAME,
 whose sprite_pack.py checks it again. Committed, like assets/README.md: the
@@ -57,16 +60,16 @@ def from_file_name(file_name):
     """The name as before, from the GIF's file name; NameError_ when it
     gives none."""
     stem = file_name.rsplit(".", 1)[0] if "." in file_name else file_name
-    name = stem.strip()
+    name = stem.strip(" \t")
     if not name:
         raise NameError_("the GIF's file name leaves no name")
-    if "\n" in name or "\r" in name:
-        raise NameError_("the GIF's file name must be one line")
     if not all(" " <= c <= "~" for c in name) or '"' in name or "\\" in name or "??" in name:
-        raise NameError_('the GIF\'s file name must be printable ASCII without a double quote, '
-                         'a backslash or "??"')
-    name = name[0].upper() + name[1:]
-    return name[:NAME_BYTES]
+        raise NameError_('the GIF\'s file name must be printable ASCII on one line without a '
+                         'double quote, a backslash or "??"')
+    name = (name[0].upper() + name[1:])[:NAME_BYTES].strip(" \t")
+    if not name:
+        raise NameError_("the GIF's file name leaves no name")
+    return name
 
 
 def katakana(text):
@@ -91,18 +94,24 @@ def find_config(directory):
         path = os.path.join(candidate, CONFIG_NAME)
         if os.path.isfile(path):
             try:
-                with open(path, encoding="utf-8") as f:
+                with open(path, encoding="utf-8-sig") as f:
                     config = json.load(f)
             except (OSError, ValueError):
                 config = None
             if isinstance(config, dict) and isinstance(config.get("front"), str) and config["front"]:
-                front = os.path.realpath(os.path.join(candidate, config["front"]))
+                front = os.path.realpath(resolve(candidate, config["front"]))
                 if front == here:
                     return candidate, config
         parent = os.path.dirname(candidate)
         if parent == candidate:
             return None
         candidate = parent
+
+
+def resolve(base, path):
+    """A config path against the config's directory, `..` folded on the
+    text as the sender's URL does (a `meta/../order.txt` needs no meta)."""
+    return os.path.normpath(os.path.join(base, path))
 
 
 def read_order(path):
@@ -128,10 +137,11 @@ def read_order(path):
 
 def read_names(path):
     """{place: ja} of the name dictionary (the sender's NameDictionary: an
-    array of objects with an integer `no`, `ja` optional, other keys
-    ignored); None when the file is not that."""
+    array of objects with an integer `no`, which Swift's decoder also reads
+    from a whole-number float, `ja` a string or absent, other keys ignored);
+    None when the file is not that."""
     try:
-        with open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8-sig") as f:
             entries = json.load(f)
     except (OSError, ValueError):
         return None
@@ -139,12 +149,18 @@ def read_names(path):
         return None
     japanese = {}
     for entry in entries:
-        if not isinstance(entry, dict) or not isinstance(entry.get("no"), int) or isinstance(entry.get("no"), bool):
+        if not isinstance(entry, dict):
             return None
-        if entry["no"] in japanese:
+        number = entry.get("no")
+        if isinstance(number, bool) or not isinstance(number, (int, float)) or number != int(number):
+            return None
+        number = int(number)
+        if number in japanese:
             return None
         ja = entry.get("ja")
-        japanese[entry["no"]] = ja if isinstance(ja, str) else None
+        if ja is not None and not isinstance(ja, str):
+            return None
+        japanese[number] = ja
     return japanese
 
 
@@ -159,14 +175,14 @@ def from_dictionary(gif):
     if not isinstance(order_path, str) or not order_path or not isinstance(names_path, str) or not names_path:
         return None, "the config names no order file or no dictionary"
     try:
-        order = read_order(os.path.join(base, order_path))
+        order = read_order(resolve(base, order_path))
     except OSError:
         return None, "cannot read the order file"
     file_name = unicodedata.normalize("NFC", os.path.basename(gif))
     if file_name not in order:
         return None, "the GIF is not in the order"
     place = order.index(file_name) + 1
-    japanese = read_names(os.path.join(base, names_path))
+    japanese = read_names(resolve(base, names_path))
     if japanese is None:
         return None, "the dictionary is not an array of numbered objects"
     if place not in japanese or japanese[place] is None:
@@ -189,7 +205,7 @@ def main(argv):
             note(str(e))
             return 2
         note("from the file name (%s), %d characters" % (why, len(name)))
-    sys.stdout.write(name + "\n")
+    sys.stdout.buffer.write((name + "\n").encode("utf-8"))
     return 0
 
 

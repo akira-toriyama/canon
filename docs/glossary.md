@@ -248,16 +248,16 @@ transfer that fails leaves the embedded sprite, or none, until the next one.
 ### sprite name
 The text above the [[HP bar]], centred, carried by the [[sprite pack]] playing:
 15 bytes of UTF-8 at most, all printable ASCII (unscii 16) or all katakana
-(the [[katakana font]]). The [[name dictionary]]'s katakana name of the GIF's
+(the [[katakana font]]): the [[name dictionary]]'s katakana name of the GIF's
 place when the HP bar can show it (the user's rule, t-rq9h), else the GIF's
-file name with the extension dropped, whitespace trimmed, the first letter
-upper-cased and cut to 15 bytes: the [[sprite sender]] chooses it so for the
-pack it writes into the [[sprite room]], and
-[`assets/sprite-name.py`](../assets/sprite-name.py) the same way for a local
-sprite build, which `build-zmk.sh --sprite` passes to zmk-beacon as
-[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig)
-for the embedded sprite. It names the GIF's subject, so it never appears in commits,
-PRs or docs; the name row is empty until a pack plays.
+file name with the extension dropped, trimmed, the first letter upper-cased
+and cut to 15 bytes, chosen so by the [[sprite sender]] for the pack it
+writes into the [[sprite room]] and by
+[`assets/sprite-name.py`](../assets/sprite-name.py) for a local sprite
+build, which `build-zmk.sh --sprite` passes to zmk-beacon as
+[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig).
+It names the GIF's subject, so it never appears in commits, PRs or docs; the
+name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
 
 ### katakana font

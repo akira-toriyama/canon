@@ -354,7 +354,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - [assets/sprite-name.py](assets/sprite-name.py) gives the name: the sprite sender's name
   dictionary's katakana name when the HP bar can show it, looked up as the sender does (the
   `sender.json` above the GIF, the GIF's place in its order file, `names.json`; t-rq9h), else the
-  file name's (t-er81); the dictionary names the collection's subjects and lives next to the GIFs.
+  file name's (t-er81); the name dictionary names the collection's subjects and lives next to the GIFs.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
   the configure step fails (reproduced 2026-09-29), and prints only the GIF's size and the name's
