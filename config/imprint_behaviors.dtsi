@@ -26,3 +26,16 @@
         compatible = "lantern,behavior-palette";
         #binding-cells = <2>;
     };
+
+    // &hit: zmk-lantern's hit behavior (its src/hit.c), never on a key. The
+    // Imprint Dongle sends it to a half with each key press of the other
+    // half (param1 = the key position), and ZMK's split transport carries it
+    // by this node's name, so the node is the same on all three, as &palette;
+    // a half notes the press as a hit for the effects that cross the split
+    // (zmk-lantern's crossing ring; t-6ttk). The dongle sends only to a half
+    // whose link is at peripheral latency 0, the one USB powers (the
+    // module's src/latency.c): a half on battery is dark and gets nothing.
+    hit: hit {
+        compatible = "lantern,behavior-hit";
+        #binding-cells = <2>;
+    };
