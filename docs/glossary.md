@@ -248,13 +248,15 @@ transfer that fails leaves the embedded sprite, or none, until the next one.
 ### sprite name
 The text above the [[HP bar]], centred, carried by the [[sprite pack]] playing:
 15 bytes of UTF-8 at most, all printable ASCII (unscii 16) or all katakana
-(the [[katakana font]]); for a local sprite build the GIF's file name with the
-extension dropped, whitespace trimmed, the first letter upper-cased and cut to
-15 bytes ([`assets/sprite-name.sh`](../assets/sprite-name.sh)),
-which `build-zmk.sh --sprite` passes to zmk-beacon as
+(the [[katakana font]]). The [[name dictionary]]'s katakana name of the GIF's
+place when the HP bar can show it (the user's rule, t-rq9h), else the GIF's
+file name with the extension dropped, whitespace trimmed, the first letter
+upper-cased and cut to 15 bytes: the [[sprite sender]] chooses it so for the
+pack it writes into the [[sprite room]], and
+[`assets/sprite-name.py`](../assets/sprite-name.py) the same way for a local
+sprite build, which `build-zmk.sh --sprite` passes to zmk-beacon as
 [`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig)
-for an embedded sprite, and the [[sprite sender]] writes into a pack for the
-[[sprite room]]. It names the GIF's subject, so it never appears in commits,
+for the embedded sprite. It names the GIF's subject, so it never appears in commits,
 PRs or docs; the name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
 
@@ -483,12 +485,24 @@ The Mac program that writes a [[sprite pack]] into the [[Prospector Dongle]]'s
 (a Swift app, `SpriteSender.app`), which takes the next GIF of the collection on
 the external drive, one a run, in the order and range its config sets
 ([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite-sender)),
-packs it with its back view and sends it; a LaunchAgent in the user's dotfiles
+packs it with its back view, names it from the [[name dictionary]] when it can
+and sends it; a LaunchAgent in the user's dotfiles
 runs it once a day, and a failed day is skipped; its `colours` subcommand prints
 the colours of the GIF it last sent, for the [[palette]]. Its config (`sender.json`) and
 state live next to the collection ([`assets/README.md`](../assets/README.md)),
 off every repository.
 - **Don't call it:** BLESend, uploader, daily swap script, 送信スクリプト, 送信アプリ
+
+### name dictionary
+The JSON file next to the [[sprite sender]]'s config (`names` in `sender.json`,
+`names.json` on the external drive) that gives a place of the order file a
+katakana name: an array of `{"no", "ja", "en"}` objects, one a species in
+National Pokédex order, written by zmk-beacon's
+[`tools/name_dictionary.py`](https://github.com/akira-toriyama/zmk-beacon/blob/main/tools/name_dictionary.py)
+from PokeAPI's species names and read by the sender's `NameDictionary` and by
+[`assets/sprite-name.py`](../assets/sprite-name.py) for the [[sprite name]]. It
+names the collection's subjects, so it lives off every repository.
+- **Don't call it:** name table, 和名表, species list, lookup file, dictionary alone in prose, 辞書 alone in English text
 
 ### keymap-drawer
 The external tool

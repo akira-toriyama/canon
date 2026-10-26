@@ -13,5 +13,5 @@ __pycache__/
 # case-sensitive volume, where `*.gif` would miss `.GIF`.
 /assets/*
 !/assets/README.md
-!/assets/sprite-name.sh
+!/assets/sprite-name.py
 *.[gG][iI][fF]

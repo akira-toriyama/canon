@@ -29,8 +29,9 @@
 #                     image erases the settings, BLE bonds included, at every
 #                     boot. Flash it with flash-reset.sh, then the normal image.
 #   --sprite <gif>    zmk-beacon's animated sprite (CONFIG_BEACON_SPRITE_GIF) in
-#                     the prospector target only, named under the HP bar after
-#                     the GIF's file name (assets/sprite-name.sh). Sprite GIFs are
+#                     the prospector target only, named above the HP bar after
+#                     the sprite sender's name dictionary, else the GIF's file
+#                     name (assets/sprite-name.py). Sprite GIFs are
 #                     personal files kept off the repository (assets/README.md):
 #                     never committed, never in CI or a release, and this script
 #                     prints neither the GIF's path nor the name.
@@ -154,7 +155,7 @@ if [ -n "$SPRITE" ]; then
   case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
   # Never the path in a message: a GIF's file name names its subject.
   if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
-  SPRITE_NAME="$("$REPO/assets/sprite-name.sh" "$SPRITE")"
+  SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" "$SPRITE")"
 fi
 # The own modules config/west.yml pins (name, west path, commit): every build
 # checks each out at its pin, and a --module of the same name stands in.
@@ -377,7 +378,7 @@ done
 if [ "$LOGGING" -eq 1 ]; then echo " logging     : ${LOGGING_CONF[*]}"; fi
 if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
 if [ -n "$SPRITE" ]; then
-  echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, a name of ${#SPRITE_NAME} characters (prospector only; neither printed)"
+  echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, a name of $(printf '%s' "$SPRITE_NAME" | wc -c | tr -d ' ') bytes (prospector only; neither printed)"
 fi
 if [ ${#KCONFIG[@]} -gt 0 ]; then echo " kconfig     : ${KCONFIG[*]}"; fi
 echo " targets     :"
