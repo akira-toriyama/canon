@@ -316,7 +316,7 @@ port and its own keys; nothing crosses the split.
 ### palette
 The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
 with `python3 scripts/dongle.py palette`, which the dongle and both halves of
-the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
+the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] and the [[beams]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
@@ -341,15 +341,16 @@ on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk
 
 ### effect
 The moving picture a key press draws on the [[Cyboard Imprint]]'s key LEDs,
-and the pick of which draws. Four are built into the halves' images ([[thin
-ring]], [[disc]], [[stain]], [[crossing ring]]; `config/imprint_left.conf`),
-and `python3 scripts/dongle.py effect <name>` (`thin-ring`, `disc`, `stain`,
-`cross-ring`) hands the [[Imprint Dongle]] the pick, which it keeps in its
+and the pick of which draws. Five are built into the halves' images ([[thin
+ring]], [[disc]], [[stain]], [[crossing ring]], [[beams]];
+`config/imprint_left.conf`), and `python3 scripts/dongle.py effect <name>`
+(`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`) hands the [[Imprint
+Dongle]] the pick, which it keeps in its
 settings and carries to both halves through the [[behavior]] node `effect` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
 [[palette]], and resends with it after each battery report of a half; `effect`
 alone asks (`effect …`, `effect none`). Until the Mac's first pick, and whenever
-the stored pick names none of the built four, a half draws the crossing ring
+the stored pick names none of the built five, a half draws the crossing ring
 (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`; t-5hqx).
 - The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h)) and `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
@@ -389,6 +390,17 @@ halves draw one press in one colour (`CONFIG_LANTERN_CROSS_RING`; t-6ttk, OK on
 hardware 2026-10-26).
 - The hit: the [[Imprint Dongle]] relays each half's key presses to the other half through the [[behavior]] node `hit` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) ([[zmk-lantern]]'s `src/hit.c`), only to a half whose link runs at peripheral latency 0, which a half asks for while USB powers it (its `src/latency.c`): a half on battery is dark and gets nothing.
 - **Don't call it:** split ring, cross ring in prose (the Kconfig is `CROSS_RING`, the port's word `cross-ring`), 半分をまたぐ輪 in English text
+
+### beams
+The [[effect]] `beams`: from each pressed key four beams run outward along its
+row and its column at twelve key units a second, four fifths of a key wide and
+fading out over a second, in the colour of the pressed key's band
+([`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) `slots`) as the
+[[crossing ring]]; with the hit a press of the other half sends its row's beam
+in across the split (`CONFIG_LANTERN_BEAMS`; t-6ttk, OK on hardware
+2026-10-26).
+- A key is on the row or the column within half a key unit, so each thumb cluster makes rows and columns of its own, and the two clusters share their rows: a thumb's beam runs into the other cluster.
+- **Don't call it:** cross (QMK's name; the [[crossing ring]] is `cross-ring`), nexus, rays, lines, 十字 in English text
 
 ### intro
 The six-second show a half's key LEDs play as the boot light and whenever a
