@@ -87,7 +87,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; both lit halves show slot 0 within a tick; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
+| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …]` (`thin-ring`, `disc`, `stain`, `cross-ring`, one or more; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names (pick) or `effect <names>` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect; a logging image: `effect 0000000X stored` on a half, `pick 0000000X from …` and `resent to half N` on the dongle |
+| Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; the next effect on a lit half takes the new colours; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - **`ERROR … no bootloader volume` or `went away before the copy` once: stop; no other keyboard
   device is tried.** flash-dongle.sh enforces it with a latch (`~/.cache/zmk-canon/flash-dongle.latch`,
@@ -150,42 +151,58 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
   - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
     LEDs, lit only while USB powers the half and it is in use, and the boot light; the LED rail is
-    its (the invariant below); and their colour, the palette (the glossary; t-k9e9; six slots since
-    t-0967): six colours
-    `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle as a line on its CDC ACM
-    port (`palette` alone asks; the dongle answers `palette ok …`, `palette …`, `palette none` or
-    `palette error: …`). The dongle stores them in NVS (`lantern/palette/colours`) and forwards them
-    to both halves through the behavior node `palette` of `config/imprint_behaviors.dtsi`: ZMK's
-    split transport names a behavior by its node name, so the node is the same on all three imprint
-    targets, and the dongle builds the module's palette side (the Prospector Dongle none of the
-    module). Each half stores the six and paints its key LEDs itself from them
-    (`config/lantern_keys.dtsi`: the slot each key shows, slots 0..4 left to right in five bands
-    across both halves, a black slot showing slot 0; each half's overlay: the key under each LED in
-    chain order and the strip's real length, 29) at `CONFIG_LANTERN_BRIGHTNESS` (the module's
-    default, 16 %), at arrival while lit and at every boot, and cycles through them on the way to
-    the idle dark (t-gsm2, t-x82q; the glossary: countdown): from the half's last key a new picture
-    every ten seconds (`CONFIG_LANTERN_COUNTDOWN_STAGE_MS`, the module's default), the bands, then
-    the whole half in each colour in turn (two that paint alike at the LEDs' brightness count
-    once), then the bands again, until the five minutes of `CONFIG_ZMK_IDLE_TIMEOUT` turn the LEDs
-    off; the clock is the half's own keys, kept while dark (a trackball input moves ZMK's idle, not
-    the pictures; a cable plugged in lights the picture the keys say), and a key brings the bands
-    back (`CONFIG_LANTERN_COUNTDOWN`, the module's default); the dongle resends the palette a second
-    after each battery report of a half, the first of which follows every reconnection (ZMK 4dd95d78
-    raises no central-side
-    connection event), so a half that was away gets it when it is back; a half writes NVS only for
-    a changed palette. Every device, the dongle too, ignores a stored palette of another slot
-    count (an image from before t-0967) at load, so the dongle answers `palette none` until the
-    Mac sends again. The dongle's `palette ok` says it stored and queued, not that a half has it: a
-    set of any count (the slots not sent are cleared to black, which the halves show as slot 0), or
-    a resend, queues three split invocations a half (two slots each), so
-    `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6`
-    (ZMK's default 5 holds five of the six: a put into a full queue waits 100 ms for the drain and
-    then drops the oldest, the left half's slots 0-1, only when the drain stalls on a half that
-    stopped acknowledging, never on an idle link; the module asserts the size). The daily palette
-    (t-0967): the five colours of the
-    sprite GIF the sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the
-    LaunchAgent in dotfiles is to hand to `dongle.py palette --wait 600` after each successful
-    swap (the values are GIF-derived: never in a commit, PR or doc, the Privacy section). Bump
+    its (the invariant below). What the LEDs show is the user's pick on hardware (t-skdt, t-5v1f,
+    t-6ttk, t-5hqx; `config/imprint_left.conf` carries the lines and says why, `imprint_right.conf`
+    the same lines): no picture, every key black while lit (`CONFIG_LANTERN_NO_PICTURE`, the
+    countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), the intro as the boot light and at every
+    cable plugged in (six seconds in red, blue and green from the outer keys to the thumbs,
+    `CONFIG_LANTERN_INTRO`; the glossary: intro), and after a key press the effect (the glossary:
+    effect, thin ring, disc, stain, crossing ring): four are built into the image
+    (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
+    `CONFIG_LANTERN_CROSS_RING`), and the pick says which draw. `python3 scripts/dongle.py effect
+    <name>…` (`thin-ring`, `disc`, `stain`, `cross-ring`; one at a time today, two or more draw
+    together) hands the Imprint Dongle a line on its CDC ACM port (`effect` alone asks; the dongle
+    answers `effect ok …`, `effect …`, `effect none` or `effect error: …`); the dongle stores it in
+    NVS (`lantern/effect/mask`) and forwards it to both halves through the behavior node `effect`
+    of `config/imprint_behaviors.dtsi` (one invocation, param1 = the module's bit mask, its
+    `src/effect.h`), each half stores it and draws the picked effects it builds, and until the Mac's
+    first pick, or when the stored pick names none of the four, the crossing ring, the user's
+    highest mark (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice
+    `LANTERN_EFFECT_DEFAULT`). The names and bits are the module's table `LANTERN_EFFECT_LIST` and
+    `EFFECTS` in `scripts/dongle.py`: a new effect lands in both, with its conf line and its
+    glossary entry, in one PR. The crossing ring needs the hit: the dongle relays each half's key
+    presses to the other half through the behavior node `hit` (the module's `src/hit.c`,
+    `CONFIG_LANTERN_HIT` on by the node), only to a half whose link is at peripheral latency 0,
+    which a half asks for while USB powers it (the module's `src/latency.c`), so a half on battery,
+    dark, gets nothing; the ring's colour is the pressed key's band (`config/lantern_keys.dtsi`
+    slots: 0..4 left to right in five bands across both halves, the only place the bands show now).
+    The colours are the palette (the glossary; t-k9e9; six slots since t-0967): six colours
+    `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
+    alone asks; the replies `palette ok …`, `palette …`, `palette none`, `palette error: …`); the
+    dongle stores them in NVS (`lantern/palette/colours`) and forwards them through the behavior
+    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit` and
+    `effect` are the same nodes on all three imprint targets (the keymap's behaviors), and the
+    dongle builds the module's palette, pick and hit sides (the Prospector Dongle none of the
+    module). The dongle resends the palette and the pick a second after each battery report of a
+    half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
+    connection event), so a half that was away gets both when it is back; a half writes NVS only
+    for a changed palette or pick. Every device, the dongle too, ignores a stored palette of
+    another slot count (an image from before t-0967) at load, so the dongle answers `palette none`
+    until the Mac sends again. The dongle's `palette ok` / `effect ok` says it stored and queued,
+    not that a half has it: a palette set of any count (the slots not sent are cleared to black,
+    which the halves show as slot 0), or a resend, queues three split invocations a half (two slots
+    each), and the pick one more, so `config/imprint_dongle.conf` sets
+    `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=8` (four a half, both halves resent at once;
+    ZMK's default 5: a put into a full queue waits 100 ms for the drain and then drops the oldest,
+    only when the drain stalls on a half that stopped acknowledging, never on an idle link; the
+    module asserts the size). The daily palette (t-0967): the five colours of the sprite GIF the
+    sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the LaunchAgent in
+    dotfiles is to hand to `dongle.py palette --wait 600` after each successful swap (the values
+    are GIF-derived: never in a commit, PR or doc, the Privacy section); the daily effect is
+    t-2d9r's, `dongle.py effect` the same way. The countdown (the glossary) and the other pictures
+    (the bands, the solid, the gradient, the scatter) stay in the module for a trial image
+    (`--kconfig`); `CONFIG_LANTERN_BRIGHTNESS` (the module's default, 16 %) now sets the frame's
+    cap, under which an effect draws at full brightness. Bump
     the SHA by hand after a merge there. The
     scripts treat every project of west.yml's `akira-toriyama` remote alike (`stamp.py pins`;
     t-66ww, 2026-10-19): the stamp takes its tree id, every build checks its clone out at the pin,
@@ -248,8 +265,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   idle rule (`CONFIG_LANTERN_OFF_WHEN_IDLE`, its default): five minutes without a key, sensor or
   pointing
   input on a half, and its LEDs go dark on USB too, lit again at the next input; each half counts
-  for itself, and a cable plugged into an idle half lights nothing until its next key (the module's
-  source says why). The timeout is ZMK's, not the module's (ZMK's activity state already counts
+  for itself, and a cable plugged into an idle half plays the intro and goes dark again until its
+  next key (the module's source says why nothing else lights it). The timeout is ZMK's, not the module's (ZMK's activity state already counts
   the inputs, and t-6ttk's effects read the same); with `CONFIG_ZMK_SLEEP=n` it moves nothing
   else in a half but the battery sampling, paused while idle (the half's zmk.map, 2026-10-19).
   Never re-enable the node: the driver turns the rail on at init and
@@ -284,10 +301,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `config/imprint_dongle.conf`, whose product image has the port too, and since 2026-10-19 in
   `config/imprint_left.conf` / `imprint_right.conf` with the port from `config/cdc_acm_port.dtsi`;
   `CONFIG_BEACON_SCREEN_DUMP`). Any program that sets the rate does it (`stty`, a serial monitor):
-  never open a canon device's port at either rate by hand. A line `palette …` on the Imprint
-  Dongle's port at 115200 is a command too (zmk-lantern's `CONFIG_LANTERN_PALETTE_PORT`): only
-  `dongle.py palette` sends it, and it refuses while a log reader holds the port, which would take
-  the reply. Find ports by the firmware stamp or a
+  never open a canon device's port at either rate by hand. A line `palette …` or `effect …` on
+  the Imprint Dongle's port at 115200 is a command too (zmk-lantern's `CONFIG_LANTERN_PORT`): only
+  `dongle.py palette` and `dongle.py effect` send them, and they refuse while a log reader holds
+  the port, which would take the reply. Find ports by the firmware stamp or a
   dongle's USB product string, never by VID/PID or a `/dev/cu.usbmodem*` name (it follows the USB
   location). The option depends on `USB_CDC_ACM`, without which `=y` drops out with a mere warning:
   after a ZMK bump, grep it in `build/<shield>/zephyr/.config` of the Imprint Dongle and both halves.

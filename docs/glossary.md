@@ -289,29 +289,29 @@ each pin's tree id, every build checks each clone out at its pin, and
 The own ZMK module
 ([akira-toriyama/zmk-lantern](https://github.com/akira-toriyama/zmk-lantern))
 that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half
-and the half is in use, and for a second at boot: it drives the half's LED
+and the half is in use, and for the [[intro]] at boot: it drives the half's LED
 rail (assimilator-bt P1.02, the pin ZMK's `ext_power` driver would own)
 itself, on with a cable and off on battery or after five minutes without a key
 (ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), and switches ZMK's underglow
 with it, so the LEDs cost the battery nothing. Each half decides from its own
 port and its own keys; nothing crosses the split.
 - Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]] side only (the behavior, the port, the resend), the Prospector Dongle none of it.
-- The colours are the [[palette]]'s, painted by the module itself in five bands (slots 0..4 left to right across both halves) at `CONFIG_LANTERN_BRIGHTNESS` (16 %), white until the first palette, and cycled through by the [[countdown]] on the way to the idle dark; ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
+- The product halves paint no picture (`CONFIG_LANTERN_NO_PICTURE`, t-skdt): the keys stay black while lit, each press draws the [[effect]] in the [[palette]]'s colours at full brightness under the frame's cap (`CONFIG_LANTERN_BRIGHTNESS`, 16 %, sets it), and the [[intro]] plays as the boot light; the [[countdown]] is off. ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature, off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
 
 ### palette
 The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
 with `python3 scripts/dongle.py palette`, which the dongle and both halves of
-the [[Cyboard Imprint]] keep in their settings across boots, and which [[zmk-lantern]] paints the key LEDs with: slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)); a black slot shows slot 0, so one colour paints a solid keyboard, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
+the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
 when it is back.
-- The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/palette_port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette_port.c); the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
+- The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c), which reads the [[effect]]'s line too; the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
 - The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the liveliest colour first), which the LaunchAgent in the user's dotfiles is to hand to `python3 scripts/dongle.py palette --wait 600` after each successful swap, so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
-- The dongle's split run queue holds a whole palette for both halves at once, three invocations a half for every set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0): `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=6` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
+- The dongle's split run queue holds a whole palette and the [[effect]]'s pick for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for the pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=8` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
-- The [[countdown]] to the idle dark cycles through the palette's distinct colours, the whole half in one at a time, ten seconds each.
+- The [[countdown]] to the idle dark, when a trial image builds it, cycles through the palette's distinct colours, the whole half in one at a time, ten seconds each; the product images leave it off.
 - **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state; the underglow is off), パレット設定
 
 ### countdown
@@ -322,7 +322,68 @@ seconds a new picture, the bands, then the whole half in each colour of the
 ([[zmk-lantern]]'s `CONFIG_LANTERN_COUNTDOWN` and `CONFIG_LANTERN_COUNTDOWN_STAGE_MS`,
 on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/keys.c); t-gsm2, t-x82q).
 - Each half counts its own keys, while dark too (a trackball input moves ZMK's idle, not the pictures; a cable plugged in lights the picture the keys say). Colours that paint alike at the LEDs' brightness count once, so a day of three colours cycles through four pictures; one colour is the bands until the dark. In canon#272 (2026-10-20) a stage was a minute, the five minutes over the colour count, and the last colour held until the dark; the user chose the ten-second cycle on hardware the same day.
+- Off in the product images since t-5hqx (`CONFIG_LANTERN_COUNTDOWN=n` in the halves' confs): with no picture the stages would only paint the whole half in a colour; a trial image (`--kconfig CONFIG_LANTERN_COUNTDOWN=y`) brings it back.
 - **Don't call it:** fade, dimming, idle animation, timeout display, 段階表示, 消灯カウントダウン
+
+### effect
+The moving picture a key press draws on the [[Cyboard Imprint]]'s key LEDs,
+and the pick of which draws. Four are built into the halves' images ([[thin
+ring]], [[disc]], [[stain]], [[crossing ring]]; `config/imprint_left.conf`),
+and `python3 scripts/dongle.py effect <name>` (`thin-ring`, `disc`, `stain`,
+`cross-ring`) hands the [[Imprint Dongle]] the pick, which it keeps in its
+settings and carries to both halves through the [[behavior]] node `effect` of
+[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
+[[palette]], and resends with it after each battery report of a half; `effect`
+alone asks (`effect …`, `effect none`). Until the Mac's first pick, and whenever
+the stored pick names none of the built four, a half draws the crossing ring
+(`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`; t-5hqx).
+- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h)) and `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
+- The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
+- The daily effect (t-2d9r): the LaunchAgent in dotfiles is to pick one a day, as it hands the daily [[palette]].
+- **Don't call it:** animation, lighting mode, RGB effect, underglow effect (ZMK's underglow is off on every target), 光り方, エフェクト設定
+
+### thin ring
+The [[effect]] `thin-ring`: from each pressed key a ring one key wide spreads
+at twelve key units a second and fades out within a second, each press in the
+[[palette]]'s next colour ([[zmk-lantern]]'s `CONFIG_LANTERN_THIN_RING`, its
+`src/keys.c`; t-6ttk, OK on hardware 2026-10-21).
+- With the hit (the [[crossing ring]]'s relay) a press of the other half rings in too, in across the split.
+- **Don't call it:** ripple (zmk-rgb-matrix's name for the idea; fine in prose about that project), wave, ring alone where the [[crossing ring]] could be meant
+
+### disc
+The [[effect]] `disc`: from each pressed key a rim spreads at twelve key units
+a second; a key it has passed lights at full brightness and fades back to
+black over half a second, its colour running once through the [[palette]]'s
+colours, so the disc is brightest at its rim and the day's colours pass
+inside it (`CONFIG_LANTERN_DISC`; t-6ttk, OK on hardware 2026-10-21).
+- **Don't call it:** splash (QMK's name for the idea), filled ring, circle
+
+### stain
+The [[effect]] `stain`: the [[thin ring]] that dyes the keys it passes within
+about 4.8 key units of the press, each in the ring's colour at the picture's
+brightness, so the half is painted over in the day's colours as you type,
+until the LEDs go dark or the pick changes (`CONFIG_LANTERN_STAIN`, which
+builds the thin ring too; t-6ttk, OK on hardware 2026-10-21).
+- **Don't call it:** paint, dyeing ring (the dye is what the stain leaves), 染め in English text
+
+### crossing ring
+The [[effect]] `cross-ring`, the default: a thin ring from each pressed key
+across the whole board, both halves, at twelve key units a second and without
+fading until it has left the board, in the colour of the pressed key's band
+([`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) `slots`), so both
+halves draw one press in one colour (`CONFIG_LANTERN_CROSS_RING`; t-6ttk, OK on
+hardware 2026-10-26).
+- The hit: the [[Imprint Dongle]] relays each half's key presses to the other half through the [[behavior]] node `hit` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) ([[zmk-lantern]]'s `src/hit.c`), only to a half whose link runs at peripheral latency 0, which a half asks for while USB powers it (its `src/latency.c`): a half on battery is dark and gets nothing.
+- **Don't call it:** split ring, cross ring in prose (the Kconfig is `CROSS_RING`, the port's word `cross-ring`), 半分をまたぐ輪 in English text
+
+### intro
+The six-second show a half's key LEDs play as the boot light and whenever a
+cable is plugged in: a white star crossing the half, then red, blue and green
+waves and rings from the outer keys to the thumbs and back, the user's pick
+after Pokemon's first games ([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its
+`src/keys.c`; t-5v1f, 2026-10-22). A key pressed meanwhile draws no
+[[effect]]; nothing cuts it short.
+- **Don't call it:** boot animation, splash screen, opening (the task's working name), オープニング in English text
 
 ---
 

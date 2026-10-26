@@ -2,9 +2,9 @@
 # Which USB device is which of canon's build targets (the two dongles and the
 # two halves of the Cyboard Imprint), a serial log reader that follows them, a
 # PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
-# through the Imprint Dongle (palette: zmk-lantern's port), and whether the
-# firmware on USB is the one origin/main would build (check: the firmware
-# stamp, scripts/stamp.py).
+# and their effect picked through the Imprint Dongle (palette, effect:
+# zmk-lantern's port), and whether the firmware on USB is the one origin/main
+# would build (check: the firmware stamp, scripts/stamp.py).
 #
 # The one place that identifies canon's devices on USB: flash-dongle.sh leaves
 # the names and the ioreg and df lookups to the plumbing subcommands and parses
@@ -23,7 +23,7 @@
 # bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
-# again, never 1200; `palette` writes its line at 115200. Neither sets TIOCEXCL: flash-dongle.sh's stty must still
+# again, never 1200; `palette` and `effect` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
 # open a port that a reader holds, and a log reader then follows the dongle
 # through the bootloader into the new image's boot log.
 #
@@ -869,7 +869,13 @@ def cmd_shot(args):
 
 PALETTE_WORD = "palette"
 PALETTE_SLOTS = 6
-# `palette --wait` polls for the dongle at flash-dongle.sh --wait's rate.
+EFFECT_WORD = "effect"
+# The effects a half can draw, by the names the Imprint Dongle's port takes:
+# zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
+# effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
+EFFECTS = ("thin-ring", "disc", "stain", "cross-ring")
+# `palette --wait` and `effect --wait` poll for the dongle at flash-dongle.sh
+# --wait's rate.
 WAIT_POLL_S = 0.5
 
 
@@ -885,15 +891,18 @@ def colour(text):
     return t.upper()
 
 
-# The reply, found in a line: the firmware starts it on a line of its own, but
-# a logging image's log thread, interrupted mid-line, finishes its line after
-# it, and the word also ends a log module's name ("lantern_palette:").
-PALETTE_REPLY = re.compile(r"(?<![A-Za-z_])palette(?: |$)")
+def reply_pattern(word):
+    """The reply to the word, found in a line: the firmware starts it on a line
+    of its own, but a logging image's log thread, interrupted mid-line,
+    finishes its line after it, and the word also ends a log module's name
+    ("lantern_palette:", "lantern_effect:")."""
+    return re.compile(r"(?<![A-Za-z_])" + re.escape(word) + r"(?: |$)")
 
 
-def read_palette_reply(fd, port, seconds):
-    """The dongle's first reply line from the port, cleaned, or None at the
-    deadline. A logging image's log lines pass by."""
+def read_reply(fd, port, seconds, word):
+    """The dongle's first reply line to the word from the port, cleaned, or
+    None at the deadline. A logging image's log lines pass by."""
+    pattern = reply_pattern(word)
     buf = b""
     deadline = time.monotonic() + seconds
     while True:
@@ -903,7 +912,7 @@ def read_palette_reply(fd, port, seconds):
         buf += read_some(fd, port, min(left, 0.5))
         lines, buf = split_lines(buf)
         for raw in lines:
-            m = PALETTE_REPLY.search(clean(raw))
+            m = pattern.search(clean(raw))
             if m is not None:
                 return m.string[m.start():]
 
@@ -925,14 +934,15 @@ def wait_for_device(device, seconds):
         time.sleep(min(WAIT_POLL_S, deadline - now))
 
 
-# The dongle's reply while its settings have not loaded yet (zmk-lantern's
-# palette_port.c): one that just booted, its USB up before them.
-NOT_READY = PALETTE_WORD + " error: not ready"
+def not_ready(word):
+    """The dongle's reply to the word while its settings have not loaded yet
+    (zmk-lantern's port.c): one that just booted, its USB up before them."""
+    return word + " error: not ready"
 
 
-def exchange(dev, line, seconds):
-    """Write the line on the dongle's port and return its reply line, or
-    None at the deadline."""
+def exchange(dev, word, line, seconds):
+    """Write the line on the dongle's port and return its reply line to the
+    word, or None at the deadline."""
     port = dev.ports[0]
     holders = port_holders(dev)
     if holders:
@@ -946,22 +956,24 @@ def exchange(dev, line, seconds):
         drain(fd, port)
         # The newline first ends whatever partial line the port may hold.
         os.write(fd, ("\n" + line + "\n").encode("ascii"))
-        return read_palette_reply(fd, port, seconds)
+        return read_reply(fd, port, seconds, word)
     finally:
         os.close(fd)
 
 
-def cmd_palette(args):
-    if len(args.colours) > PALETTE_SLOTS:
-        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
-    line = PALETTE_WORD + ("?" if not args.colours else " " + " ".join(args.colours))
+def ask_dongle(word, arguments, args):
+    """Send the word with its arguments (none: the ask, "word?") to the
+    Imprint Dongle, after --wait, and print its reply line; the exit status
+    of palette and effect: 0 for a set's ok or an ask's answer, 1 for an
+    error or no reply."""
+    line = word + ("?" if not arguments else " " + " ".join(arguments))
     deadline = time.monotonic() + args.wait
     if args.wait:
         waited = wait_for_device("imprint_dongle", args.wait)
         print("dongle.py: waited %.1f s for the %s" % (waited, label("imprint_dongle")), file=sys.stderr)
     while True:
-        reply = exchange(the_device("imprint_dongle"), line, args.seconds)
-        if reply is None or not reply.startswith(NOT_READY) or time.monotonic() >= deadline:
+        reply = exchange(the_device("imprint_dongle"), word, line, args.seconds)
+        if reply is None or not reply.startswith(not_ready(word)) or time.monotonic() >= deadline:
             break
         # A KVM switch that cut the dongle's power rebooted it, and its USB
         # came up before its settings: --wait's budget covers that too.
@@ -969,13 +981,23 @@ def cmd_palette(args):
         time.sleep(WAIT_POLL_S)
     if reply is None:
         raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-lantern's "
-                      "CONFIG_LANTERN_PALETTE_PORT ignores the line" % args.seconds)
+                      "CONFIG_LANTERN_PORT ignores the line" % args.seconds)
     print(reply)
-    if reply.startswith(PALETTE_WORD + " error"):
+    if reply.startswith(word + " error"):
         return 1
-    if args.colours and not reply.startswith(PALETTE_WORD + " ok "):
+    if arguments and not reply.startswith(word + " ok "):
         return 1
     return 0
+
+
+def cmd_palette(args):
+    if len(args.colours) > PALETTE_SLOTS:
+        raise Failure("at most %d colours, slots 0 to %d" % (PALETTE_SLOTS, PALETTE_SLOTS - 1), 2)
+    return ask_dongle(PALETTE_WORD, args.colours, args)
+
+
+def cmd_effect(args):
+    return ask_dongle(EFFECT_WORD, args.effects, args)
 
 
 def cmd_image(args):
@@ -1205,8 +1227,8 @@ def parser():
         description="Find canon's devices on USB (the Imprint Dongle and the Prospector Dongle by their firmware "
                     "stamp or USB product string, the halves of the Cyboard Imprint by their stamp), read their "
                     "serial logs, take a PNG of the Prospector Dongle's screen, set or ask the key LEDs' palette "
-                    "through the Imprint Dongle, and check the firmware stamp of every ZMK device on USB against "
-                    "origin/main. Devices: %s." % names,
+                    "and pick their effect through the Imprint Dongle, and check the firmware stamp of every ZMK "
+                    "device on USB against origin/main. Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
                "3 check could not compute the digests.",
     )
@@ -1260,8 +1282,10 @@ def parser():
                     "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
                     "cleared to 000000), sends them to both halves over the split (zmk-lantern's palette behavior; "
                     "a half that is away gets them when it is back) and answers 'palette ok' with the six slots; "
-                    "each half keeps the six across boots and paints its key LEDs with slots 0..4 in five bands, "
-                    "left to right across both halves (a black slot shows slot 0). With no colour "
+                    "each half keeps the six across boots and draws its effects from them (the crossing ring in "
+                    "the pressed key's band, slots 0..4 left to right across both halves, a black slot showing "
+                    "slot 0; the thin ring and the stain in the next colour a press; the disc running through "
+                    "them). With no colour "
                     "the reply is 'palette' with the dongle's six slots, or 'palette none' (also from a device "
                     "flashed across the change from four slots to six, until the next set). Refuses while another "
                     "process holds the port (it would take the reply). Never sets 1200 baud.",
@@ -1279,6 +1303,28 @@ def parser():
                         "for a while, and may have rebooted it: its USB comes up before its settings; "
                         "default 0, no wait)")
     s.set_defaults(func=cmd_palette)
+
+    s = sub.add_parser(
+        "effect", help="pick or ask the key LEDs' effect through the Imprint Dongle",
+        description="Write 'effect NAME ...' (with no name: 'effect?') on the Imprint Dongle's port at 115200 "
+                    "and print the dongle's reply line. With names the dongle stores the pick, sends it to both "
+                    "halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it is "
+                    "back) and answers 'effect ok' with the names; each half keeps the pick across boots and draws "
+                    "the picked effects its image builds (the product images build all four; two or more names "
+                    "draw together), the crossing ring until the first pick. With no name the reply is 'effect' "
+                    "with the dongle's pick, or 'effect none' before any. Refuses while another process holds the "
+                    "port (it would take the reply). Never sets 1200 baud. Names: %s." % ", ".join(EFFECTS),
+        epilog="Exit status: 0 'effect ok' (pick) or the names (ask), 1 'effect error', no reply, or no "
+               "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
+    )
+    s.add_argument("effects", nargs="*", choices=EFFECTS, metavar="NAME",
+                   help="the effects to draw, one or more of: %s" % ", ".join(EFFECTS))
+    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
+                   help="give up on the reply after N seconds (default 3)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
+    s.set_defaults(func=cmd_effect)
 
     s = sub.add_parser(
         "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",
