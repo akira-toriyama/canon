@@ -91,7 +91,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …]` (`thin-ring`, `disc`, `stain`, `cross-ring`, one or more; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names (pick) or `effect <names>` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect; a logging image: `effect 0000000X stored` on a half, `pick 0000000X from …` and `resent to half N` on the dongle |
+| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, one or more; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names (pick) or `effect <names>` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect; a logging image: `effect 0000000X stored` on a half, `pick 0000000X from …` and `resent to half N` on the dongle |
 | Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; the next effect on a lit half takes the new colours; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - **`ERROR … no bootloader volume` or `went away before the copy` once: stop; no other keyboard
@@ -161,24 +161,26 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), the intro as the boot light and at every
     cable plugged in (six seconds in red, blue and green from the outer keys to the thumbs,
     `CONFIG_LANTERN_INTRO`; the glossary: intro), and after a key press the effect (the glossary:
-    effect, thin ring, disc, stain, crossing ring): four are built into the image
+    effect, thin ring, disc, stain, crossing ring, beams): five are built into the image
     (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
-    `CONFIG_LANTERN_CROSS_RING`), and the pick says which draw. `python3 scripts/dongle.py effect
-    <name>…` (`thin-ring`, `disc`, `stain`, `cross-ring`; one at a time today, two or more draw
+    `CONFIG_LANTERN_CROSS_RING`, `CONFIG_LANTERN_BEAMS`), and the pick says which draw. `python3
+    scripts/dongle.py effect <name>…` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`; one at
+    a time today, two or more draw
     together) hands the Imprint Dongle a line on its CDC ACM port (`effect` alone asks; the dongle
     answers `effect ok …`, `effect …`, `effect none` or `effect error: …`); the dongle stores it in
     NVS (`lantern/effect/mask`) and forwards it to both halves through the behavior node `effect`
     of `config/imprint_behaviors.dtsi` (one invocation, param1 = the module's bit mask, its
     `src/effect.h`), each half stores it and draws the picked effects it builds, and until the Mac's
-    first pick, or when the stored pick names none of the four, the crossing ring, the user's
+    first pick, or when the stored pick names none of the five, the crossing ring, the user's
     highest mark (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice
     `LANTERN_EFFECT_DEFAULT`). The names and bits are the module's table `LANTERN_EFFECT_LIST` and
     `EFFECTS` in `scripts/dongle.py`: a new effect lands in both, with its conf line and its
-    glossary entry, in one PR. The crossing ring needs the hit: the dongle relays each half's key
+    glossary entry, in one PR. The crossing ring needs the hit (the beams use it too, their row's
+    beam crossing the split): the dongle relays each half's key
     presses to the other half through the behavior node `hit` (the module's `src/hit.c`,
     `CONFIG_LANTERN_HIT` on by the node), only to a half whose link is at peripheral latency 0,
     which a half asks for while USB powers it (the module's `src/latency.c`), so a half on battery,
-    dark, gets nothing; the ring's colour is the pressed key's band (`config/lantern_keys.dtsi`
+    dark, gets nothing; the ring's and the beams' colour is the pressed key's band (`config/lantern_keys.dtsi`
     slots: 0..4 left to right in five bands across both halves, the only place the bands show now).
     The colours are the palette (the glossary; t-k9e9; six slots since t-0967): six colours
     `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
