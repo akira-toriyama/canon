@@ -873,7 +873,7 @@ EFFECT_WORD = "effect"
 # The effects a half can draw, by the names the Imprint Dongle's port takes:
 # zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
 # effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
-EFFECTS = ("thin-ring", "disc", "stain", "cross-ring")
+EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams")
 # `palette --wait` and `effect --wait` poll for the dongle at flash-dongle.sh
 # --wait's rate.
 WAIT_POLL_S = 0.5
