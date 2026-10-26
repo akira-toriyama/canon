@@ -31,8 +31,8 @@ Usage and rules:
 - The name above the HP bar is the name dictionary's katakana name when the
   HP bar can show it, else the GIF's file name, looked up by
   `sprite-name.py <gif>` as the sprite sender does (its header): the GIF's
-  directory is the `front` of the `sender.json` above it, the GIF's line of
-  the order file is its place, and the dictionary's name of that place is
+  directory is the `front` of the `sender.json` above it, the GIF's position
+  among the order file's names is its place, and the dictionary's name of that place is
   taken when it is composed, 15 bytes of UTF-8 at most and all in the
   katakana font. Otherwise the file name with the extension dropped,
   whitespace trimmed at both ends, the first letter upper-cased

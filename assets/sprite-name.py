@@ -9,8 +9,9 @@ HP bar can show it, else the name as before. The katakana name comes from
 the sprite sender's name dictionary, looked up as the sender does (zmk-beacon
 tools/sprite-sender, SpriteSenderCore/SpriteName.swift): the GIF's directory
 is the `front` of a `sender.json` in it or above it (the collection's; its
-keys relative to it), the GIF's line of the `order` file, counted from 1, is
-its place, and the `names` file's entry of that place gives `ja`, composed
+keys relative to it), the GIF's position among the `order` file's names,
+counted from 1 (an empty line or a repeated name holds none), is its place,
+and the `names` file's entry of that place gives `ja`, composed
 (NFC), taken when it is 15 bytes of UTF-8 at most and every character is in
 the katakana font (KATAKANA_RANGES, a copy of zmk-beacon's
 sprite_pack.KATAKANA_RANGES: change the two together). Without a config, an
@@ -105,8 +106,10 @@ def find_config(directory):
 
 
 def read_order(path):
-    """The order file's names: one a line, exactly, empty lines skipped, a
-    name's first line its place (the sender's Rotation.order)."""
+    """The order file's names, composed (NFC): one a line, exactly, empty
+    lines skipped, a name's first line its place (the sender's
+    Rotation.order, whose Set<String> takes a decomposed spelling for the
+    composed one)."""
     with open(path, "rb") as f:
         data = f.read()
     names = []
@@ -116,7 +119,7 @@ def read_order(path):
             line = line[:-1]
         if not line:
             continue
-        name = line.decode("utf-8", "surrogateescape")
+        name = unicodedata.normalize("NFC", line.decode("utf-8", "replace"))
         if name not in seen:
             seen.add(name)
             names.append(name)
@@ -159,7 +162,7 @@ def from_dictionary(gif):
         order = read_order(os.path.join(base, order_path))
     except OSError:
         return None, "cannot read the order file"
-    file_name = os.path.basename(gif)
+    file_name = unicodedata.normalize("NFC", os.path.basename(gif))
     if file_name not in order:
         return None, "the GIF is not in the order"
     place = order.index(file_name) + 1
