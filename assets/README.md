@@ -23,12 +23,14 @@ Usage and rules:
 - `./scripts/build-zmk.sh prospector --sprite /Volumes/HDD/assets/canon/prospector/sprites/<name>.gif`
   builds `firmware/prospector-sprite.uf2`. Only a sprite build needs the drive
   connected. zmk-beacon's README lists which GIFs work.
-- The name under the HP bar comes from the GIF's file name:
-  `sprite-name.sh <gif>` drops the extension, trims whitespace at both ends
-  and upper-cases the first letter (`my sprite.gif` shows `My sprite`), and
-  the build passes that to zmk-beacon. Printable ASCII only, no double quote,
-  backslash or `??`; 15 glyphs fit, a longer name is cut. To show another
-  name, rename the file.
+- The name above the HP bar comes from the GIF's file name:
+  `sprite-name.sh <gif>` drops the extension, trims whitespace at both ends,
+  upper-cases the first letter (`my sprite.gif` shows `My sprite`) and cuts
+  the result to 15 bytes, and the build passes that to zmk-beacon. Printable
+  ASCII only, no double quote, backslash or `??`. To show another name,
+  rename the file. The sprite sender's packs may carry a katakana name
+  instead (zmk-beacon c92ffcf): the device draws it in the katakana font, an
+  ASCII name in unscii 16.
 - The drive is exFAT, where macOS stores a file's extended attributes in a
   `._<name>` sidecar file. Copy files onto it with `cp -X`, clear the sidecars
   with `dot_clean -m <dir>`, and give `--sprite` one file, never a `*.gif`

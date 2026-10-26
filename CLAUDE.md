@@ -66,7 +66,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - Never edit the cached clone of an own module (`modules/zmk-beacon`, `modules/zmk-lantern`: the
   projects `python3 scripts/stamp.py pins` lists): every build checks each out at its pin (one a
   `--module` replaces too: the stamp takes the pin's tree id from the clone) and stops on local
-  changes, so a pin bump needs no `--update`.
+  changes, so a pin bump needs no `--update`. A `--module` image on a device lasts only until the
+  next pinned flash, which any session does after a merge: bump the pin here in the same sitting
+  as the module's merge (2026-10-26: #278's session flashed main's `prospector.uf2` over
+  zmk-beacon#45's worktree build while the pin still predated that merge, and the katakana name
+  in the sprite room showed as four placeholder squares under the HP row until the pin bump).
   `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
   tree reset once ([patches/zmk/README.md](patches/zmk/README.md)).
@@ -354,7 +358,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   length. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
   `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
   the name: never print or paste from them. The screen layout (zmk-beacon's README, the
-  glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials): change it only on request.
+  glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials; t-rq9h, 2026-10-26: the
+  sprite name above the HP bar, centred, a katakana name in the katakana font, an ASCII one in
+  unscii 16): change it only on request.
 
 ## Commits, pull requests, fleet files
 

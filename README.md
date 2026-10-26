@@ -190,7 +190,7 @@ after five minutes without a key press and lights at the next one (zmk-beacon's
 GIF animation (local builds only):
 `./scripts/build-zmk.sh prospector --sprite <gif>` builds
 `firmware/prospector-sprite.uf2` with the GIF above the HP bar and its file
-name, as the sprite name, under it (rules: [assets/README.md](assets/README.md));
+name, as the sprite name, above it (rules: [assets/README.md](assets/README.md));
 the build converts the GIF into a sprite pack and embeds that, not the GIF
 (zmk-beacon's [docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md));
 flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.

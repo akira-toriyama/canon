@@ -246,9 +246,11 @@ transfer that fails leaves the embedded sprite, or none, until the next one.
 - **Don't call it:** slot, sprite partition in prose (that is the node), flash area, storage, 部屋 alone in English, スプライト領域
 
 ### sprite name
-The text under the [[HP bar]], carried by the [[sprite pack]] playing: the
-GIF's file name with the extension dropped, whitespace trimmed and the first
-letter upper-cased ([`assets/sprite-name.sh`](../assets/sprite-name.sh)),
+The text above the [[HP bar]], centred, carried by the [[sprite pack]] playing:
+15 bytes of UTF-8 at most, all printable ASCII (unscii 16) or all katakana
+(the [[katakana font]]); for a local sprite build the GIF's file name with the
+extension dropped, whitespace trimmed, the first letter upper-cased and cut to
+15 bytes ([`assets/sprite-name.sh`](../assets/sprite-name.sh)),
 which `build-zmk.sh --sprite` passes to zmk-beacon as
 [`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig)
 for an embedded sprite, and the [[sprite sender]] writes into a pack for the
@@ -256,12 +258,22 @@ for an embedded sprite, and the [[sprite sender]] writes into a pack for the
 PRs or docs; the name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
 
+### katakana font
+The bitmap font the [[Prospector Dongle]] draws a katakana [[sprite name]] in:
+PKMN Strict from [nue-of-k/pkmn](https://github.com/nue-of-k/pkmn) (MIT), the
+letters of the first Game Boy games at two pixels a dot and a pixel bolder,
+rendered as whole blocks, never a name's subset, into zmk-beacon's
+[`src/font_pkmn.c`](https://github.com/akira-toriyama/zmk-beacon/blob/main/src/font_pkmn.c)
+by its `tools/pkmn_font.py`; an ASCII name keeps LVGL's unscii 16.
+- **Don't call it:** Pokémon font, pokemon font, ポケモンフォント, kana font, pkmn font, PKMN Strict in prose, name font
+
 ### HP bar
 The [[Prospector Dongle]]'s battery reading in a box along the bottom of the
 screen: `HP` and a battle-screen style bar with its value on it (`65/100`),
 the bar as long as the mean of both halves' levels, or the one half that has
 a reading ([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-screen)).
-In a [[sprite]] build the box has a second row with the [[sprite name]].
+In a [[sprite]] build the box has a first row with the [[sprite name]], centred
+above `HP` and the bar (t-rq9h; a second row under them until 2026-10-26).
 - **Don't call it:** battery bar, life bar, health bar, gauge, HP ゲージ, 体力バー
 
 ### screen dump

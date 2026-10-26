@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 #
-# The name the Prospector Dongle shows under its HP bar for a sprite GIF,
+# The name the Prospector Dongle shows above its HP bar for a sprite GIF,
 # from the GIF's file name: the extension dropped, whitespace trimmed at both
 # ends, the first letter upper-cased ("my sprite.gif" -> "My sprite"; the
 # user's rule, projects t-er81, 2026-09-29). scripts/build-zmk.sh --sprite
-# passes the result to zmk-beacon as CONFIG_BEACON_SPRITE_NAME. Printable ASCII
-# on one line, without a double quote, a backslash or "??": the HP bar's font
-# has no other glyphs, Kconfig would need escaping, and "??x" is a C trigraph
-# in autoconf.h, so anything else is an error and a build never shows a wrong
-# name. Committed, like assets/README.md: the two exceptions to the ignore rule
-# on assets/, while the personal files live off the repository. It prints the
+# passes the result to zmk-beacon as CONFIG_BEACON_SPRITE_NAME, cut to the 15
+# bytes a sprite pack's name holds (zmk-beacon's build stops on a longer one
+# since c92ffcf). Printable ASCII on one line, without a double quote, a
+# backslash or "??": the name row's ASCII font has no other glyphs, Kconfig
+# would need escaping, and "??x" is a C trigraph in autoconf.h, so anything
+# else is an error and a build never shows a wrong name; a katakana name
+# reaches the device only in a sprite sender's pack (zmk-beacon's
+# sprite_pack.py takes either alphabet, never a mix). Committed, like
+# assets/README.md: the two exceptions to the ignore rule on assets/, while
+# the personal files live off the repository. It prints the
 # name, which names the subject, so never paste its output into a commit, a PR
 # or a doc; its error messages name neither the file nor the name for the same
 # reason.
@@ -44,4 +48,7 @@ if printf '%s' "$name" | LC_ALL=C grep -Eq '[^ -~]|["\\]|\?\?'; then
 fi
 # bash 3.2 (macOS) has no ${name^}.
 first="$(printf '%s' "$name" | cut -c1 | tr '[:lower:]' '[:upper:]')"
-printf '%s\n' "${first}${name#?}"
+name="${first}${name#?}"
+# SPRITE_PACK_NAME_LEN of zmk-beacon's src/sprite_pack.h; ASCII, so bytes are
+# characters.
+printf '%s\n' "${name:0:15}"
