@@ -431,12 +431,14 @@ on its way (`CONFIG_LANTERN_DART`; t-6ttk, OK on hardware 2026-10-27).
 - **Don't call it:** sweep (the research's early name), comet, streak, runner, 打鍵で走る光 in English text
 
 ### intro
-The six-second show a half's key LEDs play as the boot light and whenever a
-cable is plugged in: a white star crossing the half, then red, blue and green
-waves and rings from the outer keys to the thumbs and back, the user's pick
-after Pokemon's first games ([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its
-`src/keys.c`; t-5v1f, 2026-10-22). A key pressed meanwhile draws no
-[[effect]]; nothing cuts it short.
+The ten-second show a half's key LEDs play as the boot light and whenever a
+cable is plugged in, in red, blue and green only, one colour a key at a time and
+never white (t-ky8x, 2026-10-27): a star crossing the half from the outer keys
+to the thumbs, waves and rings in and back out, the three colours flowing
+outward as crests, and a star running back out (the flow and the star out,
+t-x46t, 2026-10-27), the user's pick after Pokemon's first games
+([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its `src/keys.c`; t-5v1f,
+2026-10-22). A key pressed meanwhile draws no [[effect]]; nothing cuts it short.
 - **Don't call it:** boot animation, splash screen, opening (the task's working name), オープニング in English text
 
 ---

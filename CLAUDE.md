@@ -159,8 +159,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     t-6ttk, t-5hqx; `config/imprint_left.conf` carries the lines and says why, `imprint_right.conf`
     the same lines): no picture, every key black while lit (`CONFIG_LANTERN_NO_PICTURE`, the
     countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), the intro as the boot light and at every
-    cable plugged in (six seconds in red, blue and green from the outer keys to the thumbs,
-    `CONFIG_LANTERN_INTRO`; the glossary: intro), and after a key press the effect (the glossary:
+    cable plugged in (ten seconds in red, blue and green only, never white, from the outer
+    keys to the thumbs and back, `CONFIG_LANTERN_INTRO`; the glossary: intro), and after a key
+    press the effect (the glossary:
     effect, thin ring, disc, stain, crossing ring, beams, water, dart): seven are built into the
     image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
     `CONFIG_LANTERN_CROSS_RING`, `CONFIG_LANTERN_BEAMS`, `CONFIG_LANTERN_WATER`,
