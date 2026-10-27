@@ -57,7 +57,7 @@ manifest:
     # zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: efbfea21b32f11e9ee5ace3be3205b9ac5dbab76
+      revision: 20756fad0b1f41f29a05e06ccb06774900453023
       path: modules/zmk-lantern
   self:
     path: config
