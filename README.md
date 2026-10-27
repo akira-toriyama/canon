@@ -55,18 +55,20 @@ so on battery they cost nothing: the own module
 in `config/west.yml` like zmk-beacon, drives their LED rail (its README says
 how; on hardware 2026-10-19). Lit, the keys stay black until you type: each
 key press draws the effect of the day, a thin ring, a disc, a stain, a ring
-crossing both halves, beams along the key's row and column or water, waves
-in the palette's first and last colours (the glossary: effect), and a cable
-plugged in plays a six-second intro in red, blue and green. `python3
-scripts/dongle.py effect <name>` (`thin-ring`, `disc`, `stain`, `cross-ring`,
-`beams`, `water`) picks the effect through
+crossing both halves, beams along the key's row and column, water, waves
+in the palette's first and last colours, or a dart, a bar running from the
+key to the far half through the palette's colours (the glossary: effect),
+and a cable plugged in plays a six-second intro in red, blue and green.
+`python3 scripts/dongle.py effect <name>` (`thin-ring`, `disc`, `stain`,
+`cross-ring`, `beams`, `water`, `dart`) picks the effect through
 the Imprint Dongle, which sends it to both halves over the split, where it
 survives a power cycle, and `python3 scripts/dongle.py effect` asks for it;
 until the first pick the halves draw the crossing ring. The effects' colours
 are the palette: `python3 scripts/dongle.py palette RRGGBB ...` hands six
 colours to the dongle the same way (slots 0..4 are five bands from the left
 half's outer columns to the right half's; the crossing ring and the beams take
-the pressed key's band, the water the first and last colours), and `python3
+the pressed key's band, the water the first and last colours, the dart all of
+them as it runs), and `python3
 scripts/dongle.py palette` asks for them (the
 glossary: palette).
 
