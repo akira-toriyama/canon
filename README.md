@@ -65,7 +65,10 @@ bands for a second instead (the glossary: intro).
 `cross-ring`, `beams`, `water`, `dart`) picks the effect through
 the Imprint Dongle, which sends it to both halves over the split, where it
 survives a power cycle, and `python3 scripts/dongle.py effect` asks for it;
-until the first pick the halves draw the crossing ring. The effects' colours
+until the first pick the halves draw the crossing ring. A colour after the
+name, `python3 scripts/dongle.py effect <name> RRGGBB`, draws that effect in
+the one colour (the stain dyes in it), and the pick without one returns to the
+palette's colours. The effects' colours
 are the palette: `python3 scripts/dongle.py palette RRGGBB ...` hands six
 colours to the dongle the same way (slots 0..4 are five bands from the left
 half's outer columns to the right half's; the crossing ring and the beams take

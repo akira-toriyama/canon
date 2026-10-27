@@ -2,8 +2,9 @@
 # Which USB device is which of canon's build targets (the two dongles and the
 # two halves of the Cyboard Imprint), a serial log reader that follows them, a
 # PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
-# and their effect picked through the Imprint Dongle (palette, effect:
-# zmk-lantern's port), and whether the firmware on USB is the one origin/main
+# and their effect, in one colour or the palette's, and their intro picked
+# through the Imprint Dongle (palette, effect, intro: zmk-lantern's port), and
+# whether the firmware on USB is the one origin/main
 # would build (check: the firmware stamp, scripts/stamp.py).
 #
 # The one place that identifies canon's devices on USB: flash-dongle.sh leaves
@@ -23,7 +24,7 @@
 # bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
-# again, never 1200; `palette` and `effect` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
+# again, never 1200; `palette`, `effect` and `intro` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
 # open a port that a reader holds, and a log reader then follows the dongle
 # through the bootloader into the new image's boot log.
 #
@@ -1002,8 +1003,30 @@ def cmd_palette(args):
     return ask_dongle(PALETTE_WORD, args.colours, args)
 
 
+def effect_arguments(tokens):
+    """The effect line's arguments from the command line: the names, each one
+    of EFFECTS, in the order given, then the colour, at most one (RRGGBB as
+    palette's, # or 0x allowed in front), or Failure (exit 2). The port takes
+    the colour anywhere after the word; this sends it last. A colour alone
+    names no effect, and the dongle would refuse it too."""
+    names, colours = [], []
+    for t in tokens:
+        if t in EFFECTS:
+            names.append(t)
+            continue
+        try:
+            colours.append(colour(t))
+        except argparse.ArgumentTypeError:
+            raise Failure("%r is neither an effect (%s) nor a colour (RRGGBB)" % (t, ", ".join(EFFECTS)), 2)
+    if len(colours) > 1:
+        raise Failure("one colour at most, not %d: every picked effect draws in it" % len(colours), 2)
+    if colours and not names:
+        raise Failure("a colour alone names no effect: one or more of %s before it" % ", ".join(EFFECTS), 2)
+    return names + colours
+
+
 def cmd_effect(args):
-    return ask_dongle(EFFECT_WORD, args.effects, args)
+    return ask_dongle(EFFECT_WORD, effect_arguments(args.effects), args)
 
 
 def cmd_intro(args):
@@ -1316,19 +1339,25 @@ def parser():
 
     s = sub.add_parser(
         "effect", help="pick or ask the key LEDs' effect through the Imprint Dongle",
-        description="Write 'effect NAME ...' (with no name: 'effect?') on the Imprint Dongle's port at 115200 "
-                    "and print the dongle's reply line. With names the dongle stores the pick, sends it to both "
-                    "halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it is "
-                    "back) and answers 'effect ok' with the names; each half keeps the pick across boots and draws "
-                    "the picked effects its image builds (the product images build all seven; two or more names "
-                    "draw together), the crossing ring until the first pick. With no name the reply is 'effect' "
-                    "with the dongle's pick, or 'effect none' before any. Refuses while another process holds the "
-                    "port (it would take the reply). Never sets 1200 baud. Names: %s." % ", ".join(EFFECTS),
+        description="Write 'effect NAME ... [RRGGBB]' (with no name: 'effect?') on the Imprint Dongle's port at "
+                    "115200 and print the dongle's reply line. With names the dongle stores the pick, sends it to "
+                    "both halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it "
+                    "is back) and answers 'effect ok' with the names, and the colour when one was given; each half "
+                    "keeps the pick across boots and draws the picked effects its image builds (the product images "
+                    "build all seven; two or more names draw together), the crossing ring until the first pick. A "
+                    "colour after the names, one at most, draws every picked effect in that one colour (the stain "
+                    "dyes in it) in place of the palette's colours; a pick without one returns to the palette's. "
+                    "With no name the reply is 'effect' with the dongle's pick, and its colour when one is set, or "
+                    "'effect none' before any. Refuses while another process holds the port (it would take the "
+                    "reply). Never sets 1200 baud. Names: %s." % ", ".join(EFFECTS),
         epilog="Exit status: 0 'effect ok' (pick) or the names (ask), 1 'effect error', no reply, or no "
-               "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
+               "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage (a name not in the "
+               "list, two colours, or a colour alone).",
     )
-    s.add_argument("effects", nargs="*", choices=EFFECTS, metavar="NAME",
-                   help="the effects to draw, one or more of: %s" % ", ".join(EFFECTS))
+    s.add_argument("effects", nargs="*", metavar="NAME|RRGGBB",
+                   help="the effects to draw, one or more of: %s; then, at most once, the colour every one of "
+                        "them draws in, six hex digits (# or 0x allowed in front); no colour = the palette's "
+                        "colours" % ", ".join(EFFECTS))
     s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
                    help="give up on the reply after N seconds (default 3)")
     s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",

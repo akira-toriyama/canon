@@ -49,7 +49,8 @@ manifest:
     # draws the effect of the day, seven built into the halves' images and the
     # pick scripts/dongle.py effect hands the Imprint Dongle saying which
     # draws, in the colours of the palette scripts/dongle.py palette hands it
-    # the same way; the dongle carries all three to the halves by the behavior
+    # the same way, or in the one colour the effect's pick names; the dongle
+    # carries all three to the halves by the behavior
     # nodes effect, intro and palette of config/imprint_behaviors.dtsi and
     # relays each half's key presses to the other through hit, for the
     # crossing ring and the beams (the dongle builds the module's palette,
@@ -59,7 +60,7 @@ manifest:
     # zmk-beacon; bump the SHA by hand after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 4cafe59b28497432c4ccadc78ded651397203c70
+      revision: 3b6c21e0ecacdc56963f9f92220eae7373c036fc
       path: modules/zmk-lantern
   self:
     path: config
