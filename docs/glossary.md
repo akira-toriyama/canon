@@ -344,14 +344,17 @@ The moving picture a key press draws on the [[Cyboard Imprint]]'s key LEDs,
 and the pick of which draws. Seven are built into the halves' images ([[thin
 ring]], [[disc]], [[stain]], [[crossing ring]], [[beams]], [[water]],
 [[dart]]; `config/imprint_left.conf`), and `python3 scripts/dongle.py effect
-<name>` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`)
-hands the [[Imprint Dongle]] the pick, which it keeps in its
-settings and carries to both halves through the [[behavior]] node `effect` of
+<name> [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`,
+`dart`, then one colour at most) hands the [[Imprint Dongle]] the pick, and its
+colour when one is given, which it keeps in its settings and carries to both
+halves through the [[behavior]] node `effect` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
 [[palette]], and resends with it after each battery report of a half; `effect`
-alone asks (`effect …`, `effect none`). Until the Mac's first pick, and whenever
-the stored pick names none of the built seven, a half draws the crossing ring
-(`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`; t-5hqx).
+alone asks (`effect …`, the colour last when one is set, `effect none`). Until
+the Mac's first pick, and whenever the stored pick names none of the built
+seven, a half draws the crossing ring (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`;
+t-5hqx).
+- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (the bullet below); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn (its README); canon's keymap binds neither, the Mac picks, and neither is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
 - The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h)) and `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
 - The daily effect (t-2d9r): the LaunchAgent in dotfiles is to pick one a day, as it hands the daily [[palette]].
