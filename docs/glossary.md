@@ -316,7 +316,7 @@ port and its own keys; nothing crosses the split.
 ### palette
 The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
 with `python3 scripts/dongle.py palette`, which the dongle and both halves of
-the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] and the [[beams]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
+the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] and the [[beams]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn, the [[water]] the first on a crest and the last in a trough, the ones between on the slopes; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
@@ -341,16 +341,16 @@ on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk
 
 ### effect
 The moving picture a key press draws on the [[Cyboard Imprint]]'s key LEDs,
-and the pick of which draws. Five are built into the halves' images ([[thin
-ring]], [[disc]], [[stain]], [[crossing ring]], [[beams]];
+and the pick of which draws. Six are built into the halves' images ([[thin
+ring]], [[disc]], [[stain]], [[crossing ring]], [[beams]], [[water]];
 `config/imprint_left.conf`), and `python3 scripts/dongle.py effect <name>`
-(`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`) hands the [[Imprint
-Dongle]] the pick, which it keeps in its
+(`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`) hands the
+[[Imprint Dongle]] the pick, which it keeps in its
 settings and carries to both halves through the [[behavior]] node `effect` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
 [[palette]], and resends with it after each battery report of a half; `effect`
 alone asks (`effect …`, `effect none`). Until the Mac's first pick, and whenever
-the stored pick names none of the built five, a half draws the crossing ring
+the stored pick names none of the built six, a half draws the crossing ring
 (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`; t-5hqx).
 - The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h)) and `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
@@ -401,6 +401,21 @@ in across the split (`CONFIG_LANTERN_BEAMS`; t-6ttk, OK on hardware
 2026-10-26).
 - A key is on the row or the column within half a key unit, so each thumb cluster makes rows and columns of its own, and the two clusters share their rows: a thumb's beam runs into the other cluster.
 - **Don't call it:** cross (QMK's name; the [[crossing ring]] is `cross-ring`), nexus, rays, lines, 十字 in English text
+
+### water
+The [[effect]] `water`: from each pressed key waves spread, a front at twelve
+key units a second with a wavelength of three keys behind it, fading out over
+a second and a half and weaker the farther from the key, and the waves of
+every press add up, two crests rising higher and a crest meeting a trough
+staying still; a key is pulled along the [[palette]] by the surface's height,
+a full crest to the first colour, a full trough to the last, a lower wave to
+the colours between, and as far as the surface is from still, so the black
+keys stay black until a wave passes and the pressed key's first waves flicker
+between the first and last colours four times a second (`CONFIG_LANTERN_WATER`;
+t-6ttk, OK on hardware 2026-10-27).
+- With the hit the other half's presses start waves too, low: about a fifth of a crest from an inner column, three fifths from a thumb.
+- The research's wavelength of two keys stood still on the Imprint's grid of keys a unit apart (every key in step, the sign swapping key to key); three keys a wave show the travel (zmk-lantern#18's review).
+- **Don't call it:** ripple (the [[thin ring]]'s idea), waves, water surface, 水面 in English text
 
 ### intro
 The six-second show a half's key LEDs play as the boot light and whenever a
