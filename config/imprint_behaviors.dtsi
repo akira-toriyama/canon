@@ -52,3 +52,17 @@
         compatible = "lantern,behavior-effect";
         #binding-cells = <2>;
     };
+
+    // &intro: zmk-lantern's intro behavior (its src/intro.c), never on a
+    // key. The Imprint Dongle's code invokes it with the pick
+    // `scripts/dongle.py intro` sends (param1 = one of the module's intro
+    // bits, src/intro.h), and ZMK's split transport carries it to both
+    // halves by this node's name, as &effect; each half stores the pick and
+    // plays the picked intro its image builds as the boot light (the halves'
+    // confs build the bands and the star waves), the dongle stores it and
+    // resends it with the palette and the effect (CLAUDE.md, Invariants; the
+    // glossary: intro).
+    intro: intro {
+        compatible = "lantern,behavior-intro";
+        #binding-cells = <2>;
+    };

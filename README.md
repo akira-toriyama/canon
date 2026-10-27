@@ -58,7 +58,9 @@ key press draws the effect of the day, a thin ring, a disc, a stain, a ring
 crossing both halves, beams along the key's row and column, water, waves
 in the palette's first and last colours, or a dart, a bar running from the
 key to the far half through the palette's colours (the glossary: effect),
-and a cable plugged in plays a ten-second intro in red, blue and green.
+and a cable plugged in plays an intro, the ten-second star waves in red, blue
+and green until `python3 scripts/dongle.py intro bands` picks the palette's
+bands for a second instead (the glossary: intro).
 `python3 scripts/dongle.py effect <name>` (`thin-ring`, `disc`, `stain`,
 `cross-ring`, `beams`, `water`, `dart`) picks the effect through
 the Imprint Dongle, which sends it to both halves over the split, where it

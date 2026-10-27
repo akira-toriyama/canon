@@ -323,7 +323,7 @@ palette after each battery report of a half, so a half that was away gets it
 when it is back.
 - The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c), which reads the [[effect]]'s line too; the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
 - The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the liveliest colour first), which the LaunchAgent in the user's dotfiles is to hand to `python3 scripts/dongle.py palette --wait 600` after each successful swap, so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
-- The dongle's split run queue holds a whole palette and the [[effect]]'s pick for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for the pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=8` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
+- The dongle's split run queue holds a whole palette and both picks, the [[effect]]'s and the [[intro]]'s, for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for each pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=10` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
 - The [[countdown]] to the idle dark, when a trial image builds it, cycles through the palette's distinct colours, the whole half in one at a time, ten seconds each; the product images leave it off.
 - **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state; the underglow is off), パレット設定
@@ -431,15 +431,34 @@ on its way (`CONFIG_LANTERN_DART`; t-6ttk, OK on hardware 2026-10-27).
 - **Don't call it:** sweep (the research's early name), comet, streak, runner, 打鍵で走る光 in English text
 
 ### intro
-The ten-second show a half's key LEDs play as the boot light and whenever a
-cable is plugged in, in red, blue and green only, one colour a key at a time and
-never white (t-ky8x, 2026-10-27): a star crossing the half from the outer keys
-to the thumbs, waves and rings in and back out, the three colours flowing
-outward as crests, and a star running back out (the flow and the star out,
-t-x46t, 2026-10-27), the user's pick after Pokemon's first games
-([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its `src/intro.c`; t-5v1f,
-2026-10-22). A key pressed meanwhile draws no [[effect]]; nothing cuts it short.
-- **Don't call it:** boot animation, splash screen, opening (the task's working name), オープニング in English text
+What a half's key LEDs play as the boot light, at boot and whenever a cable is
+plugged in, for the intro's own length, and the pick of which plays (t-qvgv).
+Two are built into the halves' images (`config/imprint_left.conf`): the bands,
+a second of the [[palette]]'s bands (`CONFIG_LANTERN_INTRO_BANDS`; the pick's
+`bands`), and the [[star waves]] (`CONFIG_LANTERN_INTRO_STAR_WAVES`; the pick's
+`star-waves`). `python3 scripts/dongle.py intro <name>` hands the [[Imprint
+Dongle]] the pick, one name, which it keeps in its settings and carries to both
+halves through the [[behavior]] node `intro` of
+[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
+[[effect]]'s pick, and resends with the palette after each battery report of a
+half; `intro` alone asks (`intro …`, `intro none`). Until the Mac's first pick,
+and whenever the stored pick names an intro not built, a half plays the star
+waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`). A key pressed while an intro
+plays draws no effect; nothing cuts it short.
+- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_INTRO_LIST` ([`src/intro.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.h)) and `INTROS` in [`scripts/dongle.py`](../scripts/dongle.py); a new intro lands in both, with the conf line that builds it and an entry here, in one PR. One intro a pick (two names: `intro error: one intro at a time`).
+- The line on the dongle's port and its replies (`intro ok …`, `intro …`, `intro none`, `intro error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/intro.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/pick.c); the playing: its `src/keys.c`, one file an intro under its `src/intros/`.
+- **Don't call it:** boot animation, splash screen, boot light (the module's name for the window the intro fills, not the show), opening (the task's working name), オープニング in English text
+
+### star waves
+The [[intro]] `star-waves`: the ten-second show in red, blue and green only, one
+colour a key at a time and never white (t-ky8x, 2026-10-27): a star crossing
+the half from the outer keys to the thumbs, waves and rings in and back out, the
+three colours flowing outward as crests, and a star running back out (the flow
+and the star out, t-x46t, 2026-10-27), the user's pick after Pokemon's first
+games ([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO_STAR_WAVES`, its
+`src/intros/star_waves.c`; t-5v1f, 2026-10-22). The intro the halves play until
+the Mac's first pick.
+- **Don't call it:** the intro (one of two now), star-wave, 星, スターウェーブ in English text
 
 ---
 
