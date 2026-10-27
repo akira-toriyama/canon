@@ -361,7 +361,7 @@ the stored pick names none of the built seven, a half draws the crossing ring
 The [[effect]] `thin-ring`: from each pressed key a ring one key wide spreads
 at twelve key units a second and fades out within a second, each press in the
 [[palette]]'s next colour ([[zmk-lantern]]'s `CONFIG_LANTERN_THIN_RING`, its
-`src/keys.c`; t-6ttk, OK on hardware 2026-10-21).
+`src/effects/thin_ring.c`; t-6ttk, OK on hardware 2026-10-21).
 - With the hit (the [[crossing ring]]'s relay) a press of the other half rings in too, in across the split.
 - **Don't call it:** ripple (zmk-rgb-matrix's name for the idea; fine in prose about that project), wave, ring alone where the [[crossing ring]] could be meant
 
@@ -437,7 +437,7 @@ never white (t-ky8x, 2026-10-27): a star crossing the half from the outer keys
 to the thumbs, waves and rings in and back out, the three colours flowing
 outward as crests, and a star running back out (the flow and the star out,
 t-x46t, 2026-10-27), the user's pick after Pokemon's first games
-([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its `src/keys.c`; t-5v1f,
+([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO`, its `src/intro.c`; t-5v1f,
 2026-10-22). A key pressed meanwhile draws no [[effect]]; nothing cuts it short.
 - **Don't call it:** boot animation, splash screen, opening (the task's working name), オープニング in English text
 
