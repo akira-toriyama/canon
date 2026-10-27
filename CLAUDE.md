@@ -175,9 +175,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     `src/effect.h`), each half stores it and draws the picked effects it builds, and until the Mac's
     first pick, or when the stored pick names none of the seven, the crossing ring, the user's
     highest mark (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice
-    `LANTERN_EFFECT_DEFAULT`). The names and bits are the module's table `LANTERN_EFFECT_LIST` and
-    `EFFECTS` in `scripts/dongle.py`: a new effect lands in both, with its conf line and its
-    glossary entry, in one PR. The crossing ring needs the hit (the beams use it too, their row's
+    `LANTERN_EFFECT_DEFAULT`). The names and bits are the module's table `LANTERN_EFFECT_LIST` (one
+    line, and the effect's own file under its `src/effects/`) and `EFFECTS` in `scripts/dongle.py`:
+    a new effect lands in both, with its conf line and its glossary entry, in one PR. The crossing ring needs the hit (the beams use it too, their row's
     beam crossing the split): the dongle relays each half's key
     presses to the other half through the behavior node `hit` (the module's `src/hit.c`,
     `CONFIG_LANTERN_HIT` on by the node), only to a half whose link is at peripheral latency 0,
