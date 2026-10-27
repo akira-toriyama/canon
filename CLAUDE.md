@@ -91,7 +91,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, one or more; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names (pick) or `effect <names>` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect; a logging image: `effect 0000000X stored` on a half, `pick 0000000X from …` and `resent to half N` on the dongle |
+| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, one or more; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names (pick) or `effect <names>` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect; a logging image: `effect: 0000000X stored` on a half, `effect: pick 0000000X from …` and `effect: resent to half N` on the dongle |
+| Pick or ask the halves' intro (the boot light's show) | `python3 scripts/dongle.py intro [--wait N] [<name>]` (`bands`, `star-waves`, one; none = ask; the same refusals and `--wait` as palette, below) | stdout `intro ok` and the name (pick) or `intro <name>` / `intro none` (ask; `none` until the Mac's first pick, the halves then playing the star waves), exit 0; the next boot light on a half (a cable plugged in, or a boot) plays the picked intro: the bands a second, the star waves ten; a logging image: `intro: 0000000X stored` on a half, `intro: pick 0000000X from …` and `intro: resent to half N` on the dongle |
 | Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; the next effect on a lit half takes the new colours; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - **`ERROR … no bootloader volume` or `went away before the copy` once: stop; no other keyboard
@@ -158,9 +159,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     its (the invariant below). What the LEDs show is the user's pick on hardware (t-skdt, t-5v1f,
     t-6ttk, t-5hqx; `config/imprint_left.conf` carries the lines and says why, `imprint_right.conf`
     the same lines): no picture, every key black while lit (`CONFIG_LANTERN_NO_PICTURE`, the
-    countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), the intro as the boot light and at every
-    cable plugged in (ten seconds in red, blue and green only, never white, from the outer
-    keys to the thumbs and back, `CONFIG_LANTERN_INTRO`; the glossary: intro), and after a key
+    countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), an intro as the boot light and at every
+    cable plugged in, two built into the image (the glossary: intro): the bands, a second of the
+    palette's bands (`CONFIG_LANTERN_INTRO_BANDS`), and the star waves (ten seconds in red, blue
+    and green only, never white, from the outer keys to the thumbs and back,
+    `CONFIG_LANTERN_INTRO_STAR_WAVES`; the glossary: star waves), the star waves until the Mac's
+    first pick (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`), and after a key
     press the effect (the glossary:
     effect, thin ring, disc, stain, crossing ring, beams, water, dart): seven are built into the
     image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
@@ -190,10 +194,19 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
     alone asks; the replies `palette ok …`, `palette …`, `palette none`, `palette error: …`); the
     dongle stores them in NVS (`lantern/palette/colours`) and forwards them through the behavior
-    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit` and
-    `effect` are the same nodes on all three imprint targets (the keymap's behaviors), and the
-    dongle builds the module's palette, pick and hit sides (the Prospector Dongle none of the
-    module). The dongle resends the palette and the pick a second after each battery report of a
+    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit`, `effect` and
+    `intro` are the same nodes on all three imprint targets (the keymap's behaviors), and the
+    dongle builds the module's palette, picks and hit sides (the Prospector Dongle none of the
+    module). The intro is a pick the same way (t-qvgv): `python3 scripts/dongle.py intro <name>`
+    (`bands`, `star-waves`, one) hands the Imprint Dongle a line (`intro` alone asks; the replies
+    `intro ok …`, `intro …`, `intro none`, `intro error: …`), the dongle stores it in NVS
+    (`lantern/intro/mask`) and forwards it through the behavior node `intro` of
+    `config/imprint_behaviors.dtsi` (param1 = one of the module's `src/intro.h` bits), each half
+    stores it and plays the picked intro it builds at its next boot light (boot, or a cable
+    plugged in), and until the Mac's first pick, or when the stored pick names an intro not built,
+    the star waves; the names and bits are the module's table `LANTERN_INTRO_LIST` and `INTROS`
+    in `scripts/dongle.py`, a new intro landing in both with its conf line and glossary entry in
+    one PR. The two picks are one mechanism in the module (`src/pick.c`), a behavior each. The dongle resends the palette and the pick a second after each battery report of a
     half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
     connection event), so a half that was away gets both when it is back; a half writes NVS only
     for a changed palette or pick. Every device, the dongle too, ignores a stored palette of
@@ -201,11 +214,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     until the Mac sends again. The dongle's `palette ok` / `effect ok` says it stored and queued,
     not that a half has it: a palette set of any count (the slots not sent are cleared to black,
     which the halves show as slot 0), or a resend, queues three split invocations a half (two slots
-    each), and the pick one more, so `config/imprint_dongle.conf` sets
-    `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=8` (four a half, both halves resent at once;
+    each), and each pick one more, so `config/imprint_dongle.conf` sets
+    `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=10` (five a half, both halves resent at once;
     ZMK's default 5: a put into a full queue waits 100 ms for the drain and then drops the oldest,
     only when the drain stalls on a half that stopped acknowledging, never on an idle link; the
-    module asserts the size). The daily palette (t-0967): the five colours of the sprite GIF the
+    module's `src/pick.c` asserts the size). The daily palette (t-0967): the five colours of the sprite GIF the
     sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the LaunchAgent in
     dotfiles is to hand to `dongle.py palette --wait 600` after each successful swap (the values
     are GIF-derived: never in a commit, PR or doc, the Privacy section); the daily effect is

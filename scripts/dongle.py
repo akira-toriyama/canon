@@ -874,6 +874,12 @@ EFFECT_WORD = "effect"
 # zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
 # effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
 EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart")
+INTRO_WORD = "intro"
+# The intros a half can play as the boot light, by the names the Imprint
+# Dongle's port takes: zmk-lantern's table LANTERN_INTRO_LIST (src/intro.h), in
+# its order; one a pick. A new intro lands here with the conf line that builds
+# it (CLAUDE.md, Invariants).
+INTROS = ("bands", "star-waves")
 # `palette --wait` and `effect --wait` poll for the dongle at flash-dongle.sh
 # --wait's rate.
 WAIT_POLL_S = 0.5
@@ -895,7 +901,7 @@ def reply_pattern(word):
     """The reply to the word, found in a line: the firmware starts it on a line
     of its own, but a logging image's log thread, interrupted mid-line,
     finishes its line after it, and the word also ends a log module's name
-    ("lantern_palette:", "lantern_effect:")."""
+    ("lantern_palette:", "lantern_pick:")."""
     return re.compile(r"(?<![A-Za-z_])" + re.escape(word) + r"(?: |$)")
 
 
@@ -964,8 +970,8 @@ def exchange(dev, word, line, seconds):
 def ask_dongle(word, arguments, args):
     """Send the word with its arguments (none: the ask, "word?") to the
     Imprint Dongle, after --wait, and print its reply line; the exit status
-    of palette and effect: 0 for a set's ok or an ask's answer, 1 for an
-    error or no reply."""
+    of palette, effect and intro: 0 for a set's ok or an ask's answer, 1 for
+    an error or no reply."""
     line = word + ("?" if not arguments else " " + " ".join(arguments))
     deadline = time.monotonic() + args.wait
     if args.wait:
@@ -998,6 +1004,10 @@ def cmd_palette(args):
 
 def cmd_effect(args):
     return ask_dongle(EFFECT_WORD, args.effects, args)
+
+
+def cmd_intro(args):
+    return ask_dongle(INTRO_WORD, [args.intro] if args.intro else [], args)
 
 
 def cmd_image(args):
@@ -1227,7 +1237,7 @@ def parser():
         description="Find canon's devices on USB (the Imprint Dongle and the Prospector Dongle by their firmware "
                     "stamp or USB product string, the halves of the Cyboard Imprint by their stamp), read their "
                     "serial logs, take a PNG of the Prospector Dongle's screen, set or ask the key LEDs' palette "
-                    "and pick their effect through the Imprint Dongle, and check the firmware stamp of every ZMK "
+                    "and pick their effect and their intro through the Imprint Dongle, and check the firmware stamp of every ZMK "
                     "device on USB against origin/main. Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
                "3 check could not compute the digests.",
@@ -1310,7 +1320,7 @@ def parser():
                     "and print the dongle's reply line. With names the dongle stores the pick, sends it to both "
                     "halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it is "
                     "back) and answers 'effect ok' with the names; each half keeps the pick across boots and draws "
-                    "the picked effects its image builds (the product images build all five; two or more names "
+                    "the picked effects its image builds (the product images build all seven; two or more names "
                     "draw together), the crossing ring until the first pick. With no name the reply is 'effect' "
                     "with the dongle's pick, or 'effect none' before any. Refuses while another process holds the "
                     "port (it would take the reply). Never sets 1200 baud. Names: %s." % ", ".join(EFFECTS),
@@ -1325,6 +1335,28 @@ def parser():
                    help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
                         "within the same N ask again while it answers 'not ready' (default 0, no wait)")
     s.set_defaults(func=cmd_effect)
+
+    s = sub.add_parser(
+        "intro", help="pick or ask the intro the key LEDs play as the boot light, through the Imprint Dongle",
+        description="Write 'intro NAME' (with no name: 'intro?') on the Imprint Dongle's port at 115200 and print "
+                    "the dongle's reply line. With a name the dongle stores the pick, sends it to both halves over "
+                    "the split (zmk-lantern's intro behavior; a half that is away gets it when it is back) and "
+                    "answers 'intro ok' with the name; each half keeps the pick across boots and plays the picked "
+                    "intro its image builds at every boot light (at boot, and when a cable is plugged in; the "
+                    "product images build both), the star waves until the first pick. With no name the reply is "
+                    "'intro' with the dongle's pick, or 'intro none' before any. Refuses while another process "
+                    "holds the port (it would take the reply). Never sets 1200 baud. Names: %s." % ", ".join(INTROS),
+        epilog="Exit status: 0 'intro ok' (pick) or the name (ask), 1 'intro error', no reply, or no "
+               "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
+    )
+    s.add_argument("intro", nargs="?", choices=INTROS, metavar="NAME",
+                   help="the intro to play, one of: %s" % ", ".join(INTROS))
+    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
+                   help="give up on the reply after N seconds (default 3)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
+    s.set_defaults(func=cmd_intro)
 
     s = sub.add_parser(
         "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",
