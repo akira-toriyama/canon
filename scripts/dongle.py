@@ -874,7 +874,7 @@ EFFECT_WORD = "effect"
 # The effects a half can draw, by the names the Imprint Dongle's port takes:
 # zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
 # effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
-EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart")
+EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart", "held")
 INTRO_WORD = "intro"
 # The intros a half can play as the boot light, by the names the Imprint
 # Dongle's port takes: zmk-lantern's table LANTERN_INTRO_LIST (src/intro.h), in
