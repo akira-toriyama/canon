@@ -13,9 +13,10 @@
 // while the right half lit (t-y4ec, 2026-10-19), and erasing that value is a
 // settings reset, bonds included. With CONFIG_ZMK_SLEEP=n nothing would turn
 // the rail off again either: 10-18 mA per half at rest with the rail on,
-// 0.79 mA off (#207, 2026-09-15). CONFIG_ZMK_RGB_UNDERGLOW_EXT_POWER=n in the
-// halves' confs keeps rgb_underglow.c off the disabled node (DEVICE_DT_GET of
-// it fails the build).
+// 0.79 mA off (#207, 2026-09-15). ZMK's rgb_underglow.c, which takes the node
+// by DEVICE_DT_GET under CONFIG_ZMK_RGB_UNDERGLOW_EXT_POWER and would fail the
+// build on the disabled node, is not built at all: config/imprint.conf sets
+// CONFIG_ZMK_RGB_UNDERGLOW=n for every imprint target (ZMK app/CMakeLists.txt).
 //
 // Why the hog: with the driver gone nothing configures P1.02 before the
 // module's init at APPLICATION, and in its reset state (input, high-Z) the

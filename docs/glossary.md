@@ -67,11 +67,11 @@ flowchart TB
 ### Cyboard Imprint
 The split keyboard: the left and right halves (board `assimilator-bt`, shields
 `imprint_left` / `imprint_right`), both BLE split peripherals of the
-[[Imprint Dongle]]. [Product page](https://cyboard.digital/products/imprint).
+[[Imprint Dongle]] ([product page](https://cyboard.digital/products/imprint)).
 On USB each half is one CDC ACM port (the left with product string `Imprint`,
 the right with none; `scripts/dongle.py` tells them by their [[firmware stamp]]),
 and 1200 baud on it reboots the half into its UF2 bootloader (Adafruit 0.9.2,
-volume `ASSIMILATOR`) for `scripts/flash-dongle.sh` (images after #263 of
+volume `ASSIMILATOR`) for `scripts/flash-dongle.sh` (images after canon#263 of
 2026-10-19; both halves on hardware the same day).
 - Config: [`config/imprint_left.conf`](../config/imprint_left.conf), [`config/imprint_right.conf`](../config/imprint_right.conf), [`config/cdc_acm_port.dtsi`](../config/cdc_acm_port.dtsi)
 - **Don't call it:** the keyboard, Cyboard (that is the vendor), imprint alone (that is the `build-zmk.sh` group), キーボード本体
@@ -116,7 +116,7 @@ keymap, which `#include`s `config/behavior_macros.h` and the keymap-side
 One layer of the [[keymap]], switched on and off in ZMK's layer stack. A layer
 has three names: its node name, its canonical name and its `display-name`.
 - Defined in [`config/layers.h`](../config/layers.h) (the index, in the keymap's order) and [`config/imprint.keymap`](../config/imprint.keymap) (the keys)
-- Node name: the index macro in `config/layers.h`. `config/arrow_behaviors.dtsi`, `config/macros.dtsi` and `config/behavior_macros.h` use the same macros, so do not rename them.
+- Node name: the index macro in `config/layers.h`. `config/arrow_behaviors.dtsi`, `config/macros.dtsi`, `config/behavior_macros.h` and the `layers` pairs of the [[behavior]] node `layer` in `config/imprint_behaviors.dtsi` use the same macros, so do not rename them.
 - Canonical name: the name in prose and commits, words separated by spaces (`Symbol 1`, `Left Arrow`, `Vkey LL`), no hyphens or brackets.
 - `display-name`: the short name in the firmware, shown in the [[keymap-drawer]] SVG and carried by the [[status advertisement]]. It matches `[A-Za-z][A-Za-z0-9]{0,3}` and is unique:
   - 4 ASCII characters at most: the status advertisement carries only the first 4 bytes, 0-padded (zmk-beacon `src/status_payload.h`; the Prospector Dongle does not show the name).
@@ -218,11 +218,7 @@ BLE or one the build made from a GIF and embedded (zmk-beacon's
 A pack from the [[sprite sender]] holds a front and a back view: the back
 plays while a modifier is held on the keyboard (the [[status advertisement]]
 carries the modifiers), the front otherwise.
-The GIF is a personal file: embedded only by a local build,
-`./scripts/build-zmk.sh prospector --sprite <gif>` into
-`firmware/prospector-sprite.uf2`, never committed and never in CI or a release
-([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and
-shows the room's.
+- The GIF is a personal file: embedded only by a local build, `./scripts/build-zmk.sh prospector --sprite <gif>` into `firmware/prospector-sprite.uf2`, never committed and never in CI or a release ([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and shows the room's.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (that is the file), スプライト画像
 
 ### sprite pack
@@ -232,8 +228,8 @@ magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py`: at build time
 to embed, and by a sender to write into the [[sprite room]] over BLE (format
 and why:
 [zmk-beacon's docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md)).
-It carries the [[sprite name]]. Made from the personal GIF, it stays out of
-commits, PRs and issues like the GIF.
+It carries the [[sprite name]].
+- Made from the personal GIF, it stays out of commits, PRs and issues like the GIF.
 - **Don't call it:** sprite sheet, pack alone, spk file, frame list, スプライトパック
 
 ### sprite room
@@ -297,7 +293,7 @@ each pin's tree id, every build checks each clone out at its pin, and
 `./scripts/build-zmk.sh --module <dir>` builds a local tree in place of one (the
 [[image]] carries `-beacon`, `-lantern`).
 - A third needs no script change, only its project written like the two ([CLAUDE.md](../CLAUDE.md), Invariants).
-- **Don't call it:** custom module, private module, third-party module (ZMK's and Cyboard's are upstream, not own), 自作モジュール
+- **Don't call it:** custom module, private module, third-party module (ZMK's and Cyboard's are upstream and not own), 自作モジュール
 
 ### zmk-lantern
 The own ZMK module
@@ -306,12 +302,11 @@ that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half
 and the half is in use, and for the [[intro]] at boot: it drives the half's LED
 rail (assimilator-bt P1.02, the pin ZMK's `ext_power` driver would own)
 itself, on with a cable and off on battery or after five minutes without a key
-(ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), and switches ZMK's underglow
-with it, so the LEDs cost the battery nothing. Each half decides when to light
-from its own port and its own keys.
+(ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), so the LEDs cost the battery
+nothing. Each half decides when to light from its own port and its own keys.
 - Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]], pick, hit and layer sides (the behaviors, the port, the resend, the relay to the halves), the Prospector Dongle none of it.
 - The product halves paint no picture (`CONFIG_LANTERN_NO_PICTURE`, t-skdt): the keys stay black while lit, each press, or a held [[layer]], draws the [[effect]] in the [[palette]]'s colours at full brightness under the frame's cap (`CONFIG_LANTERN_BRIGHTNESS`, 16 %, sets it), and the [[intro]] plays as the boot light; the [[countdown]] is off. ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
-- **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature, off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
+- **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature; off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
 
 ### palette
 The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
@@ -351,12 +346,10 @@ pick, and its colour when one is given, which it keeps in its settings and
 carries to both halves through the [[behavior]] node `effect` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
 [[palette]], and resends with it after each battery report of a half; `effect`
-alone asks (`effect …`, the colour last when one is set, `effect none`). Until
-the Mac's first pick, and whenever the stored pick names none of the built
-eight, a half draws the crossing ring (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`;
-t-5hqx).
-- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (the bullet below); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn (its README); canon's keymap binds neither, the Mac picks, and neither is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
-- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h)) and `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
+alone asks (`effect …`, the colour last when one is set, `effect none`).
+- The default (t-5hqx): until the Mac's first pick, and whenever the stored pick names none of the built eight, a half draws the [[crossing ring]] (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`).
+- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn (its README); canon's keymap binds neither, the Mac picks, and neither is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
+- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h); bit 7 is no effect's, so `layer-keys` is bit 8), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together (allowed, unused; t-gwsw decides the layering).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
 - The daily effect (t-2d9r): the LaunchAgent in dotfiles is to pick one a day, as it hands the daily [[palette]].
 - **Don't call it:** animation, lighting mode, RGB effect, underglow effect (ZMK's underglow is off on every target), 光り方, エフェクト設定
@@ -393,7 +386,7 @@ fading until it has left the board, in the colour of the pressed key's band
 halves draw one press in one colour (`CONFIG_LANTERN_CROSS_RING`; t-6ttk, OK on
 hardware 2026-10-26).
 - The hit: the [[Imprint Dongle]] relays each half's key presses to the other half through the [[behavior]] node `hit` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) ([[zmk-lantern]]'s `src/hit.c`), only to a half whose link runs at peripheral latency 0, which a half asks for while USB powers it (its `src/latency.c`): a half on battery is dark and gets nothing.
-- **Don't call it:** split ring, cross ring in prose (the Kconfig is `CROSS_RING`, the port's word `cross-ring`), 半分をまたぐ輪 in English text
+- **Don't call it:** split ring, cross ring in prose (the Kconfig is `CROSS_RING` and the port's word `cross-ring`), 半分をまたぐ輪 in English text
 
 ### beams
 The [[effect]] `beams`: from each pressed key four beams run outward along its
@@ -436,16 +429,17 @@ on its way (`CONFIG_LANTERN_DART`; t-6ttk, OK on hardware 2026-10-27).
 
 ### layer keys
 The [[effect]] `layer-keys`: while a [[layer]] is held, the keys it gives a
-meaning of its own (neither `&none` nor `&trans` nor Base's binding) light in
-the [[palette]] slot it is paired with, and a key press draws nothing; the
-[[Imprint Dongle]], where the [[keymap]] runs, sends the halves those keys
-through the [[behavior]] node `layer` of
-[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), whose
+meaning of its own (neither `&none` nor `&trans` nor the same [[behavior]] and
+parameters as Base at that key) light in the [[palette]] slot it is paired
+with, and a key press draws nothing; the [[Imprint Dongle]], where the
+[[keymap]] runs, sends the halves those keys through the behavior node `layer`
+of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), whose
 `layers` pairs name the layers shown and their slots ([[zmk-lantern]]'s
-`CONFIG_LANTERN_LAYER_KEYS`, its `src/layer.c`; t-6ttk, OK on hardware
-2026-10-28).
+`CONFIG_LANTERN_LAYER_KEYS` on the halves, its `src/effects/layer_keys.c`, and
+`CONFIG_LANTERN_LAYER`, on by the node, its `src/layer.c`; t-6ttk, OK on
+hardware 2026-10-28).
 - canon's pairs (t-6ttk's research, 5-6): Number slot 0, Symbol 1 slot 1, Symbol 2 slot 3 (the same keys as Symbol 1, told apart by colour), Function slot 4, Vkey LL and LM slot 1, Vkey RM and RR slot 3; the four arrow layers are left out, as an arrow key's hold-tap raises its layer for a mere tap. The highest held layer the pairs name shows.
-- A layer shows 60 ms after it comes into view, so a short tap does not flash, and goes as soon as no named layer is held. Number, Symbol 1, Symbol 2 and Function light keys of the right half only (10, 16, 16 and 12), each Vkey layer 15 on each half; a held Ctrl or Alt thumb (`TU_LL`, `TU_LM`) lights its Vkey layer too.
+- A layer shows 60 ms after it becomes the highest held layer the pairs name, so a short tap does not flash, and goes as soon as no named layer is held. Number, Symbol 1, Symbol 2 and Function light keys of the right half only (10, 16, 16 and 12), each Vkey layer 15 on each half; a held Ctrl or Alt thumb (`TU_LL`, `TU_LM`) lights its Vkey layer too.
 - Only a lit half shows it: the dongle sends to a half at peripheral latency 0, as the hit (the [[crossing ring]]), and a half dark for idle shows it from its own next key. Nothing is stored: a half drops the keys when its link or its USB power goes.
 - A pick's colour paints every layer in it, so Symbol 1 and Symbol 2 then look alike; under the frame's cap a layer of many keys or a whitish colour shows dimmer than one of few.
 - **Don't call it:** layer indicator, layer lights, layer highlight, active keys, 使える鍵だけ光る in English text
@@ -456,18 +450,13 @@ plugged in, for the intro's own length, and the pick of which plays (t-qvgv).
 Two are built into the halves' images (`config/imprint_left.conf`): the bands,
 a second of the [[palette]]'s bands (`CONFIG_LANTERN_INTRO_BANDS`; the pick's
 `bands`), and the [[star waves]] (`CONFIG_LANTERN_INTRO_STAR_WAVES`; the pick's
-`star-waves`). `python3 scripts/dongle.py intro <name>` hands the [[Imprint
-Dongle]] the pick, one name, which it keeps in its settings and carries to both
-halves through the [[behavior]] node `intro` of
-[`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the
-[[effect]]'s pick, and resends with the palette after each battery report of a
-half; `intro` alone asks (`intro …`, `intro none`). Until the Mac's first pick,
-and whenever the stored pick names an intro not built, a half plays the star
-waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`). A key pressed while an intro
-plays draws no effect; nothing cuts it short.
+`star-waves`).
+- The pick: `python3 scripts/dongle.py intro <name>` hands the [[Imprint Dongle]] the pick, one name, which it keeps in its settings and carries to both halves through the [[behavior]] node `intro` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the [[effect]]'s pick, and resends with the palette after each battery report of a half; `intro` alone asks (`intro …`, `intro none`).
+- The default: until the Mac's first pick, and whenever the stored pick names an intro not built, a half plays the star waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`).
+- A key pressed while an intro plays draws no effect; nothing cuts it short.
 - The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_INTRO_LIST` ([`src/intro.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.h)) and `INTROS` in [`scripts/dongle.py`](../scripts/dongle.py); a new intro lands in both, with the conf line that builds it and an entry here, in one PR. One intro a pick (two names: `intro error: one intro at a time`).
 - The line on the dongle's port and its replies (`intro ok …`, `intro …`, `intro none`, `intro error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/intro.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/pick.c); the playing: its `src/keys.c`, one file an intro under its `src/intros/`.
-- **Don't call it:** boot animation, splash screen, boot light (the module's name for the window the intro fills, not the show), opening (the task's working name), オープニング in English text
+- **Don't call it:** boot animation, splash screen, boot light (the module's name for the window the intro fills; not the show), opening (the task's working name), オープニング in English text
 
 ### star waves
 The [[intro]] `star-waves`: the ten-second show in red, blue and green only, one
