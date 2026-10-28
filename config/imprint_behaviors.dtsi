@@ -40,13 +40,30 @@
         #binding-cells = <2>;
     };
 
+    // &layer: zmk-lantern's layer behavior (its src/layer.c), never on a key.
+    // The Imprint Dongle, where the keymap runs, sends a half which keys the
+    // held layer binds to something of its own and the palette slot of its
+    // colour, for the layer keys (t-6ttk), by this node's name, as &hit, and
+    // only to a half at peripheral latency 0. layers pairs each layer shown
+    // with its slot (t-6ttk's research, 5-6, the recommendation): Number 0,
+    // Symbol 1 1, Symbol 2 3 (the same keys as Symbol 1, told apart by
+    // colour), Function 4, Vkey LL and LM 1, Vkey RM and RR 3; the four arrow
+    // layers are left out, since an arrow key's hold-tap raises its layer for
+    // the length of a mere tap. Only the dongle reads the pairs.
+    layer: layer {
+        compatible = "lantern,behavior-layer";
+        #binding-cells = <2>;
+        layers = <NUMBER_LAYER 0  SYMBOL1_LAYER 1  SYMBOL2_LAYER 3  FUNCTION_LAYER 4
+                  T_LL_LAYER 1  T_LM_LAYER 1  T_RM_LAYER 3  T_RR_LAYER 3>;
+    };
+
     // &effect: zmk-lantern's effect behavior (its src/effect.c), never on a
     // key. The Imprint Dongle's code invokes it with the pick
     // `scripts/dongle.py effect` sends (param1 = a mask of the module's
     // effect bits, src/effect.h), and ZMK's split transport carries it to
     // both halves by this node's name, as &palette; each half stores the pick
     // and draws the picked effects its image builds (the halves' confs build
-    // four), the dongle stores it and resends it with the palette (CLAUDE.md,
+    // eight), the dongle stores it and resends it with the palette (CLAUDE.md,
     // Invariants; the glossary: effect).
     effect: effect {
         compatible = "lantern,behavior-effect";
