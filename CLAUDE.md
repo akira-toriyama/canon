@@ -91,7 +91,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
 | Is the firmware on USB what origin/main builds? | `python3 scripts/dongle.py check [--json]` (after `git fetch`; opens no port) | one line per device and absent target: `imprint_dongle  current  stamp=<12 hex>  main=<12 hex>  serial=…  product="Imprint Dongle"`; exit 0 when every device is `current` (absent targets count as fine), 1 for `behind` (`since=<commits>`), `off-main`, `debug` (`inputs=current\|behind\|off-main`), `unstamped`; 3 when the digests could not be computed |
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
-| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …] [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, one or more, then one colour at most; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names, then the colour when one was given (pick) or `effect <names> [RRGGBB]` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect, every effect in that one colour while one is set (the stain's dye too) and in the palette's colours without; a logging image: `effect: 0000000X rrggbb stored` on a half, `effect: pick 0000000X rrggbb from …` and `effect: resent to half N` on the dongle (`rrggbb` is `000000` without a colour) |
+| Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …] [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `layer-keys`, one or more, then one colour at most; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names, then the colour when one was given (pick) or `effect <names> [RRGGBB]` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect (`layer-keys`: a held layer lights its keys, a key alone nothing), every effect in that one colour while one is set (the stain's dye too) and in the palette's colours without; a logging image: `effect: 0000000X rrggbb stored` on a half, `effect: pick 0000000X rrggbb from …` and `effect: resent to half N` on the dongle (`rrggbb` is `000000` without a colour) |
 | Pick or ask the halves' intro (the boot light's show) | `python3 scripts/dongle.py intro [--wait N] [<name>]` (`bands`, `star-waves`, one; none = ask; the same refusals and `--wait` as palette, below) | stdout `intro ok` and the name (pick) or `intro <name>` / `intro none` (ask; `none` until the Mac's first pick, the halves then playing the star waves), exit 0; the next boot light on a half (a cable plugged in, or a boot) plays the picked intro: the bands a second, the star waves ten; a logging image: `intro: 0000000X stored` on a half, `intro: pick 0000000X from …` and `intro: resent to half N` on the dongle |
 | Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; the next effect on a lit half takes the new colours; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
@@ -165,12 +165,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     and green only, never white, from the outer keys to the thumbs and back,
     `CONFIG_LANTERN_INTRO_STAR_WAVES`; the glossary: star waves), the star waves until the Mac's
     first pick (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`), and after a key
-    press the effect (the glossary:
-    effect, thin ring, disc, stain, crossing ring, beams, water, dart): seven are built into the
-    image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
+    press, or while a layer is held, the effect (the glossary:
+    effect, thin ring, disc, stain, crossing ring, beams, water, dart, layer keys): eight are built
+    into the image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
     `CONFIG_LANTERN_CROSS_RING`, `CONFIG_LANTERN_BEAMS`, `CONFIG_LANTERN_WATER`,
-    `CONFIG_LANTERN_DART`), and the pick says which draw. `python3 scripts/dongle.py effect
-    <name>… [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`; one at a
+    `CONFIG_LANTERN_DART`, `CONFIG_LANTERN_LAYER_KEYS`), and the pick says which draw. `python3 scripts/dongle.py effect
+    <name>… [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `layer-keys`; one at a
     time today, two or more draw together; a colour after the names, one at most, t-rgp5: every
     picked effect then draws in that one colour, the stain's dye too, in place of the colour
     sources below, and a pick without one returns to them) hands the Imprint Dongle a line on its
@@ -180,7 +180,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     halves through the behavior node `effect` of `config/imprint_behaviors.dtsi` (one invocation,
     param1 = the module's bit mask, its `src/effect.h`, param2 = the colour, 0xRRGGBB, 0 for the
     effects' own colours), each half stores both and draws the picked effects it builds, and until
-    the Mac's first pick, or when the stored pick names none of the seven, the crossing ring, the
+    the Mac's first pick, or when the stored pick names none of the eight, the crossing ring, the
     user's highest mark (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice
     `LANTERN_EFFECT_DEFAULT`; its colour `CONFIG_LANTERN_EFFECT_COLOUR`, left at 0 = the palette's).
     The module also lets a split central's keymap bind `&effect <mask> <colour>` or its node
@@ -202,13 +202,26 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     slots: 0..4 left to right in five bands across both halves, the only place the bands show now),
     the water's the palette's first colour on a crest and its last in a trough, the dart's the
     palette from its first colour at the pressed key to its last a board's width on.
+    The layer keys need the layer (t-6ttk): the dongle, where the keymap runs, sends the halves
+    which keys the highest held layer named in the behavior node `layer`'s `layers` pairs binds
+    to something of its own (neither `&none` nor `&trans` nor Base's binding) and the palette
+    slot of its colour (`config/imprint_behaviors.dtsi`: Number 0, Symbol 1 1, Symbol 2 3,
+    Function 4, Vkey LL and LM 1, Vkey RM and RR 3, the arrow layers left out), a layer coming
+    into view 60 ms after it does and none at once, from the module's relay queue (its
+    `src/relay.c`, shared with the hit) to the halves at latency 0, and again to a half whose
+    link comes to latency 0; a half drops it when its link or its USB power goes, and nothing of
+    it is stored (the module's `src/layer.c`). So the Number, Symbol and Function layers light
+    keys of the right half only, the Vkey layers fifteen on each half, and a held Ctrl or Alt
+    thumb (`TU_LL`, `TU_LM`, which hold a Vkey layer with the modifier) lights its Vkey layer's
+    keys too. On hardware 2026-10-28 (the trial images of zmk-lantern 959f194 on all three, the
+    pick `layer-keys` alone): the user's OK on sight.
     The colours are the palette (the glossary; t-k9e9; six slots since t-0967): six colours
     `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
     alone asks; the replies `palette ok …`, `palette …`, `palette none`, `palette error: …`); the
     dongle stores them in NVS (`lantern/palette/colours`) and forwards them through the behavior
-    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit`, `effect` and
+    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit`, `layer`, `effect` and
     `intro` are the same nodes on all three imprint targets (the keymap's behaviors), and the
-    dongle builds the module's palette, picks and hit sides (the Prospector Dongle none of the
+    dongle builds the module's palette, picks, hit and layer sides (the Prospector Dongle none of the
     module). The intro is a pick the same way (t-qvgv): `python3 scripts/dongle.py intro <name>`
     (`bands`, `star-waves`, one) hands the Imprint Dongle a line (`intro` alone asks; the replies
     `intro ok …`, `intro …`, `intro none`, `intro error: …`), the dongle stores it in NVS

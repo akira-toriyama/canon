@@ -1344,7 +1344,7 @@ def parser():
                     "both halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it "
                     "is back) and answers 'effect ok' with the names, and the colour when one was given; each half "
                     "keeps the pick across boots and draws the picked effects its image builds (the product images "
-                    "build all seven; two or more names draw together), the crossing ring until the first pick. A "
+                    "build all eight; two or more names draw together), the crossing ring until the first pick. A "
                     "colour after the names, one at most, draws every picked effect in that one colour (the stain "
                     "dyes in it) in place of the palette's colours; a pick without one returns to the palette's. "
                     "With no name the reply is 'effect' with the dongle's pick, and its colour when one is set, or "
