@@ -65,9 +65,9 @@ flowchart TB
 ## Devices
 
 ### Cyboard Imprint
-The split keyboard: the left and right halves (board `assimilator-bt`, shields
-`imprint_left` / `imprint_right`), both BLE split peripherals of the
-[[Imprint Dongle]] ([product page](https://cyboard.digital/products/imprint)).
+The split keyboard ([product page](https://cyboard.digital/products/imprint)):
+the left and right halves (board `assimilator-bt`, shields `imprint_left` /
+`imprint_right`), both BLE split peripherals of the [[Imprint Dongle]].
 On USB each half is one CDC ACM port (the left with product string `Imprint`,
 the right with none; `scripts/dongle.py` tells them by their [[firmware stamp]]),
 and 1200 baud on it reboots the half into its UF2 bootloader (Adafruit 0.9.2,
@@ -499,9 +499,8 @@ The Zephyr / ZMK workspace tool. canon's manifest is
 ### build target
 One `board × shield` pair. canon has four, the "all" build:
 `assimilator-bt × imprint_left` / `imprint_right` and
-`xiao_ble/nrf52840/zmk × imprint_dongle` / `prospector`. `build-zmk.sh` takes
-a subset by shield name or group (`imprint`: the three imprint shields;
-`prospector` alone).
+`xiao_ble/nrf52840/zmk × imprint_dongle` / `prospector`.
+- `build-zmk.sh` takes a subset by shield name or group (`imprint`: the three imprint shields; `prospector` alone).
 - Config: [`build.yaml`](../build.yaml)
 - **Don't call it:** firmware variant, build config, ビルド構成
 
