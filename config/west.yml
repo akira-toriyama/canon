@@ -64,7 +64,7 @@ manifest:
     # after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: e77279f6cf3f8fd2f5b1e9152c56ecdfd1803499
+      revision: aeec40c0c2c1694fc4db4beae2995db6a6e5c75c
       path: modules/zmk-lantern
   self:
     path: config
