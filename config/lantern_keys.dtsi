@@ -12,12 +12,13 @@
 // to right in five bands of about twelve keys: the outer three columns of
 // the left half, its inner three, both thumb clusters, the right half's
 // inner three, its outer three (t-69g7; the five colours of the day's
-// sprite, slot 0 the liveliest, t-0967). Slot 5 is the palette's spare and
-// appears nowhere. A slot the host left black shows slot 0's colour (the
-// module's rule). The product halves paint no picture (imprint_left.conf:
-// CONFIG_LANTERN_NO_PICTURE, the countdown off), so the bands show only as
-// the colour of the crossing ring, the pressed key's band on both halves
-// (t-6ttk); the module still asserts the table's length and range.
+// sprite, slot 0 the heaviest lively one, t-0967). Slot 5 is the palette's
+// spare and appears nowhere. A slot the host left black shows slot 0's
+// colour (the module's rule). The product halves paint no picture
+// (imprint_left.conf: CONFIG_LANTERN_NO_PICTURE, the countdown off), so the
+// bands show only in the bands intro, and as the colour of the crossing ring
+// and of the beams, the pressed key's band on both halves (t-6ttk); the
+// module still asserts the table's length and range.
 //
 // coords: two entries per key position, in the same order: the key's x and
 // then its y in hundredths of a key unit on the whole board, config/imprint.json

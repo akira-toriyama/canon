@@ -66,10 +66,11 @@
 # 3's identity check stands in for the mount check.
 #
 # A run whose bootloader came up on USB without a UF2 volume that served (no
-# volume within the wait, the volume gone before the copy, or still mounted
-# long after it) writes the latch, $ZMK_WS/flash-dongle.latch
-# (~/.cache/zmk-canon, build-zmk.sh's workspace, so every session and checkout
-# shares it), and while it stands every run on the Imprint Dongle or a half is
+# volume within the wait, the volume gone before the copy, a copy that hung,
+# or the volume still mounted long after it) writes the latch,
+# $ZMK_WS/flash-dongle.latch (~/.cache/zmk-canon, build-zmk.sh's workspace,
+# so every session and checkout shares it), and while it stands every run on
+# the Imprint Dongle or a half is
 # refused, --dry-run included. On 2026-10-19 six such runs in a row (two
 # sessions, the same hub) each left their device in its bootloader, a keyboard
 # that typed nothing until replugged, after the monitor's hub had
@@ -77,7 +78,8 @@
 # (0xe00002ed in /usr/bin/log show, sender IOUSBMassStorageDriver) while READ
 # and the CDC port worked, and a reboot of the Mac cleared it; on 2026-10-20
 # three more such runs ended when the user unplugged the monitor's 4-port hub
-# and plugged it back (the state is that hub's: CLAUDE.md, Debugging). The
+# and plugged it back, while that afternoon two such power cycles did not
+# and a reboot did (the state is that hub's: CLAUDE.md, Debugging). The
 # Prospector Dongle is never refused: it is the canary, no keyboard. A DONE on
 # any device clears the latch; so does a reboot (the latch names the boot it
 # was written under), or rm of the file by hand.
@@ -162,7 +164,7 @@ latch_check() {
   case "$DEVICE" in
     prospector) say "LATCH ${device:-?} at ${time:-?}: ${why:-?}. The Prospector Dongle is the canary: a DONE here clears it" ;;
     *)
-      echo "refusing the $LABEL: the run on the ${device:-?} at ${time:-?} ended with ${why:-?}, and no run has ended in DONE since (latch $LATCH). That failure stranded a keyboard device in its bootloader six times in a row on 2026-10-19, typing nothing until replugged. Flash the Prospector Dongle first; if that fails the same way, reboot the Mac (which cleared it on 2026-10-19) or power-cycle the hub (untested), then try the Prospector Dongle again. rm the latch to flash the $LABEL anyway." >&2
+      echo "refusing the $LABEL: the run on the ${device:-?} at ${time:-?} ended with ${why:-?}, and no run has ended in DONE since (latch $LATCH). That failure stranded a keyboard device in its bootloader six times in a row on 2026-10-19, typing nothing until replugged. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back, then flash the Prospector Dongle; if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again. rm the latch to flash the $LABEL anyway." >&2
       exit 2 ;;
   esac
 }
@@ -285,7 +287,7 @@ case "$DEVICE" in
     CHECK="Check that the $LABEL types, and lights while USB powers it." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac
-LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub and plug it back (the state is the hub's; this cleared it on 2026-10-20, a reboot of the Mac on 2026-10-19), then flash the Prospector Dongle first (no keyboard) and the keyboard devices after its DONE."
+LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back (the state is the hub's; this cleared it once on 2026-10-20 and not twice that afternoon), then flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again; the keyboard devices after its DONE."
 latch_check
 
 if [ "$WAIT_S" -gt 0 ]; then
@@ -379,7 +381,9 @@ cp_rc=$BOUNDED_RC
 cp_err="$(tr '\n' ' ' <"$ERR")"
 case "$cp_rc" in
   0) say "      cp exit=0" ;;
-  124) die_touched "cp -X still running after ${COPY_TIMEOUT_S}s, killed." ;;
+  124)
+    latch_set "the copy hung ${COPY_TIMEOUT_S}s"
+    die_touched "cp -X still running after ${COPY_TIMEOUT_S}s, killed. $LATCHED" ;;
   *)
     case "$cp_err" in
       *"Input/output error"*|*"Device not configured"*)

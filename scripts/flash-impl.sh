@@ -72,11 +72,12 @@ if [ "$YES" -ne 1 ] && [ -t 0 ]; then
 fi
 
 # The lock flash-dongle.sh takes: while this runs, that script cannot touch a
-# dongle into the bootloader, and this cannot start in the middle of its flash
-# (it would copy imprint_dongle<SUFFIX>.uf2 onto the volume being written).
+# device (a dongle or a half) into the bootloader, and this cannot start in
+# the middle of its flash (it would copy an image onto the volume being
+# written).
 LOCK="/tmp/flash-dongle-$(id -u).lock"
 exec 9>>"$LOCK" || { echo "cannot open $LOCK" >&2; exit 1; }
-lockf -s -t 0 9 || { echo "flash-dongle.sh is flashing a dongle ($LOCK is held): run this afterwards" >&2; exit 1; }
+lockf -s -t 0 9 || { echo "flash-dongle.sh is flashing a device ($LOCK is held): run this afterwards" >&2; exit 1; }
 
 LEFT_DONE=0
 RIGHT_DONE=0

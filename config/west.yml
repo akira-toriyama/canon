@@ -48,17 +48,19 @@ manifest:
     # the bands or the star waves, the pick scripts/dongle.py intro hands the
     # Imprint Dongle saying which (config/lantern_rail.dtsi, imprint_left.conf
     # / imprint_right.conf), and what they show: every key black until a press,
-    # or a held layer, draws the effect of the day, eight built into the
+    # or a held layer, draws the effect of the day, nine built into the
     # halves' images and the pick scripts/dongle.py effect hands the Imprint
     # Dongle saying which draws, in the colours of the palette
     # scripts/dongle.py palette hands it the same way, or in the one colour
-    # the effect's pick names; the dongle carries all three to the halves by
-    # the behavior nodes effect, intro and palette of
-    # config/imprint_behaviors.dtsi, relays each half's key presses to the
-    # other through hit, for the effects that cross the split, and sends the
-    # halves the held layer's keys through layer, for the layer keys (the
-    # dongle builds the module's palette, picks, hit and layer sides only; its
-    # conf sizes the split run queue for a whole palette and both picks).
+    # the effect's pick names, faster the faster the user types while the
+    # pick scripts/dongle.py tempo hands it says so; the dongle carries all
+    # four to the halves by the behavior nodes effect, intro, tempo and
+    # palette of config/imprint_behaviors.dtsi, relays each half's key
+    # presses to the other through hit, for the effects that cross the split
+    # and the wake, and sends the halves the held layer's keys through layer,
+    # for the layer keys (the dongle builds the module's palette, picks, hit
+    # and layer sides only; its conf sizes the split run queue for a whole
+    # palette and all three picks).
     # ZMK's underglow is off on every target; config/lantern_keys.dtsi is the
     # module's node. Pinned by commit like zmk-beacon; bump the SHA by hand
     # after a merge there.

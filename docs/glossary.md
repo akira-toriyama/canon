@@ -313,7 +313,7 @@ battery nothing. Each half lights from its own port.
 ### palette
 The six colours (`0xRRGGBB`, slots 0..5) the Mac hands the [[Imprint Dongle]]
 with `python3 scripts/dongle.py palette`, which the dongle and both halves of
-the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] and the [[beams]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn, the [[water]] the first on a crest and the last in a trough, the ones between on the slopes, the [[dart]] all of them in slot order as it runs, the first at the pressed key, the [[layer keys]] the slot each layer is paired with; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
+the [[Cyboard Imprint]] keep in their settings across boots, and whose colours the [[effect]]s take: the [[crossing ring]] and the [[beams]] the pressed key's band, slots 0..4 in five bands left to right across both halves (the outer three columns of the left half, its inner three, both thumb clusters, the right half's inner three, its outer three: [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi)), the [[thin ring]] and the [[stain]] the next colour at each press, the [[disc]] all of them in turn, the [[water]] the first on a crest and the last in a trough, the ones between on the slopes, the [[dart]] all of them in slot order as it runs, the first at the pressed key, the [[heatmap]] the last on a cold key running to the first on the hottest, the [[layer keys]] the slot each layer is paired with; a black slot shows slot 0, and slot 5 is the spare. The dongle invokes the [[behavior]] node `palette` of
 [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), which
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
@@ -350,7 +350,7 @@ carries to both halves through the [[behavior]] node `effect` of
 [[palette]], and resends with it after each battery report of a half; `effect`
 alone asks (`effect …`, the colour last when one is set, `effect none`).
 - The default (t-5hqx): until the Mac's first pick, and whenever the stored pick names none of the built nine, a half draws the [[crossing ring]] (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`).
-- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn (its README); canon's keymap binds neither, the Mac picks, and neither is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
+- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn, as `&intro` and `&tempo` bind the other picks (its README); canon's keymap binds none of them, the Mac picks, and none is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
 - The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h); bits 7 and 9 are no effect's, so `layer-keys` is bit 8 and `heatmap` bit 10, the line above the layer keys, which stay the last line), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together; the daily effect is one press effect at a time, the [[layer keys]] never in the rotation and only by hand with it (`effect dart layer-keys`), since over a press effect the layer's keys share the frame's cap and dim while it draws (t-gwsw, the user's choice on 2026-11-02).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
 - The daily effect (t-2d9r): the LaunchAgent in dotfiles is to pick one a day, as it hands the daily [[palette]].
@@ -440,7 +440,7 @@ type most and the keys around them glow, and cool when you stop
 (`CONFIG_LANTERN_HEATMAP`; t-6ttk, QMK's TYPING_HEATMAP from its idea, OK on
 hardware 2026-11-02).
 - Each half warms from its own presses only: a press of the other half warms nothing. Each half keeps its heat itself, so a burst of typing past the engine's ring of sixteen presses cools every key to its end; more than sixteen presses of both halves within one frame, and the oldest never count (zmk-lantern's `src/effects/heatmap.c`). The glow is gone within seven seconds of the last press.
-- The footprints (bit 9; each pressed key lit at once in the palette's next colour and fading out over two seconds, the user's own idea of 2026-10-28, OK on hardware the morning of 2026-11-02 and in main for #305) were dropped for the heatmap the same day: the user kept one of the two effects whose keys stay lit after a press. The press glow (2026-10-21, twice NG) and the held (2026-10-27, NG) lit one key too. Bit 9 joins bit 7 as a bit no effect takes again; a stored pick of it falls to the default.
+- The footprints (bit 9; each pressed key lit at once in the palette's next colour and fading out over two seconds, the user's own idea of 2026-10-28, OK on hardware the morning of 2026-11-02 and in main for canon#305) were dropped for the heatmap the same day: the user kept one of the two effects whose keys stay lit after a press. The press glow (2026-10-21, twice NG) and the held (2026-10-27, NG) lit one key too. Bit 9 joins bit 7 as a bit no effect takes again; a stored pick of it falls to the default.
 - **Don't call it:** heat map, typing heatmap in prose (QMK's name), hot keys, key usage, afterglow, footprints (dropped), ヒートマップ in English text
 
 ### layer keys
@@ -555,7 +555,7 @@ The USB manufacturer string of every [[image]], `ZMK Project (canon <shield>
 `scripts/stamp.py`), set by `scripts/zmk-west.sh build` and read back from a
 device by `python3 scripts/dongle.py check`, which tells whether the firmware on
 USB is what `origin/main` builds.
-- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `-beacon` or `-lantern` for a `--module` tree, `_RESET`, `-<tag>`); a plain or sprite build has none.
+- `<variant>` is the image name's suffix without its leading `-sprite` (`-logging`, `-kconfig`, `-beacon` or `-lantern` for a `--module` tree, `_RESET`, `-<tag>`); a plain or sprite build has none.
 - The stamp changes with the inputs, not with the commit: a comment-only change to `config/` keeps it, a pin bump or a patch edit moves every target's.
 - An [[own module]]'s pin counts by the tree id of the pinned commit, so a re-pin to the same tree keeps every stamp.
 - **Don't call it:** version string, build id, firmware version, manufacturer tag, 版の印
@@ -565,7 +565,8 @@ DeviceTree Source Include: a partial DeviceTree source that the [[keymap]] or a
 [[build target]]'s `*.overlay` pulls in with `#include`. canon's are
 `combos.dtsi`, `macros.dtsi`, `imprint_behaviors.dtsi`, `eiji_macros.dtsi`,
 `arrow_behaviors.dtsi` and `letter_morphs.dtsi` on the keymap side, and
-`lantern_rail.dtsi` in both halves' overlays.
+`lantern_rail.dtsi`, `cdc_acm_port.dtsi` and `lantern_keys.dtsi` in both
+halves' overlays.
 - **Don't call it:** include file, dts fragment, ヘッダ
 
 ---

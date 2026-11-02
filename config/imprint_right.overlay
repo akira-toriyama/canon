@@ -8,7 +8,7 @@
 
 // This half's 29 key LEDs and the key under each, in chain order, the mirror
 // of the left half's (imprint_left.overlay says where the order comes from
-// and that the probe confirms it).
+// and how far the hardware has confirmed it).
 &led_strip {
     chain-length = <29>;
 };
