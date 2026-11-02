@@ -82,8 +82,10 @@
 # and a reboot did (the state lies with that hub, in it or in the Mac's
 # handling of it: CLAUDE.md, Debugging). The
 # Prospector Dongle is never refused: it is the canary, no keyboard. A DONE on
-# any device clears the latch; so does a reboot (the latch names the boot it
-# was written under), or rm of the file by hand.
+# any device clears the latch, as does rm of the file by hand; so does a
+# reboot, for a latch with a boot= value (one without, written by a
+# flash-dongle.sh older than this one or while the sysctl failed, stands until
+# a DONE or rm).
 #
 # Exit status: 0 image copied, bootloader volume released and the device back
 # on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage,
@@ -139,16 +141,25 @@ run_bounded() {
 
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
-# The latch (header). Its lines: boot= (the boot it was written under), device=,
-# time=, why=. The boot is kern.bootsessionuuid, drawn once per boot
+# The latch (header). Its lines: boot= (the boot it was written under),
+# boottime= (below), device=, time=, why=. The boot is kern.bootsessionuuid,
+# drawn once per boot
 # (IOPMrootDomain::initializeBootSessionUUID), never kern.boottime: XNU moves
 # that at every step of the clock (clock_set_calendar_microtime keeps the boot
 # time consistent with the new calendar), and timed steps it several times a
 # day (nine on 2026-11-02), so a latch keyed on it went stale within hours.
+# boottime= is for the flash-dongle.sh of checkouts older than boot= (every
+# checkout shares the latch): their latch_check clears a latch whose boottime=
+# differs from kern.boottime as legacy_boottime() reads it (its usec field, by
+# their sed), so without the line they would clear every latch this one
+# writes. They still clear it at the next step of the clock, as they clear
+# their own. Drop the line and legacy_boottime() once no older checkout runs.
 boot_id() { sysctl -n kern.bootsessionuuid 2>/dev/null; }
+legacy_boottime() { sysctl -n kern.boottime | sed -E 's/.*sec = ([0-9]+).*/\1/'; }
 latch_set() {
   mkdir -p "$(dirname "$LATCH")" 2>/dev/null
-  printf 'boot=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boot_id)" "$DEVICE" "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
+  printf 'boot=%s\nboottime=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boot_id)" "$(legacy_boottime)" "$DEVICE" \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
     || say "      WARN cannot write $LATCH"
 }
 latch_clear() { rm -f "$LATCH" 2>/dev/null || say "      WARN cannot remove $LATCH"; }
