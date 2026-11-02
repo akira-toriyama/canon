@@ -268,7 +268,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     only when the drain stalls on a half that stopped acknowledging, never on an idle link; the
     module's `src/pick.c` asserts the size). The daily palette (t-0967): the five colours of the sprite GIF the
     sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the LaunchAgent in
-    dotfiles is to hand to `dongle.py palette --wait 600` after each successful swap (the values
+    dotfiles hands to `dongle.py palette --wait 600` after each successful swap (since 2026-10-21; the values
     are GIF-derived: never in a commit, PR or doc, the Privacy section); the daily effect is
     t-2d9r's, `dongle.py effect` the same way. The countdown (the glossary) and the other pictures
     (the bands, the solid, the gradient, the scatter) stay in the module for a trial image
