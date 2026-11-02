@@ -8,7 +8,9 @@
 // (it has no bottom-row key), then home, lower, bottom, upper on each column
 // outwards, and ends on the thumb keys. From Cyboard's wired Imprint
 // (vial-qmk keyboards/cyboard/imprint/imprint_letters_only_5key_bottom_row,
-// t-1ee6), to be confirmed LED by LED on this half (t-69g7's probe).
+// t-1ee6): the bands came out right on both halves (t-69g7, 2026-10-20), and
+// the order within a band was left to the press effects to show, with no
+// LED-by-LED probe (t-6ttk, 2026-10-20).
 &led_strip {
     chain-length = <29>;
 };

@@ -1,8 +1,10 @@
 // The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's (config/west.yml),
 // not ZMK's ext_power driver's: the module turns the rail on while USB powers
-// the half and for the boot light, and off on battery (its README; CLAUDE.md,
-// Invariants). For the halves' overlays only: the dongle has no EXT_POWER
-// node, and a target without a lantern,rail node builds none of the module.
+// the half and it is in use, and for the boot light, and off on battery and
+// while the half is idle (its README; CLAUDE.md, Invariants). For the halves'
+// overlays only: the dongle has no EXT_POWER node, and a target without a
+// lantern,rail node builds none of the rail (CONFIG_LANTERN_RAIL depends on
+// the node).
 //
 // Why the EXT_POWER node stays disabled, and must never come back: with
 // status = "disabled" zmk,ext-power-generic's whole file, its settings

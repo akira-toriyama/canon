@@ -66,10 +66,11 @@
 # 3's identity check stands in for the mount check.
 #
 # A run whose bootloader came up on USB without a UF2 volume that served (no
-# volume within the wait, the volume gone before the copy, or still mounted
-# long after it) writes the latch, $ZMK_WS/flash-dongle.latch
-# (~/.cache/zmk-canon, build-zmk.sh's workspace, so every session and checkout
-# shares it), and while it stands every run on the Imprint Dongle or a half is
+# volume within the wait, the volume gone before the copy, a copy that hung,
+# or the volume still mounted long after it) writes the latch,
+# $ZMK_WS/flash-dongle.latch (~/.cache/zmk-canon, build-zmk.sh's workspace,
+# so every session and checkout shares it), and while it stands every run on
+# the Imprint Dongle or a half is
 # refused, --dry-run included. On 2026-10-19 six such runs in a row (two
 # sessions, the same hub) each left their device in its bootloader, a keyboard
 # that typed nothing until replugged, after the monitor's hub had
@@ -77,10 +78,14 @@
 # (0xe00002ed in /usr/bin/log show, sender IOUSBMassStorageDriver) while READ
 # and the CDC port worked, and a reboot of the Mac cleared it; on 2026-10-20
 # three more such runs ended when the user unplugged the monitor's 4-port hub
-# and plugged it back (the state is that hub's: CLAUDE.md, Debugging). The
+# and plugged it back, while that afternoon two such power cycles did not
+# and a reboot did (the state lies with that hub, in it or in the Mac's
+# handling of it: CLAUDE.md, Debugging). The
 # Prospector Dongle is never refused: it is the canary, no keyboard. A DONE on
-# any device clears the latch; so does a reboot (the latch names the boot it
-# was written under), or rm of the file by hand.
+# any device clears the latch, as does rm of the file by hand; so does a
+# reboot, for a latch with a boot= value (one without, written by a
+# flash-dongle.sh older than this one or while the sysctl failed, stands until
+# a DONE or rm).
 #
 # Exit status: 0 image copied, bootloader volume released and the device back
 # on USB with its port (--dry-run: every check passed) / 1 failed / 2 usage,
@@ -136,25 +141,41 @@ run_bounded() {
 
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
-# The latch (header). Its lines: boottime= (kern.boottime's seconds, the boot
-# it was written under), device=, time=, why=.
-boottime() { sysctl -n kern.boottime | sed -E 's/.*sec = ([0-9]+).*/\1/'; }
+# The latch (header). Its lines: boot= (the boot it was written under),
+# boottime= (below), device=, time=, why=. The boot is kern.bootsessionuuid,
+# drawn once per boot
+# (IOPMrootDomain::initializeBootSessionUUID), never kern.boottime: XNU moves
+# that at every step of the clock (clock_set_calendar_microtime keeps the boot
+# time consistent with the new calendar), and timed steps it several times a
+# day (nine on 2026-11-02), so a latch keyed on it went stale within hours.
+# boottime= is for the flash-dongle.sh of checkouts older than boot= (every
+# checkout shares the latch): their latch_check clears a latch whose boottime=
+# differs from kern.boottime as legacy_boottime() reads it (its usec field, by
+# their sed), so without the line they would clear every latch this one
+# writes. They still clear it at the next step of the clock, as they clear
+# their own. Drop the line and legacy_boottime() once no older checkout runs.
+boot_id() { sysctl -n kern.bootsessionuuid 2>/dev/null; }
+legacy_boottime() { sysctl -n kern.boottime | sed -E 's/.*sec = ([0-9]+).*/\1/'; }
 latch_set() {
   mkdir -p "$(dirname "$LATCH")" 2>/dev/null
-  printf 'boottime=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boottime)" "$DEVICE" "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
+  printf 'boot=%s\nboottime=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boot_id)" "$(legacy_boottime)" "$DEVICE" \
+    "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
     || say "      WARN cannot write $LATCH"
 }
 latch_clear() { rm -f "$LATCH" 2>/dev/null || say "      WARN cannot remove $LATCH"; }
 # Before anything touches USB: a latch from an earlier boot is stale, the
-# Prospector Dongle passes as the canary, a keyboard device is refused.
+# Prospector Dongle passes as the canary, a keyboard device is refused. A latch
+# whose boot cannot be compared (no boot= line, as one written before
+# kern.bootsessionuuid, or a sysctl that failed) stands.
 latch_check() {
   [ -f "$LATCH" ] || return 0
-  local boot device time why
-  boot="$(sed -n 's/^boottime=//p' "$LATCH")"
+  local boot now device time why
+  boot="$(sed -n 's/^boot=//p' "$LATCH")"
+  now="$(boot_id)"
   device="$(sed -n 's/^device=//p' "$LATCH")"
   time="$(sed -n 's/^time=//p' "$LATCH")"
   why="$(sed -n 's/^why=//p' "$LATCH")"
-  if [ "$boot" != "$(boottime)" ]; then
+  if [ -n "$boot" ] && [ -n "$now" ] && [ "$boot" != "$now" ]; then
     say "LATCH from before this boot (${device:-?} at ${time:-?}: ${why:-?}): the reboot cleared it"
     latch_clear
     return 0
@@ -162,7 +183,7 @@ latch_check() {
   case "$DEVICE" in
     prospector) say "LATCH ${device:-?} at ${time:-?}: ${why:-?}. The Prospector Dongle is the canary: a DONE here clears it" ;;
     *)
-      echo "refusing the $LABEL: the run on the ${device:-?} at ${time:-?} ended with ${why:-?}, and no run has ended in DONE since (latch $LATCH). That failure stranded a keyboard device in its bootloader six times in a row on 2026-10-19, typing nothing until replugged. Flash the Prospector Dongle first; if that fails the same way, reboot the Mac (which cleared it on 2026-10-19) or power-cycle the hub (untested), then try the Prospector Dongle again. rm the latch to flash the $LABEL anyway." >&2
+      echo "refusing the $LABEL: the run on the ${device:-?} at ${time:-?} ended with ${why:-?}, and no run has ended in DONE since (latch $LATCH). That failure stranded a keyboard device in its bootloader six times in a row on 2026-10-19, typing nothing until replugged. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back, then flash the Prospector Dongle; if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again. rm the latch to flash the $LABEL anyway." >&2
       exit 2 ;;
   esac
 }
@@ -285,7 +306,7 @@ case "$DEVICE" in
     CHECK="Check that the $LABEL types, and lights while USB powers it." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac
-LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub and plug it back (the state is the hub's; this cleared it on 2026-10-20, a reboot of the Mac on 2026-10-19), then flash the Prospector Dongle first (no keyboard) and the keyboard devices after its DONE."
+LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back (the state lies with that hub; this cleared it once on 2026-10-20 and not twice that afternoon), then flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again; the keyboard devices after its DONE."
 latch_check
 
 if [ "$WAIT_S" -gt 0 ]; then
@@ -379,7 +400,9 @@ cp_rc=$BOUNDED_RC
 cp_err="$(tr '\n' ' ' <"$ERR")"
 case "$cp_rc" in
   0) say "      cp exit=0" ;;
-  124) die_touched "cp -X still running after ${COPY_TIMEOUT_S}s, killed." ;;
+  124)
+    latch_set "the copy hung ${COPY_TIMEOUT_S}s"
+    die_touched "cp -X still running after ${COPY_TIMEOUT_S}s, killed. $LATCHED" ;;
   *)
     case "$cp_err" in
       *"Input/output error"*|*"Device not configured"*)

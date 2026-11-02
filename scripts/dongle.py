@@ -886,8 +886,8 @@ TEMPO_WORD = "tempo"
 # The tempo's two states, by the names the Imprint Dongle's port takes:
 # zmk-lantern's LANTERN_TEMPO_LIST (src/tempo.h); one a pick.
 TEMPOS = ("on", "off")
-# `palette --wait` and `effect --wait` poll for the dongle at flash-dongle.sh
-# --wait's rate.
+# The --wait of palette, effect, intro and tempo polls for the dongle at
+# flash-dongle.sh --wait's rate.
 WAIT_POLL_S = 0.5
 
 
@@ -967,10 +967,30 @@ def exchange(dev, word, line, seconds):
     try:
         drain(fd, port)
         # The newline first ends whatever partial line the port may hold.
-        os.write(fd, ("\n" + line + "\n").encode("ascii"))
+        write_all(fd, port, ("\n" + line + "\n").encode("ascii"), seconds)
         return read_reply(fd, port, seconds, word)
     finally:
         os.close(fd)
+
+
+def write_all(fd, port, data, seconds):
+    """Writes the whole of data on the port, waiting up to seconds for room:
+    the port is open O_NONBLOCK, so a write may take part of it, or none while
+    the USB stack's buffer is full. A device gone meanwhile is lost, as for a
+    read (read_some)."""
+    deadline = time.monotonic() + seconds
+    while data:
+        try:
+            data = data[os.write(fd, data):]
+        except (BlockingIOError, InterruptedError):
+            pass
+        except OSError as e:
+            raise Failure("lost %s: %s" % (port, e.strerror or e))
+        if data:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise Failure("%s took no more of the line within %g s" % (port, seconds))
+            select.select([], [fd], [], min(left, 0.5))
 
 
 def ask_dongle(word, arguments, args):
@@ -1034,12 +1054,9 @@ def cmd_effect(args):
     return ask_dongle(EFFECT_WORD, effect_arguments(args.effects), args)
 
 
-def cmd_intro(args):
-    return ask_dongle(INTRO_WORD, [args.intro] if args.intro else [], args)
-
-
-def cmd_tempo(args):
-    return ask_dongle(TEMPO_WORD, [args.state] if args.state else [], args)
+def cmd_pick(args):
+    """intro and tempo: one name, or none to ask."""
+    return ask_dongle(args.word, [args.name] if args.name else [], args)
 
 
 def cmd_image(args):
@@ -1262,6 +1279,19 @@ def regex(text):
         raise argparse.ArgumentTypeError("not a regular expression: %s" % e)
 
 
+def dongle_options(s):
+    """--seconds and --wait, the same for every word on the Imprint Dongle's
+    port (ask_dongle)."""
+    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
+                   help="give up on writing the line, and then on the reply, after N seconds each "
+                        "(default 3)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every %g s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (a KVM switch hides it "
+                        "for a while, and may have rebooted it: its USB comes up before its settings; "
+                        "default 0, no wait)" % WAIT_POLL_S)
+
+
 def parser():
     names = ", ".join(DEVICES)
     p = argparse.ArgumentParser(
@@ -1324,10 +1354,8 @@ def parser():
                     "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
                     "cleared to 000000), sends them to both halves over the split (zmk-lantern's palette behavior; "
                     "a half that is away gets them when it is back) and answers 'palette ok' with the six slots; "
-                    "each half keeps the six across boots and draws its effects from them (the crossing ring and "
-                    "the beams in the pressed key's band, slots 0..4 left to right across both halves, a black slot showing "
-                    "slot 0; the thin ring and the stain in the next colour a press; the disc running through "
-                    "them). With no colour "
+                    "each half keeps the six across boots and draws its effects from them (which colour each "
+                    "effect takes: docs/glossary.md, palette; a black slot shows slot 0). With no colour "
                     "the reply is 'palette' with the dongle's six slots, or 'palette none' (also from a device "
                     "flashed across the change from four slots to six, until the next set). Refuses while another "
                     "process holds the port (it would take the reply). Never sets 1200 baud.",
@@ -1337,13 +1365,7 @@ def parser():
     )
     s.add_argument("colours", type=colour, nargs="*", metavar="RRGGBB",
                    help="slots 0.. in order, one to six, six hex digits each (# or 0x allowed in front)")
-    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
-                   help="give up on the reply after N seconds (default 3)")
-    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
-                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
-                        "within the same N ask again while it answers 'not ready' (a KVM switch hides it "
-                        "for a while, and may have rebooted it: its USB comes up before its settings; "
-                        "default 0, no wait)")
+    dongle_options(s)
     s.set_defaults(func=cmd_palette)
 
     s = sub.add_parser(
@@ -1353,7 +1375,7 @@ def parser():
                     "both halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it "
                     "is back) and answers 'effect ok' with the names, and the colour when one was given; each half "
                     "keeps the pick across boots and draws the picked effects its image builds (the product images "
-                    "build all eight; two or more names draw together), the crossing ring until the first pick. A "
+                    "build all nine; two or more names draw together), the crossing ring until the first pick. A "
                     "colour after the names, one at most, draws every picked effect in that one colour (the stain "
                     "dyes in it) in place of the palette's colours; a pick without one returns to the palette's. "
                     "With no name the reply is 'effect' with the dongle's pick, and its colour when one is set, or "
@@ -1367,11 +1389,7 @@ def parser():
                    help="the effects to draw, one or more of: %s; then, at most once, the colour every one of "
                         "them draws in, six hex digits (# or 0x allowed in front); no colour = the palette's "
                         "colours" % ", ".join(EFFECTS))
-    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
-                   help="give up on the reply after N seconds (default 3)")
-    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
-                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
-                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
+    dongle_options(s)
     s.set_defaults(func=cmd_effect)
 
     s = sub.add_parser(
@@ -1387,14 +1405,10 @@ def parser():
         epilog="Exit status: 0 'intro ok' (pick) or the name (ask), 1 'intro error', no reply, or no "
                "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
     )
-    s.add_argument("intro", nargs="?", choices=INTROS, metavar="NAME",
+    s.add_argument("name", nargs="?", choices=INTROS, metavar="NAME",
                    help="the intro to play, one of: %s" % ", ".join(INTROS))
-    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
-                   help="give up on the reply after N seconds (default 3)")
-    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
-                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
-                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
-    s.set_defaults(func=cmd_intro)
+    dongle_options(s)
+    s.set_defaults(func=cmd_pick, word=INTRO_WORD)
 
     s = sub.add_parser(
         "tempo", help="pick or ask whether the effects run faster the faster you type (the tempo), through the Imprint Dongle",
@@ -1411,14 +1425,10 @@ def parser():
         epilog="Exit status: 0 'tempo ok' (pick) or the state (ask), 1 'tempo error', no reply, or no "
                "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
     )
-    s.add_argument("state", nargs="?", choices=TEMPOS, metavar="STATE",
+    s.add_argument("name", nargs="?", choices=TEMPOS, metavar="STATE",
                    help="on or off")
-    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
-                   help="give up on the reply after N seconds (default 3)")
-    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
-                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
-                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
-    s.set_defaults(func=cmd_tempo)
+    dongle_options(s)
+    s.set_defaults(func=cmd_pick, word=TEMPO_WORD)
 
     s = sub.add_parser(
         "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",
@@ -1443,8 +1453,10 @@ def parser():
 
     s = sub.add_parser("image", help="plumbing: DEVICE US PRODUCT US SHA256 US STAMP of the build target the UF2 "
                                      "payload names, by its firmware stamp or, built before the stamp, by a dongle's "
-                                     "USB product string (STAMP then empty; exit 1 for no name or two that disagree, "
-                                     "2 for no UF2 or an incomplete one)")
+                                     "USB product string (STAMP then empty; exit 1 for no name, a name this dongle.py "
+                                     "does not know, two that disagree, a stamp it cannot parse or a half's image "
+                                     "without the CDC ACM port, 2 for a file it cannot read, no UF2 or an incomplete "
+                                     "one)")
     s.add_argument("uf2")
     s.set_defaults(func=cmd_image)
 

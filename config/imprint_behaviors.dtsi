@@ -20,8 +20,9 @@
     // with the colours `scripts/dongle.py palette` sends, and ZMK's split
     // transport carries the invocation to both halves by this node's name,
     // so the node is the same on all three (the keymap's behaviors reach
-    // every imprint target); a half stores the six colours and paints its
-    // key LEDs with slot 0 (CLAUDE.md, Invariants; the glossary: palette).
+    // every imprint target); a half stores the six colours, which its effects
+    // and the bands intro draw in (CLAUDE.md, Invariants; the glossary:
+    // palette).
     palette: palette {
         compatible = "lantern,behavior-palette";
         #binding-cells = <2>;
@@ -31,9 +32,12 @@
     // Imprint Dongle sends it to a half with each key press of the other
     // half (param1 = the key position), and ZMK's split transport carries it
     // by this node's name, so the node is the same on all three, as &palette;
-    // a half notes the press as a hit for the effects that cross the split
-    // (zmk-lantern's crossing ring; t-6ttk). The dongle sends only to a half
-    // whose link is at peripheral latency 0, the one USB powers (the
+    // a half notes the press as a hit for the effects that draw the other
+    // half's presses (the crossing ring, the beams, the thin ring and the
+    // stain, the disc, the water and the dart; t-6ttk) and for the tempo's
+    // count, and dark for idle it lights at it (the
+    // wake, zmk-lantern's CONFIG_LANTERN_WAKE_ON_HIT). The dongle sends only to
+    // a half whose link is at peripheral latency 0, the one USB powers (the
     // module's src/latency.c): a half on battery is dark and gets nothing.
     hit: hit {
         compatible = "lantern,behavior-hit";
@@ -63,7 +67,7 @@
     // effect bits, src/effect.h), and ZMK's split transport carries it to
     // both halves by this node's name, as &palette; each half stores the pick
     // and draws the picked effects its image builds (the halves' confs build
-    // eight), the dongle stores it and resends it with the palette (CLAUDE.md,
+    // nine), the dongle stores it and resends it with the palette (CLAUDE.md,
     // Invariants; the glossary: effect).
     effect: effect {
         compatible = "lantern,behavior-effect";
@@ -77,8 +81,8 @@
     // halves by this node's name, as &effect; each half stores the pick and
     // plays the picked intro its image builds as the boot light (the halves'
     // confs build the bands and the star waves), the dongle stores it and
-    // resends it with the palette and the effect (CLAUDE.md, Invariants; the
-    // glossary: intro).
+    // resends it with the palette and the other picks (CLAUDE.md, Invariants;
+    // the glossary: intro).
     intro: intro {
         compatible = "lantern,behavior-intro";
         #binding-cells = <2>;

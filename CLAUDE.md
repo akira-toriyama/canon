@@ -93,12 +93,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 | See the Prospector Dongle's screen, dark or lit | `python3 scripts/dongle.py shot --out <scratch>/shot.png` (never inside a git work tree; refuses while a log reader holds the port), then Read the PNG | stdout the PNG's path, stderr `dongle.py shot: 280x240 in N bands, CRC-32 ok, …` |
 | Pick or ask the halves' effect (the pick) | `python3 scripts/dongle.py effect [--wait N] [<name> …] [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `heatmap`, `layer-keys`, one or more, then one colour at most; none = ask; the same refusals and `--wait` as palette, below) | stdout `effect ok` and the names, then the colour when one was given (pick) or `effect <names> [RRGGBB]` / `effect none` (ask; `none` until the Mac's first pick, the halves then drawing the crossing ring), exit 0; the next key on a lit half draws the picked effect (`layer-keys`: a held Number, Symbol 1, Symbol 2 or Function layer lights its keys, all on the right half; a held Vkey layer fifteen on each half; an arrow layer or a key alone nothing), every effect in that one colour while one is set (the stain's dye too) and in the palette's colours without; a logging image: `effect: <mask> rrggbb stored` on a half, `effect: pick <mask> rrggbb from …` and `effect: resent to half N` on the dongle (`<mask>` the pick's bits in eight hex digits, `00000100` for `layer-keys`; `rrggbb` is `000000` without a colour) |
 | Pick or ask the halves' intro (the boot light's show) | `python3 scripts/dongle.py intro [--wait N] [<name>]` (`bands`, `star-waves`, one; none = ask; the same refusals and `--wait` as palette, below) | stdout `intro ok` and the name (pick) or `intro <name>` / `intro none` (ask; `none` until the Mac's first pick, the halves then playing the star waves), exit 0; the next boot light on a half (a cable plugged in, or a boot) plays the picked intro: the bands a second, the star waves ten; a logging image: `intro: 0000000X stored` on a half, `intro: pick 0000000X from …` and `intro: resent to half N` on the dongle |
-| Pick or ask the tempo (the effects faster the faster you type) | `python3 scripts/dongle.py tempo [--wait N] [on \| off]` (none = ask; the same refusals and `--wait` as palette, below) | stdout `tempo ok on` / `tempo ok off` (pick) or `tempo on` / `tempo off` / `tempo none` (ask; `none` until the Mac's first pick, the halves then running it), exit 0; on, the next rings, beams, water or darts run up to twice as fast while the user types eight a second; a logging image: `tempo: 0000000X stored` on a half, `tempo: pick 0000000X from …` and `tempo: resent to half N` on the dongle |
+| Pick or ask the tempo (the effects faster the faster you type) | `python3 scripts/dongle.py tempo [--wait N] [on \| off]` (none = ask; the same refusals and `--wait` as palette, below) | stdout `tempo ok on` / `tempo ok off` (pick) or `tempo on` / `tempo off` / `tempo none` (ask; `none` until the Mac's first pick, the halves then running it), exit 0; on, the next thin ring, disc, stain's ring, crossing ring, beams, water or dart run up to twice as fast while the user types eight a second; a logging image: `tempo: 0000000X stored` on a half, `tempo: pick 0000000X from …` and `tempo: resent to half N` on the dongle |
 | Set or ask the halves' LED colour (the palette) | `python3 scripts/dongle.py palette [--wait N] [RRGGBB …]` (one to six colours = slots 0…, none = ask; refuses while a log reader holds the port; no Imprint Dongle on USB = exit 1, and no retry unless `--wait N` polls for it first, every 0.5 s, and asks again while it answers `not ready`: a KVM switch hides it, and may have rebooted it) | stdout `palette ok` and the six `RRGGBB` (set) or `palette RRGGBB …` / `palette none` (ask; `none` also from a device flashed across the four-to-six-slot change, until the next set), exit 0; with `--wait` also stderr `dongle.py: waited N s for the "Imprint Dongle"` and, while a rebooted dongle's settings load, `palette error: not ready …; asking again`; the next effect on a lit half takes the new colours; a logging image: `slots 0-1 … stored` on a half, `N colour(s) from …` and `resent to half N` on the dongle |
 
 - **`ERROR … no bootloader volume` or `went away before the copy` once: stop; no other keyboard
   device is tried.** flash-dongle.sh enforces it with a latch (`~/.cache/zmk-canon/flash-dongle.latch`,
-  its header): after such a run it refuses the Imprint Dongle and the halves, `--dry-run` included,
+  its header, which lists the other runs that set it: a copy that hung, a volume that stayed
+  mounted): after such a run it refuses the Imprint Dongle and the halves, `--dry-run` included,
   until a run ends in `DONE` (the Prospector Dongle is the canary: no keyboard) or the Mac reboots.
   The device sits in its bootloader and types nothing (the Imprint Dongle: the whole keyboard, so
   the user cannot even type an instruction) until replugged. On 2026-10-19 six runs in a row failed
@@ -112,20 +113,31 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   re-enumerating without it; READ and the CDC port kept working, and Chrome's user client was not
   it (its open fails the same way during a good run). A reboot of the Mac cleared it (23:32; the
   Prospector Dongle at 23:36 with no WRITE timeout in the log, then the Imprint Dongle, through the
-  same hub). **The state is the monitor hub's 4-port downstream hub's (`0x1a40/0101` at
-  `0x02110000`, a single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at
-  12 Mbps), and unplugging that hub from the monitor and plugging it back clears it** (2026-10-20,
-  t-v31c): three more runs had failed the same way at 09:26-09:49 on port 4 after the monitor's
-  hub had reconnected at 09:12-09:16, the evening's on ports 1 and 3 that passed at other times,
-  and the same device, cable, port and image had failed at 23:08 and passed at 23:36; the host's
-  re-enumeration of the hub (a bus reset, the hub powered throughout) and a replug of the device
-  did not clear it, 26 s without power at 10:27 did (Prospector Dongle `DONE` at 10:29 and 10:31
-  on port 4, the write's only log line the normal `0xe0005000 (pipe stalled)` at its reboot). The
-  Mac's reboot most likely worked the same way (not measured). What puts the hub into the state
-  is open: it followed a reconnection of the monitor's hub (a KVM switch) three times out of four.
-  Recovery: replug the stranded device, replug the 4-port hub at the monitor, one Prospector
-  Dongle run, then the keyboard devices. The devices stay on that hub (the external drives sit on
-  the Mac's own ports, the Imprint devices on the monitor: the layout is fixed).
+  same hub). **The state lies with the monitor hub's 4-port downstream hub (`0x1a40/0101`, a
+  single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at 12 Mbps; at
+  `0x02110000` until 2026-10-21, at `0x02120000` since, t-skdt), in the hub or in the Mac's
+  handling of it, not measured which: unplugging that hub from the monitor and plugging it back
+  cleared it once, and a reboot of the Mac each of the three times it was tried (2026-10-19, 10-20
+  and 10-21, t-skdt)** (2026-10-20, t-v31c): three more runs had failed the same way
+  at 09:26-09:49 on port 4 after the monitor's hub had reconnected at 09:12-09:16, the evening's
+  on ports 1 and 3 that passed at other times, and the same device, cable, port and image had
+  failed at 23:08 and passed at 23:36; the host's re-enumeration of the hub (a bus reset, the hub
+  powered throughout) and a replug of the device did not clear it, 26 s without power at 10:27
+  did (Prospector Dongle `DONE` at 10:29 and 10:31 on port 4, the write's only log line the normal
+  `0xe0005000 (pipe stalled)` at its reboot). That afternoon it did not (t-gsm2): after runs failed
+  at 14:52-14:58, the hub went without power for about 11 s and then about 20 s, the Prospector
+  Dongle failed the same way after each, and a reboot of the Mac cleared it (`DONE` at 15:07).
+  Nor on 2026-10-21: the hub came back at another port of the monitor's hub (`0x0212xxxx`; the
+  record infers a replug of unknown length) and the Prospector Dongle failed again before the
+  reboot (t-skdt). Whether a longer time without power is what the hub needs, and what puts it
+  into the state, is open: by the morning of 2026-10-20, three of four reconnections of the
+  monitor's hub (a KVM switch) had been followed by it (t-v31c); that afternoon it came with no
+  switch, after a run had passed at 14:42 (t-gsm2); and on 2026-10-21 runs passed after each of
+  three reconnections (t-skdt).
+  Recovery: replug the stranded device, unplug the 4-port hub at the monitor for 30 s or more and
+  plug it back, one Prospector Dongle run; if that fails the same way, reboot the Mac and run the
+  Prospector Dongle again; then the keyboard devices. The devices stay on that hub (the external
+  drives sit on the Mac's own ports, the Imprint devices on the monitor: the layout is fixed).
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
   `src/usb/msc_uf2.c`): not a truncated copy.
@@ -157,130 +169,135 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
   - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
     LEDs, lit only while USB powers the half and it is in use, and the boot light; the LED rail is
-    its (the invariant below). What the LEDs show is the user's pick on hardware (t-skdt, t-5v1f,
-    t-6ttk, t-5hqx; `config/imprint_left.conf` carries the lines and says why, `imprint_right.conf`
-    the same lines): no picture, every key black while lit (`CONFIG_LANTERN_NO_PICTURE`, the
-    countdown off with it, `CONFIG_LANTERN_COUNTDOWN=n`), an intro as the boot light and at every
-    cable plugged in, two built into the image (the glossary: intro): the bands, a second of the
-    palette's bands (`CONFIG_LANTERN_INTRO_BANDS`), and the star waves (ten seconds in red, blue
-    and green only, never white, from the outer keys to the thumbs and back,
-    `CONFIG_LANTERN_INTRO_STAR_WAVES`; the glossary: star waves), the star waves until the Mac's
-    first pick (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`), and after a key
-    press, or while a layer is held, the effect (the glossary:
-    effect, thin ring, disc, stain, crossing ring, beams, water, dart, heatmap, layer keys): nine
-    are built into the image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`, `CONFIG_LANTERN_STAIN`,
-    `CONFIG_LANTERN_CROSS_RING`, `CONFIG_LANTERN_BEAMS`, `CONFIG_LANTERN_WATER`,
-    `CONFIG_LANTERN_DART`, `CONFIG_LANTERN_HEATMAP`, `CONFIG_LANTERN_LAYER_KEYS`), and the pick says which draw. `python3 scripts/dongle.py effect
-    <name>… [RRGGBB]` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `heatmap`,
-    `layer-keys`; one at a
-    time today, two or more draw together; a colour after the names, one at most, t-rgp5: every
-    picked effect then draws in that one colour, the stain's dye too, in place of the colour
-    sources below, and a pick without one returns to them) hands the Imprint Dongle a line on its
-    CDC ACM port (`effect` alone asks; the dongle answers `effect ok …`, `effect …`, `effect none`
-    or `effect error: …`, the colour last when one is set); the dongle stores it in NVS
-    (`lantern/effect/mask`: the mask, then the colour, one value) and forwards it to both
-    halves through the behavior node `effect` of `config/imprint_behaviors.dtsi` (one invocation,
-    param1 = the module's bit mask, its `src/effect.h`, param2 = the colour, 0xRRGGBB, 0 for the
-    effects' own colours), each half stores both and draws the picked effects it builds, and until
-    the Mac's first pick, or when the stored pick names none of the nine, the crossing ring, the
-    user's highest mark (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice
-    `LANTERN_EFFECT_DEFAULT`; its colour `CONFIG_LANTERN_EFFECT_COLOUR`, left at 0 = the palette's).
-    The module also lets a split central's keymap bind `&effect <mask> <colour>` or its node
-    `effect_next` (the next effect in turn), for a keyboard without a host: canon's keymap binds
-    neither, the Mac picks (t-5hqx), `config/imprint_behaviors.dtsi` declares no `effect_next`
-    node (so `CONFIG_LANTERN_EFFECT_NEXT` stays out of the dongle's `.config`), and neither is
-    verified on hardware. The colour on hardware 2026-10-27 (t-rgp5, the pinned images of
-    zmk-lantern 3b6c21e on all three): `effect stain FF0000` dyed red on a half, `effect stain`
-    returned it to the palette's colours, and the dongle's stored pick survived the flash from the
-    image before the colour (`effect dart` answered before and after, the four-byte mask read
-    with the colour 0). The names and bits are the module's table `LANTERN_EFFECT_LIST` (one
-    line, and the effect's own file under its `src/effects/`; bits 7 and 9 are no effect's, so
-    `layer-keys` is bit 8, mask `0x100`, and `heatmap` bit 10, `0x400`, the line above the layer
-    keys, which stay the table's last line), and the names alone, in the table's order, `EFFECTS`
-    in `scripts/dongle.py`: a new effect lands in both, with its conf line and its glossary entry, in one PR. The crossing ring needs the hit (the beams use it too, their row's
-    beam crossing the split): the dongle relays each half's key
-    presses to the other half through the behavior node `hit` (the module's `src/hit.c`,
-    `CONFIG_LANTERN_HIT` on by the node), only to a half whose link is at peripheral latency 0,
-    which a half asks for while USB powers it (the module's `src/latency.c`), so a half on battery,
-    dark, gets nothing; the ring's and the beams' colour is the pressed key's band (`config/lantern_keys.dtsi`
-    slots: 0..4 left to right in five bands across both halves, the only place the bands show now),
-    the water's the palette's first colour on a crest and its last in a trough, the dart's the
-    palette from its first colour at the pressed key to its last a board's width on.
-    The layer keys need the behavior node `layer` (t-6ttk; `CONFIG_LANTERN_LAYER` on by the
-    node, as the hit's): the dongle, where the keymap runs, sends the halves which keys the
-    highest held layer named in its `layers` pairs binds to something of its own (neither
-    `&none` nor `&trans` nor the same behavior and parameters as Base at that key) and the
-    palette slot of its colour (`config/imprint_behaviors.dtsi`: Number 0, Symbol 1 1, Symbol 2
-    3, Function 4, Vkey LL and LM 1, Vkey RM and RR 3, the arrow layers left out), a layer 60 ms
-    after it becomes the highest held one the pairs name and no layer at once, from the module's relay queue (its
-    `src/relay.c`, shared with the hit) to the halves at latency 0, and again to a half whose
-    link comes to latency 0; a half drops it when its link or its USB power goes, and nothing of
-    it is stored (the module's `src/layer.c`). So Number, Symbol 1, Symbol 2 and Function light
-    keys of the right half only (10, 16, 16 and 12), each Vkey layer fifteen on each half, and a held Ctrl or Alt
-    thumb (`TU_LL`, `TU_LM`, which hold a Vkey layer with the modifier) lights its Vkey layer's
-    keys too. On hardware 2026-10-28 (the trial images of zmk-lantern 959f194 on all three, the
-    pick `layer-keys` alone): the user's OK on sight. The heatmap on hardware 2026-11-02 (the
-    trial images of zmk-lantern e470587 on all three, the pick `heatmap` alone, both halves
-    typed): the user's OK on sight, and the footprints (bit 9; OK on sight that morning, the
-    trial images of faedf33, in main for #305) dropped for it the same day: the user kept one of
-    the two "keys that stay lit after a press", so a stored pick of bit 9 falls to the default.
-    The colours are the palette (the glossary; t-k9e9; six slots since t-0967): six colours
-    `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
-    alone asks; the replies `palette ok …`, `palette …`, `palette none`, `palette error: …`); the
-    dongle stores them in NVS (`lantern/palette/colours`) and forwards them through the behavior
-    node `palette`. ZMK's split transport names a behavior by its node name, so `palette`, `hit`, `layer`, `effect` and
-    `intro` and `tempo` are the same nodes on all three imprint targets (the keymap's behaviors), and the
-    dongle builds the module's palette, picks, hit and layer sides (the Prospector Dongle none of the
-    module). The intro is a pick the same way (t-qvgv): `python3 scripts/dongle.py intro <name>`
-    (`bands`, `star-waves`, one) hands the Imprint Dongle a line (`intro` alone asks; the replies
-    `intro ok …`, `intro …`, `intro none`, `intro error: …`), the dongle stores it in NVS
-    (`lantern/intro/mask`) and forwards it through the behavior node `intro` of
-    `config/imprint_behaviors.dtsi` (param1 = one of the module's `src/intro.h` bits), each half
-    stores it and plays the picked intro it builds at its next boot light (boot, or a cable
-    plugged in), and until the Mac's first pick, or when the stored pick names an intro not built,
-    the star waves; the names and bits are the module's table `LANTERN_INTRO_LIST` and `INTROS`
-    in `scripts/dongle.py`, a new intro landing in both with its conf line and glossary entry in
-    one PR. The tempo is a pick the same way (t-6ttk, 2026-11-02; the glossary: tempo): with
-    `CONFIG_LANTERN_TEMPO=y` in both halves' confs, the effects that grow with a press's age (the
-    thin ring, the disc, the stain's ring, the crossing ring, the beams, the water, the dart) run
-    up to twice their speed at eight presses a second over the last two seconds, both halves'
-    presses counted, eased so that no ring jumps; the heatmap and the layer keys keep their own
-    time. `python3 scripts/dongle.py tempo on|off` hands the Imprint Dongle a line (`tempo` alone
-    asks; the replies `tempo ok on|off`, `tempo on|off`, `tempo none`, `tempo error: …`), the
-    dongle stores it in NVS (`lantern/tempo/mask`) and forwards it through the behavior node
-    `tempo` of `config/imprint_behaviors.dtsi` (param1 = one of the module's `src/tempo.h` bits:
-    `on` 0, `off` 1), each half stores it and follows it at its next frame, and until the Mac's
-    first pick the tempo runs (the module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y); the states are
-    the module's `LANTERN_TEMPO_LIST` and `TEMPOS` in `scripts/dongle.py`. On hardware
-    2026-11-02 (trial images of zmk-lantern 4d95faf on both halves, the dongle unchanged, the
-    pick cross-ring): the user's OK on sight; the pick is on hardware from the pin bump. The
-    three picks are one mechanism in the module (`src/pick.c`), a behavior each. The dongle resends the palette and the picks a second after each battery report of a
-    half, the first of which follows every reconnection (ZMK 4dd95d78 raises no central-side
-    connection event), so a half that was away gets both when it is back; a half writes NVS only
-    for a changed palette or pick. Every device, the dongle too, ignores a stored palette of
-    another slot count (an image from before t-0967) at load, so the dongle answers `palette none`
-    until the Mac sends again. The dongle's `palette ok` / `effect ok` says it stored and queued,
-    not that a half has it: a palette set of any count (the slots not sent are cleared to black,
-    which the halves show as slot 0), or a resend, queues three split invocations a half (two slots
-    each), and each pick one more, so `config/imprint_dongle.conf` sets
-    `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=12` (six a half, both halves resent at once;
-    ZMK's default 5: a put into a full queue waits 100 ms for the drain and then drops the oldest,
-    only when the drain stalls on a half that stopped acknowledging, never on an idle link; the
-    module's `src/pick.c` asserts the size). The daily palette (t-0967): the five colours of the sprite GIF the
-    sprite sender last sent, from zmk-beacon's `sprite-sender colours`, which the LaunchAgent in
-    dotfiles hands to `dongle.py palette --wait 600` after each successful swap (since 2026-10-21; the values
-    are GIF-derived: never in a commit, PR or doc, the Privacy section); the daily effect is
-    t-2d9r's, `dongle.py effect` the same way. The countdown (the glossary) and the other pictures
-    (the bands, the solid, the gradient, the scatter) stay in the module for a trial image
-    (`--kconfig`); `CONFIG_LANTERN_BRIGHTNESS` (the module's default, 16 %) now sets the frame's
-    cap, under which an effect draws at full brightness. Bump
-    the SHA by hand after a merge there. The
-    scripts treat every project of west.yml's `akira-toriyama` remote alike (`stamp.py pins`;
-    t-66ww, 2026-10-19): the stamp takes its tree id, every build checks its clone out at the pin,
-    and `build-zmk.sh --module <dir>` builds a local tree of it, so a third module needs no script
-    change, only its project written like these two (`- name:` first, `remote: akira-toriyama`,
-    `revision:` a full commit SHA: a branch or tag fails `stamp.py pins`, and the build; the
-    glossary: own module).
+    its (the invariant below). Bump the SHA by hand after a merge there.
+    - What the LEDs show is the user's pick on hardware (t-skdt, t-5v1f, t-6ttk, t-5hqx;
+      `config/imprint_left.conf` carries the lines and says why, `imprint_right.conf` the same
+      lines): no picture, every key black while lit (`CONFIG_LANTERN_NO_PICTURE`, the countdown off
+      with it, `CONFIG_LANTERN_COUNTDOWN=n`); an intro as the boot light and at every cable plugged
+      in, two built into the image (the glossary: intro): the bands, a second of the palette's bands
+      (`CONFIG_LANTERN_INTRO_BANDS`), and the star waves (ten seconds in red, blue and green only,
+      never white, from the outer keys to the thumbs and back, `CONFIG_LANTERN_INTRO_STAR_WAVES`;
+      the glossary: star waves); and after a key press, or while a layer is held, the effect (the
+      glossary: effect, thin ring, disc, stain, crossing ring, beams, water, dart, heatmap, layer
+      keys), nine built into the image (`CONFIG_LANTERN_THIN_RING`, `CONFIG_LANTERN_DISC`,
+      `CONFIG_LANTERN_STAIN`, `CONFIG_LANTERN_CROSS_RING`, `CONFIG_LANTERN_BEAMS`,
+      `CONFIG_LANTERN_WATER`, `CONFIG_LANTERN_DART`, `CONFIG_LANTERN_HEATMAP`,
+      `CONFIG_LANTERN_LAYER_KEYS`), with the tempo (`CONFIG_LANTERN_TEMPO`; the glossary: tempo):
+      the effects that grow with a press's age (the thin ring, the disc, the stain's ring, the
+      crossing ring, the beams, the water, the dart) run up to twice their speed at eight presses a
+      second over the last two seconds, both halves' presses counted, eased so that no ring jumps;
+      the heatmap and the layer keys keep their own time. The countdown (the glossary) and the
+      other pictures (the bands, the solid, the gradient, the scatter) stay in the module for a
+      trial image (`--kconfig`); `CONFIG_LANTERN_BRIGHTNESS` (the module's default, 16 %) sets the
+      frame's cap, under which an effect draws at full brightness.
+    - The picks say which intro plays, which effects draw and whether the tempo runs, one
+      mechanism in the module (`src/pick.c`), a word and a behavior each:
+      `python3 scripts/dongle.py <word> …` hands the Imprint Dongle a line on its CDC ACM port
+      (`<word>` alone asks; the replies `<word> ok …`, `<word> …`, `<word> none`,
+      `<word> error: …`), the dongle stores the pick in NVS (`lantern/<word>/mask`) and forwards it
+      to both halves through the behavior node `<word>` of `config/imprint_behaviors.dtsi` (one
+      invocation, param1 = a mask of the module's bits for the word), and each half stores it and
+      follows what it picks among what the half builds; until the Mac's first pick, or when the
+      stored pick names nothing the half builds, the default below. The names and bits are the
+      module's table for the word and the list of the same names, in the table's order, in
+      `scripts/dongle.py`: a new name lands in both, with its conf line and its glossary entry, in
+      one PR.
+      - `effect` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `heatmap`,
+        `layer-keys`: the module's `LANTERN_EFFECT_LIST`, its `src/effect.h`, each line an entry
+        defined in a file under its `src/effects/`, the stain's in the thin ring's, and `EFFECTS`):
+        one or more names, one at a time today, two or more drawing
+        together, then a colour, one at most (t-rgp5): every picked effect then draws in that one
+        colour, the stain's dye too, in place of the colour sources below, and a pick without one
+        returns to them; the reply gives the colour last when one is set, the NVS value holds the
+        mask and then the colour, and param2 is the colour (`0xRRGGBB`, 0 for the effects' own
+        colours). Default: the crossing ring, the user's highest mark
+        (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`, the module's choice `LANTERN_EFFECT_DEFAULT`;
+        its colour `CONFIG_LANTERN_EFFECT_COLOUR`, left at 0 = the palette's). Bits 7 and 9 are no
+        effect's, so `layer-keys` is bit 8, mask `0x100`, and `heatmap` bit 10, `0x400`, the line
+        above the layer keys, which stay the table's last line. The colour on hardware 2026-10-27
+        (t-rgp5, the pinned images of zmk-lantern 3b6c21e on all three): `effect stain FF0000` dyed
+        red on a half, `effect stain` returned it to the palette's colours, and the dongle's stored
+        pick survived the flash from the image before the colour (`effect dart` answered before and
+        after, the four-byte mask read with the colour 0).
+      - `intro` (`bands`, `star-waves`: the module's `LANTERN_INTRO_LIST`, its `src/intro.h`, and
+        `INTROS`; t-qvgv):
+        one name, played at a half's next boot light (boot, or a cable plugged in). Default: the
+        star waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`).
+      - `tempo` (`on` bit 0, `off` bit 1: the module's `LANTERN_TEMPO_LIST`, its `src/tempo.h`,
+        and `TEMPOS`; t-6ttk, 2026-11-02): one state, followed at a half's next frame. Default: the tempo runs (the
+        module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y). On hardware 2026-11-02 (trial images of
+        zmk-lantern 4d95faf on both halves, the dongle unchanged, the pick cross-ring): the user's
+        OK on sight; the pick is on hardware from the pin bump.
+      - The module also lets a split central's keymap bind `&effect <mask> <colour>`, its node
+        `effect_next` (the next effect in turn), `&intro` or `&tempo`, for a keyboard without a
+        host: canon's keymap binds none of them, the Mac picks (t-5hqx),
+        `config/imprint_behaviors.dtsi` declares no `effect_next` node (so
+        `CONFIG_LANTERN_EFFECT_NEXT` stays out of the dongle's `.config`), and none is verified on
+        hardware.
+    - The colours are the palette (the glossary; t-k9e9; six slots since t-0967): six colours
+      `python3 scripts/dongle.py palette RRGGBB…` hands the Imprint Dongle the same way (`palette`
+      alone asks; the replies `palette ok …`, `palette …`, `palette none`, `palette error: …`); the
+      dongle stores them in NVS (`lantern/palette/colours`) and forwards them through the behavior
+      node `palette`. The crossing ring's and the beams' colour is the pressed key's band
+      (`config/lantern_keys.dtsi` slots: 0..4 left to right in five bands across both halves, which
+      show nowhere else now but in the bands intro), the water's the palette's first colour on a
+      crest and its last in a trough, the dart's the palette from its first colour at the pressed
+      key to its last a board's width on (the glossary's palette entry has every effect's). Every
+      device, the dongle too, ignores a stored palette of another slot count (an image from before
+      t-0967) at load, so the dongle answers `palette none` until the Mac sends again. The daily
+      palette (t-0967): the five colours of the sprite GIF the sprite sender last sent, from
+      zmk-beacon's `sprite-sender colours`, which the LaunchAgent in dotfiles hands to
+      `dongle.py palette --wait 600` after each successful swap (since 2026-10-21; the values are
+      GIF-derived: never in a commit, PR or doc, the Privacy section); a daily effect handed the
+      same way (`dongle.py effect`) is t-2d9r's, planned and not built.
+    - ZMK's split transport names a behavior by its node name, so `palette`, `hit`, `layer`,
+      `effect`, `intro` and `tempo` are the same nodes on all three imprint targets (the keymap's
+      behaviors), and the dongle builds the module's palette, picks, hit and layer sides (the
+      Prospector Dongle none of the module). The dongle resends the palette and the picks a second
+      after each battery report of a half, the first of which follows every reconnection (ZMK
+      4dd95d78 raises no central-side connection event), so a half that was away gets them all
+      when it is back; a half writes NVS only for a changed palette or pick. A reply's `ok` says
+      the dongle stored and queued, not that a half has it: a palette set of any count (the slots
+      not sent are cleared to black, which the halves show as slot 0), or a resend, queues three
+      split invocations a half (two slots each), and each pick one more, so
+      `config/imprint_dongle.conf` sets `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=12` (six
+      a half, both halves resent at once; ZMK's default 5: a put into a full queue waits 100 ms for
+      the drain and then drops the oldest, only when the drain stalls on a half that stopped
+      acknowledging, never on an idle link; the module's `src/pick.c` asserts the size).
+    - The hit: the dongle relays each half's key presses to the other half through the behavior
+      node `hit` (the module's `src/hit.c`, `CONFIG_LANTERN_HIT` on by the node), only to a half
+      whose link is at peripheral latency 0, which a half asks for while USB powers it (the
+      module's `src/latency.c`), so a half on battery, dark, gets nothing. The crossing ring needs
+      it, the beams' row beam crosses the split by it, the thin ring, the disc, the water and the
+      dart draw the other half's presses with it, the stain dyes with it, the tempo counts the
+      other half's presses by it, and the wake lights a half dark for idle at it (the rail
+      invariant below).
+    - The layer keys need the behavior node `layer` (t-6ttk; `CONFIG_LANTERN_LAYER` on by the
+      node, as the hit's): the dongle, where the keymap runs, sends the halves which keys the
+      highest held layer named in its `layers` pairs binds to something of its own (neither
+      `&none` nor `&trans` nor the same behavior and parameters as Base at that key) and the
+      palette slot of its colour (`config/imprint_behaviors.dtsi`: Number 0, Symbol 1 1, Symbol 2
+      3, Function 4, Vkey LL and LM 1, Vkey RM and RR 3, the arrow layers left out), a layer 60 ms
+      after it becomes the highest held one the pairs name and no layer at once, from the module's
+      relay queue (its `src/relay.c`, shared with the hit) to the halves at latency 0, and again
+      to a half whose link comes to latency 0; a half drops it when its link or its USB power
+      goes, and nothing of it is stored (the module's `src/layer.c`). So Number, Symbol 1, Symbol
+      2 and Function light keys of the right half only (10, 16, 16 and 12), each Vkey layer
+      fifteen on each half, and a held Ctrl or Alt thumb (`TU_LL`, `TU_LM`, which hold a Vkey
+      layer with the modifier) lights its Vkey layer's keys too. On hardware 2026-10-28 (the trial
+      images of zmk-lantern 959f194 on all three, the pick `layer-keys` alone): the user's OK on
+      sight.
+    - The heatmap on hardware 2026-11-02 (the trial images of zmk-lantern e470587 on all three, the
+      pick `heatmap` alone, both halves typed): the user's OK on sight, and the footprints (bit 9;
+      OK on sight that morning, the trial images of faedf33, in main for #305) dropped for it the
+      same day: the user kept one of the two "keys that stay lit after a press", so a stored pick
+      of bit 9 falls to the default.
+    - The scripts treat every project of west.yml's `akira-toriyama` remote alike (`stamp.py pins`;
+      t-66ww, 2026-10-19): the stamp takes its tree id, every build checks its clone out at the
+      pin, and `build-zmk.sh --module <dir>` builds a local tree of it, so a third module needs no
+      script change, only its project written like these two (`- name:` first,
+      `remote: akira-toriyama`, `revision:` a full commit SHA: a branch or tag fails
+      `stamp.py pins`, and the build; the glossary: own module).
 - **ZMK tracks `main`, never a tag**, against ZMK's advice: the HWv2 `assimilator-bt` needs Zephyr's
   new hardware model; `v0.3.0` failed in `arch.cmake`: `Could not find ARCH=cyboard` (2026-05-17).
 - **No local boards or shields**: `imprint_dongle` went upstream with Cyboard#19 (merged
@@ -356,7 +373,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
   2026-10-19); erasing it is a settings reset, bonds included. No `&ext_power` or `&rgb_ug` key:
   through the dongle a press never reaches the halves, and with the underglow off `&rgb_ug` has no
-  driver (zmk-lantern's README). On battery the rail is off, as since #207 (10-18 mA per half at
+  driver (zmk-lantern's CLAUDE.md). On battery the rail is off, as since #207 (10-18 mA per half at
   rest with it on, 0.79 mA off; 2026-09-15). On hardware 2026-10-19 (t-26y4, both halves): the boot
   light on battery, then dark; lit on plugging in and dark on unplugging, per half; lit through a
   boot on USB.
