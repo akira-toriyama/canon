@@ -27,8 +27,12 @@ printable ASCII on one line without a double quote, a backslash or "??": the
 name row's ASCII font has no other glyphs, Kconfig would need escaping, and
 "??x" is a C trigraph in autoconf.h, so anything else is an error (exit 2)
 and a build never shows a wrong name. A katakana name has none of those
-characters. One line on stderr says where the name came from, as the
-sender's log does, naming nothing; stdout is UTF-8 whatever the locale.
+characters. One line on stderr says whether the name is katakana or ASCII,
+as the sender's log does, and what is wrong with a config the build fell
+back from; never the name, its length or why the dictionary's name did not
+serve (matched against the public list of names, a rare length, or a name
+too long or outside the font, narrows the subject down to a few); stdout is
+UTF-8 whatever the locale.
 
 build-zmk.sh passes the name to zmk-beacon as CONFIG_BEACON_SPRITE_NAME,
 whose sprite_pack.py checks it again. Committed, like assets/README.md: the
@@ -73,16 +77,14 @@ def from_file_name(file_name):
 
 
 def katakana(text):
-    """The dictionary's name as the pack takes it, or None with the reason
-    the HP bar cannot show it."""
+    """The dictionary's name as the pack takes it, or None when the HP bar
+    cannot show it."""
     name = unicodedata.normalize("NFC", text)
-    if not name:
-        return None, "the dictionary has no name for its place"
-    if len(name.encode("utf-8")) > NAME_BYTES:
-        return None, "the dictionary's name is longer than %d bytes" % NAME_BYTES
+    if not name or len(name.encode("utf-8")) > NAME_BYTES:
+        return None
     if not all(any(lo <= ord(c) <= hi for lo, hi in KATAKANA_RANGES) for c in name):
-        return None, "the dictionary's name has a character the katakana font lacks"
-    return name, None
+        return None
+    return name
 
 
 def find_config(directory):
@@ -165,7 +167,9 @@ def read_names(path):
 
 
 def from_dictionary(gif):
-    """The katakana name of the GIF, or None with the reason."""
+    """(the katakana name of the GIF or None, what is wrong with the config or
+    None): a GIF outside the order, a place without a name and a name the HP
+    bar cannot show are no config's fault, and stderr never says which."""
     found = find_config(os.path.dirname(gif))
     if found is None:
         return None, "no sender.json whose front is the GIF's directory"
@@ -180,14 +184,14 @@ def from_dictionary(gif):
         return None, "cannot read the order file"
     file_name = unicodedata.normalize("NFC", os.path.basename(gif))
     if file_name not in order:
-        return None, "the GIF is not in the order"
+        return None, None
     place = order.index(file_name) + 1
     japanese = read_names(resolve(base, names_path))
     if japanese is None:
         return None, "the dictionary is not an array of numbered objects"
     if place not in japanese or japanese[place] is None:
-        return None, "the dictionary has no name for its place"
-    return katakana(japanese[place])
+        return None, None
+    return katakana(japanese[place]), None
 
 
 def main(argv):
@@ -195,16 +199,16 @@ def main(argv):
         print("usage: sprite-name.py <gif>", file=sys.stderr)
         return 2
     gif = os.path.abspath(argv[0])
-    name, why = from_dictionary(gif)
+    name, problem = from_dictionary(gif)
     if name is not None:
-        note("katakana from the name dictionary, %d characters, %d bytes" % (len(name), len(name.encode("utf-8"))))
+        note("katakana from the name dictionary")
     else:
         try:
             name = from_file_name(os.path.basename(gif))
         except NameError_ as e:
             note(str(e))
             return 2
-        note("from the file name (%s), %d characters" % (why, len(name)))
+        note("ASCII from the file name" + (" (%s)" % problem if problem else ""))
     sys.stdout.buffer.write((name + "\n").encode("utf-8"))
     return 0
 

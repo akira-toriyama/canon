@@ -452,8 +452,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   file name's (t-er81); the name dictionary names the collection's subjects and lives next to the GIFs.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
-  the configure step fails (reproduced 2026-09-29), and prints only the GIF's size and the name's
-  length. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
+  the configure step fails (reproduced 2026-09-29), and prints only the GIF's size and whether the
+  name is katakana or ASCII. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
   `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
   the name: never print or paste from them. The screen layout (zmk-beacon's README, the
   glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials; t-rq9h, 2026-10-26: the
