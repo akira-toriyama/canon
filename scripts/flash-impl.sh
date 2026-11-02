@@ -77,7 +77,7 @@ fi
 # written).
 LOCK="/tmp/flash-dongle-$(id -u).lock"
 exec 9>>"$LOCK" || { echo "cannot open $LOCK" >&2; exit 1; }
-lockf -s -t 0 9 || { echo "flash-dongle.sh is flashing a device ($LOCK is held): run this afterwards" >&2; exit 1; }
+lockf -s -t 0 9 || { echo "flash-dongle.sh or another flash-watch.sh / flash-reset.sh run holds $LOCK: run this afterwards" >&2; exit 1; }
 
 LEFT_DONE=0
 RIGHT_DONE=0

@@ -113,11 +113,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   re-enumerating without it; READ and the CDC port kept working, and Chrome's user client was not
   it (its open fails the same way during a good run). A reboot of the Mac cleared it (23:32; the
   Prospector Dongle at 23:36 with no WRITE timeout in the log, then the Imprint Dongle, through the
-  same hub). **The state is the monitor hub's 4-port downstream hub's (`0x1a40/0101` at
-  `0x02110000`, a single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at
-  12 Mbps); unplugging that hub from the monitor and plugging it back cleared it once, and a
-  reboot of the Mac each of the three times it was tried (2026-10-19, 10-20 and 10-21, t-skdt)**
-  (2026-10-20, t-v31c): three more runs had failed the same way
+  same hub). **The state lies with the monitor hub's 4-port downstream hub (`0x1a40/0101`, a
+  single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at 12 Mbps; at
+  `0x02110000` until 2026-10-21, at `0x02120000` since, t-skdt), in the hub or in the Mac's
+  handling of it, not measured which: unplugging that hub from the monitor and plugging it back
+  cleared it once, and a reboot of the Mac each of the three times it was tried (2026-10-19, 10-20
+  and 10-21, t-skdt)** (2026-10-20, t-v31c): three more runs had failed the same way
   at 09:26-09:49 on port 4 after the monitor's hub had reconnected at 09:12-09:16, the evening's
   on ports 1 and 3 that passed at other times, and the same device, cable, port and image had
   failed at 23:08 and passed at 23:36; the host's re-enumeration of the hub (a bus reset, the hub
@@ -126,8 +127,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `0xe0005000 (pipe stalled)` at its reboot). That afternoon it did not (t-gsm2): after runs failed
   at 14:52-14:58, the hub went without power for about 11 s and then about 20 s, the Prospector
   Dongle failed the same way after each, and a reboot of the Mac cleared it (`DONE` at 15:07).
-  Whether a longer time without power is what the hub needs, and what puts it into the state, is
-  open: it followed a reconnection of the monitor's hub (a KVM switch) three times out of four.
+  Nor on 2026-10-21: the hub came back at another port of the monitor's hub (`0x0212xxxx`; the
+  record infers a replug of unknown length) and the Prospector Dongle failed again before the
+  reboot (t-skdt). Whether a longer time without power is what the hub needs, and what puts it
+  into the state, is open: by the morning of 2026-10-20, three of four reconnections of the
+  monitor's hub (a KVM switch) had been followed by it (t-v31c); that afternoon it came with no
+  switch, after a run had passed at 14:42 (t-gsm2); and on 2026-10-21 runs passed after each of
+  three reconnections (t-skdt).
   Recovery: replug the stranded device, unplug the 4-port hub at the monitor for 30 s or more and
   plug it back, one Prospector Dongle run; if that fails the same way, reboot the Mac and run the
   Prospector Dongle again; then the keyboard devices. The devices stay on that hub (the external
@@ -193,11 +199,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
       invocation, param1 = a mask of the module's bits for the word), and each half stores it and
       follows what it picks among what the half builds; until the Mac's first pick, or when the
       stored pick names nothing the half builds, the default below. The names and bits are the
-      module's table for the word and the list of the same names in `scripts/dongle.py`: a new
-      name lands in both, with its conf line and its glossary entry, in one PR.
+      module's table for the word and the list of the same names, in the table's order, in
+      `scripts/dongle.py`: a new name lands in both, with its conf line and its glossary entry, in
+      one PR.
       - `effect` (`thin-ring`, `disc`, `stain`, `cross-ring`, `beams`, `water`, `dart`, `heatmap`,
-        `layer-keys`: the module's `LANTERN_EFFECT_LIST`, each line the effect's own file under its
-        `src/effects/`, and `EFFECTS`): one or more names, one at a time today, two or more drawing
+        `layer-keys`: the module's `LANTERN_EFFECT_LIST`, its `src/effect.h`, each line an entry
+        defined in a file under its `src/effects/`, the stain's in the thin ring's, and `EFFECTS`):
+        one or more names, one at a time today, two or more drawing
         together, then a colour, one at most (t-rgp5): every picked effect then draws in that one
         colour, the stain's dye too, in place of the colour sources below, and a pick without one
         returns to them; the reply gives the colour last when one is set, the NVS value holds the
@@ -211,11 +219,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
         red on a half, `effect stain` returned it to the palette's colours, and the dongle's stored
         pick survived the flash from the image before the colour (`effect dart` answered before and
         after, the four-byte mask read with the colour 0).
-      - `intro` (`bands`, `star-waves`: the module's `LANTERN_INTRO_LIST` and `INTROS`; t-qvgv):
+      - `intro` (`bands`, `star-waves`: the module's `LANTERN_INTRO_LIST`, its `src/intro.h`, and
+        `INTROS`; t-qvgv):
         one name, played at a half's next boot light (boot, or a cable plugged in). Default: the
         star waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`).
-      - `tempo` (`on` bit 0, `off` bit 1: the module's `LANTERN_TEMPO_LIST` and `TEMPOS`; t-6ttk,
-        2026-11-02): one state, followed at a half's next frame. Default: the tempo runs (the
+      - `tempo` (`on` bit 0, `off` bit 1: the module's `LANTERN_TEMPO_LIST`, its `src/tempo.h`,
+        and `TEMPOS`; t-6ttk, 2026-11-02): one state, followed at a half's next frame. Default: the tempo runs (the
         module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y). On hardware 2026-11-02 (trial images of
         zmk-lantern 4d95faf on both halves, the dongle unchanged, the pick cross-ring): the user's
         OK on sight; the pick is on hardware from the pin bump.
@@ -260,8 +269,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
       whose link is at peripheral latency 0, which a half asks for while USB powers it (the
       module's `src/latency.c`), so a half on battery, dark, gets nothing. The crossing ring needs
       it, the beams' row beam crosses the split by it, the thin ring, the disc, the water and the
-      dart draw the other half's presses with it, and the wake lights a half dark for idle at it
-      (the rail invariant below).
+      dart draw the other half's presses with it, the stain dyes with it, the tempo counts the
+      other half's presses by it, and the wake lights a half dark for idle at it (the rail
+      invariant below).
     - The layer keys need the behavior node `layer` (t-6ttk; `CONFIG_LANTERN_LAYER` on by the
       node, as the hit's): the dongle, where the keymap runs, sends the halves which keys the
       highest held layer named in its `layers` pairs binds to something of its own (neither

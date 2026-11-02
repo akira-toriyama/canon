@@ -1283,7 +1283,8 @@ def dongle_options(s):
     """--seconds and --wait, the same for every word on the Imprint Dongle's
     port (ask_dongle)."""
     s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
-                   help="give up on the reply after N seconds (default 3)")
+                   help="give up on writing the line, and then on the reply, after N seconds each "
+                        "(default 3)")
     s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
                    help="first poll up to N seconds, every %g s, for the Imprint Dongle with its port, and "
                         "within the same N ask again while it answers 'not ready' (a KVM switch hides it "

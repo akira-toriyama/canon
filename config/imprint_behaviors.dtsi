@@ -33,8 +33,9 @@
     // half (param1 = the key position), and ZMK's split transport carries it
     // by this node's name, so the node is the same on all three, as &palette;
     // a half notes the press as a hit for the effects that draw the other
-    // half's presses (the crossing ring, the beams, the thin ring, the disc,
-    // the water and the dart; t-6ttk), and dark for idle it lights at it (the
+    // half's presses (the crossing ring, the beams, the thin ring and the
+    // stain, the disc, the water and the dart; t-6ttk) and for the tempo's
+    // count, and dark for idle it lights at it (the
     // wake, zmk-lantern's CONFIG_LANTERN_WAKE_ON_HIT). The dongle sends only to
     // a half whose link is at peripheral latency 0, the one USB powers (the
     // module's src/latency.c): a half on battery is dark and gets nothing.

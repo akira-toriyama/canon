@@ -79,7 +79,8 @@
 # and the CDC port worked, and a reboot of the Mac cleared it; on 2026-10-20
 # three more such runs ended when the user unplugged the monitor's 4-port hub
 # and plugged it back, while that afternoon two such power cycles did not
-# and a reboot did (the state is that hub's: CLAUDE.md, Debugging). The
+# and a reboot did (the state lies with that hub, in it or in the Mac's
+# handling of it: CLAUDE.md, Debugging). The
 # Prospector Dongle is never refused: it is the canary, no keyboard. A DONE on
 # any device clears the latch; so does a reboot (the latch names the boot it
 # was written under), or rm of the file by hand.
@@ -138,25 +139,32 @@ run_bounded() {
 
 flashers_running() { pgrep -fl 'flash-(watch|reset|impl)\.sh'; }
 
-# The latch (header). Its lines: boottime= (kern.boottime's seconds, the boot
-# it was written under), device=, time=, why=.
-boottime() { sysctl -n kern.boottime | sed -E 's/.*sec = ([0-9]+).*/\1/'; }
+# The latch (header). Its lines: boot= (the boot it was written under), device=,
+# time=, why=. The boot is kern.bootsessionuuid, drawn once per boot
+# (IOPMrootDomain::initializeBootSessionUUID), never kern.boottime: XNU moves
+# that at every step of the clock (clock_set_calendar_microtime keeps the boot
+# time consistent with the new calendar), and timed steps it several times a
+# day (nine on 2026-11-02), so a latch keyed on it went stale within hours.
+boot_id() { sysctl -n kern.bootsessionuuid 2>/dev/null; }
 latch_set() {
   mkdir -p "$(dirname "$LATCH")" 2>/dev/null
-  printf 'boottime=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boottime)" "$DEVICE" "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
+  printf 'boot=%s\ndevice=%s\ntime=%s\nwhy=%s\n' "$(boot_id)" "$DEVICE" "$(date '+%Y-%m-%d %H:%M:%S')" "$1" >"$LATCH" 2>/dev/null \
     || say "      WARN cannot write $LATCH"
 }
 latch_clear() { rm -f "$LATCH" 2>/dev/null || say "      WARN cannot remove $LATCH"; }
 # Before anything touches USB: a latch from an earlier boot is stale, the
-# Prospector Dongle passes as the canary, a keyboard device is refused.
+# Prospector Dongle passes as the canary, a keyboard device is refused. A latch
+# whose boot cannot be compared (no boot= line, as one written before
+# kern.bootsessionuuid, or a sysctl that failed) stands.
 latch_check() {
   [ -f "$LATCH" ] || return 0
-  local boot device time why
-  boot="$(sed -n 's/^boottime=//p' "$LATCH")"
+  local boot now device time why
+  boot="$(sed -n 's/^boot=//p' "$LATCH")"
+  now="$(boot_id)"
   device="$(sed -n 's/^device=//p' "$LATCH")"
   time="$(sed -n 's/^time=//p' "$LATCH")"
   why="$(sed -n 's/^why=//p' "$LATCH")"
-  if [ "$boot" != "$(boottime)" ]; then
+  if [ -n "$boot" ] && [ -n "$now" ] && [ "$boot" != "$now" ]; then
     say "LATCH from before this boot (${device:-?} at ${time:-?}: ${why:-?}): the reboot cleared it"
     latch_clear
     return 0
@@ -287,7 +295,7 @@ case "$DEVICE" in
     CHECK="Check that the $LABEL types, and lights while USB powers it." ;;
   *) die "no flash messages for device $DEVICE" ;;
 esac
-LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back (the state is the hub's; this cleared it once on 2026-10-20 and not twice that afternoon), then flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again; the keyboard devices after its DONE."
+LATCHED="The latch $LATCH now refuses the Imprint Dongle and the halves until a run ends in DONE. Recovery: replug the stranded device, unplug the monitor's 4-port hub for 30 s or more and plug it back (the state lies with that hub; this cleared it once on 2026-10-20 and not twice that afternoon), then flash the Prospector Dongle first (no keyboard); if that fails the same way, reboot the Mac (which cleared it each time it was tried) and flash the Prospector Dongle again; the keyboard devices after its DONE."
 latch_check
 
 if [ "$WAIT_S" -gt 0 ]; then

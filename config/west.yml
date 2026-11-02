@@ -52,8 +52,8 @@ manifest:
     # halves' images and the pick scripts/dongle.py effect hands the Imprint
     # Dongle saying which draws, in the colours of the palette
     # scripts/dongle.py palette hands it the same way, or in the one colour
-    # the effect's pick names, faster the faster the user types while the
-    # pick scripts/dongle.py tempo hands it says so; the dongle carries all
+    # the effect's pick names, faster the faster the user types unless the
+    # pick scripts/dongle.py tempo hands it says off; the dongle carries all
     # four to the halves by the behavior nodes effect, intro, tempo and
     # palette of config/imprint_behaviors.dtsi, relays each half's key
     # presses to the other through hit, for the effects that cross the split
