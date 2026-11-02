@@ -75,7 +75,9 @@ survives a power cycle, and `python3 scripts/dongle.py effect` asks for it;
 until the first pick the halves draw the crossing ring. A colour after the
 name, `python3 scripts/dongle.py effect <name> RRGGBB`, draws that effect in
 the one colour (the stain dyes in it), and the pick without one returns to the
-palette's colours. The effects' colours
+palette's colours. The effects that grow from a key run faster the faster you
+type, up to twice at eight presses a second, until `python3 scripts/dongle.py
+tempo off` stops that (`tempo on` starts it again; the glossary: tempo). The effects' colours
 are the palette: `python3 scripts/dongle.py palette RRGGBB ...` hands six
 colours to the dongle the same way (slots 0..4 are five bands from the left
 half's outer columns to the right half's; the crossing ring and the beams take

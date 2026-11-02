@@ -320,7 +320,7 @@ palette after each battery report of a half, so a half that was away gets it
 when it is back.
 - The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c), which reads the [[effect]]'s line too; the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
 - The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the liveliest colour first), which the LaunchAgent in the user's dotfiles is to hand to `python3 scripts/dongle.py palette --wait 600` after each successful swap, so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
-- The dongle's split run queue holds a whole palette and both picks, the [[effect]]'s and the [[intro]]'s, for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for each pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=10` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
+- The dongle's split run queue holds a whole palette and all three picks, the [[effect]]'s, the [[intro]]'s and the [[tempo]]'s, for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for each pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=12` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
 - The [[countdown]] to the idle dark, when a trial image builds it, cycles through the palette's distinct colours, the whole half in one at a time, ten seconds each; the product images leave it off.
 - **Don't call it:** colour scheme, theme, backlight colour (fine in prose for what the user sees), RGB setting, underglow colour (ZMK's state; the underglow is off), パレット設定
@@ -459,6 +459,23 @@ hardware 2026-10-28).
 - Only a lit half shows it: the dongle sends to a half at peripheral latency 0, as the hit (the [[crossing ring]]), and a half dark for idle shows it from its own next key or from the other half's press that raises the layer, which wakes it. Nothing is stored: a half drops the keys when its link or its USB power goes.
 - A pick's colour paints every layer in it, so Symbol 1 and Symbol 2 then look alike; under the frame's cap a layer of many keys or a whitish colour shows dimmer than one of few.
 - **Don't call it:** layer indicator, layer lights, layer highlight, active keys, 使える鍵だけ光る in English text
+
+### tempo
+Whether the [[effect]]s that grow with a press's age run faster the faster the
+user types, and the pick of it (t-6ttk, 2026-11-02): with the tempo on, the
+[[thin ring]], the [[disc]], the [[stain]]'s ring, the [[crossing ring]], the
+[[beams]], the [[water]] and the [[dart]] run up to twice their speed at eight
+presses a second over the last two seconds, both halves' presses counted, and
+return to their own speed within a couple of seconds of the typing slowing; the
+speed changes smoothly and a ring in flight bends, never jumps; the [[heatmap]]
+and the [[layer keys]] keep their own time ([[zmk-lantern]]'s
+`CONFIG_LANTERN_TEMPO`, its `src/keys.c`; `config/imprint_left.conf` builds it).
+- The pick: `python3 scripts/dongle.py tempo on|off` hands the [[Imprint Dongle]] the pick, one state, which it keeps in its settings (`lantern/tempo/mask`) and carries to both halves through the [[behavior]] node `tempo` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the [[effect]]'s pick, and resends with the palette after each battery report of a half; `tempo` alone asks (`tempo on`, `tempo off`, `tempo none`).
+- The default: until the Mac's first pick, and whenever the stored pick names neither state, the tempo runs (the module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y).
+- The states and the bit each carries (`on` 0, `off` 1; two bits because an empty mask is no pick): zmk-lantern's `LANTERN_TEMPO_LIST` ([`src/tempo.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/tempo.h)) and `TEMPOS` in [`scripts/dongle.py`](../scripts/dongle.py). One state a pick (both: `tempo error: on or off, not both`).
+- The line on the dongle's port and its replies (`tempo ok …`, `tempo …`, `tempo none`, `tempo error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/tempo.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/tempo.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/pick.c); the speed: its `src/keys.c` (the beats, the last sixteen presses' times).
+- On hardware 2026-11-02 (t-6ttk; trial images of zmk-lantern 4d95faf on both halves, the Imprint Dongle unchanged, the pick cross-ring): the user's OK on sight. The pick itself is on hardware from canon's pin bump PR.
+- **Don't call it:** typing speed, velocity, Velocikey (QMK's name for the idea), speed multiplier, 速さ連動, テンポ設定
 
 ### intro
 What a half's key LEDs play as the boot light, at boot and whenever a cable is
