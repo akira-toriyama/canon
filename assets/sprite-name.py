@@ -15,7 +15,8 @@ and the `names` file's entry of that place gives `ja`, composed
 (NFC), taken when it is 15 bytes of UTF-8 at most and every character is in
 the katakana font (KATAKANA_RANGES, a copy of zmk-beacon's
 sprite_pack.KATAKANA_RANGES: change the two together). Without a config, an
-order, a dictionary or an entry, or with one the HP bar cannot show, or
+order file, a name dictionary or an entry, or with a name the HP bar cannot
+show, or
 with a file that is not what the sender reads (where the sender's daily run
 is a config error, a build falls back and says so), the
 name as before (projects t-er81, the sender's SpriteName.from): the GIF's
@@ -27,8 +28,13 @@ printable ASCII on one line without a double quote, a backslash or "??": the
 name row's ASCII font has no other glyphs, Kconfig would need escaping, and
 "??x" is a C trigraph in autoconf.h, so anything else is an error (exit 2)
 and a build never shows a wrong name. A katakana name has none of those
-characters. One line on stderr says where the name came from, as the
-sender's log does, naming nothing; stdout is UTF-8 whatever the locale.
+characters. One line on stderr says whether the name is katakana or ASCII,
+as the sender's log does, and what is wrong with a config the build fell
+back from; never the name or its length (matched against the public list
+of names, a rare length narrows the subject down to a few). For a GIF of
+the collection the alphabet still says whether the name dictionary's name
+fit, a fact about the name, so the line stays out of commits, PRs and docs
+like the name. stdout is UTF-8 whatever the locale.
 
 build-zmk.sh passes the name to zmk-beacon as CONFIG_BEACON_SPRITE_NAME,
 whose sprite_pack.py checks it again. Committed, like assets/README.md: the
@@ -73,16 +79,14 @@ def from_file_name(file_name):
 
 
 def katakana(text):
-    """The dictionary's name as the pack takes it, or None with the reason
-    the HP bar cannot show it."""
+    """The name dictionary's name as the pack takes it, or None when the HP
+    bar cannot show it."""
     name = unicodedata.normalize("NFC", text)
-    if not name:
-        return None, "the dictionary has no name for its place"
-    if len(name.encode("utf-8")) > NAME_BYTES:
-        return None, "the dictionary's name is longer than %d bytes" % NAME_BYTES
+    if not name or len(name.encode("utf-8")) > NAME_BYTES:
+        return None
     if not all(any(lo <= ord(c) <= hi for lo, hi in KATAKANA_RANGES) for c in name):
-        return None, "the dictionary's name has a character the katakana font lacks"
-    return name, None
+        return None
+    return name
 
 
 def find_config(directory):
@@ -135,37 +139,47 @@ def read_order(path):
     return names
 
 
+NOT_A_DICTIONARY = "the name dictionary is not an array of numbered objects"
+
+
 def read_names(path):
-    """{place: ja} of the name dictionary (the sender's NameDictionary: an
-    array of objects with an integer `no`, which Swift's decoder also reads
-    from a whole-number float, `ja` a string or absent, other keys ignored);
-    None when the file is not that."""
+    """({place: ja}, None) of the name dictionary (the sender's
+    NameDictionary: an array of objects with an integer `no`, which Swift's
+    decoder also reads from a whole-number float, `ja` a string or absent,
+    other keys ignored), or (None, what is wrong with the file)."""
     try:
         with open(path, encoding="utf-8-sig") as f:
             entries = json.load(f)
-    except (OSError, ValueError):
-        return None
+    except OSError:
+        return None, "cannot read the name dictionary"
+    except (ValueError, RecursionError):
+        return None, NOT_A_DICTIONARY
     if not isinstance(entries, list):
-        return None
+        return None, NOT_A_DICTIONARY
     japanese = {}
     for entry in entries:
         if not isinstance(entry, dict):
-            return None
+            return None, NOT_A_DICTIONARY
         number = entry.get("no")
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or number != int(number):
-            return None
+        if (isinstance(number, bool) or not isinstance(number, (int, float))
+                or isinstance(number, float) and not number.is_integer()):
+            return None, NOT_A_DICTIONARY
         number = int(number)
         if number in japanese:
-            return None
+            return None, NOT_A_DICTIONARY
         ja = entry.get("ja")
         if ja is not None and not isinstance(ja, str):
-            return None
+            return None, NOT_A_DICTIONARY
         japanese[number] = ja
-    return japanese
+    return japanese, None
 
 
 def from_dictionary(gif):
-    """The katakana name of the GIF, or None with the reason."""
+    """(the katakana name of the GIF or None, what is wrong with the config or
+    None). The order file and the name dictionary are read before the GIF's
+    place, as the sender reads them, so a problem with either shows for every
+    GIF; a GIF outside the order, a place without a name and a name the HP
+    bar cannot show are no config's fault and give no reason."""
     found = find_config(os.path.dirname(gif))
     if found is None:
         return None, "no sender.json whose front is the GIF's directory"
@@ -173,21 +187,21 @@ def from_dictionary(gif):
     order_path = config.get("order")
     names_path = config.get("names")
     if not isinstance(order_path, str) or not order_path or not isinstance(names_path, str) or not names_path:
-        return None, "the config names no order file or no dictionary"
+        return None, "the config names no order file or no name dictionary"
     try:
         order = read_order(resolve(base, order_path))
     except OSError:
         return None, "cannot read the order file"
+    japanese, problem = read_names(resolve(base, names_path))
+    if problem:
+        return None, problem
     file_name = unicodedata.normalize("NFC", os.path.basename(gif))
     if file_name not in order:
-        return None, "the GIF is not in the order"
+        return None, None
     place = order.index(file_name) + 1
-    japanese = read_names(resolve(base, names_path))
-    if japanese is None:
-        return None, "the dictionary is not an array of numbered objects"
     if place not in japanese or japanese[place] is None:
-        return None, "the dictionary has no name for its place"
-    return katakana(japanese[place])
+        return None, None
+    return katakana(japanese[place]), None
 
 
 def main(argv):
@@ -195,16 +209,16 @@ def main(argv):
         print("usage: sprite-name.py <gif>", file=sys.stderr)
         return 2
     gif = os.path.abspath(argv[0])
-    name, why = from_dictionary(gif)
+    name, problem = from_dictionary(gif)
     if name is not None:
-        note("katakana from the name dictionary, %d characters, %d bytes" % (len(name), len(name.encode("utf-8"))))
+        note("katakana from the name dictionary")
     else:
         try:
             name = from_file_name(os.path.basename(gif))
         except NameError_ as e:
             note(str(e))
             return 2
-        note("from the file name (%s), %d characters" % (why, len(name)))
+        note("ASCII from the file name" + (" (%s)" % problem if problem else ""))
     sys.stdout.buffer.write((name + "\n").encode("utf-8"))
     return 0
 

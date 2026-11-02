@@ -70,7 +70,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   next pinned flash, which any session does after a merge: bump the pin here in the same sitting
   as the module's merge (2026-10-26: #278's session flashed main's `prospector.uf2` over
   zmk-beacon#45's worktree build while the pin still predated that merge, and the katakana name
-  in the sprite room showed as four placeholder squares under the HP row until the pin bump).
+  in the sprite room showed as placeholder squares under the HP row until the pin bump).
   `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
   tree reset once ([patches/zmk/README.md](patches/zmk/README.md)).
@@ -452,8 +452,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   file name's (t-er81); the name dictionary names the collection's subjects and lives next to the GIFs.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
-  the configure step fails (reproduced 2026-09-29), and prints only the GIF's size and the name's
-  length. `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
+  the configure step fails (reproduced 2026-09-29). Of the sprite, build-zmk.sh prints only the
+  GIF's size, whether the name is katakana or ASCII and, in the `images:` line, the sprite image's
+  FLASH use, which grows by the pack's size; zmk-beacon's build prints its `Sprite:` line (canvas,
+  bits a pixel, colours, pictures, frames, bytes). For a GIF of the collection the alphabet says
+  whether the name dictionary's name fit, and the sizes can point to the GIF, so these lines stay
+  out of anything public, like the sprite sender's (zmk-beacon's README). `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
   `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
   the name: never print or paste from them. The screen layout (zmk-beacon's README, the
   glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials; t-rq9h, 2026-10-26: the
