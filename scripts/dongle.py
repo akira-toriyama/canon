@@ -2,8 +2,9 @@
 # Which USB device is which of canon's build targets (the two dongles and the
 # two halves of the Cyboard Imprint), a serial log reader that follows them, a
 # PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
-# and their effect, in one colour or the palette's, and their intro picked
-# through the Imprint Dongle (palette, effect, intro: zmk-lantern's port), and
+# and their effect, in one colour or the palette's, their intro and their tempo
+# picked through the Imprint Dongle (palette, effect, intro, tempo:
+# zmk-lantern's port), and
 # whether the firmware on USB is the one origin/main
 # would build (check: the firmware stamp, scripts/stamp.py).
 #
@@ -24,7 +25,7 @@
 # bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
-# again, never 1200; `palette`, `effect` and `intro` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
+# again, never 1200; `palette`, `effect`, `intro` and `tempo` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
 # open a port that a reader holds, and a log reader then follows the dongle
 # through the bootloader into the new image's boot log.
 #
@@ -881,6 +882,10 @@ INTRO_WORD = "intro"
 # its order; one a pick. A new intro lands here with the conf line that builds
 # it (CLAUDE.md, Invariants).
 INTROS = ("bands", "star-waves")
+TEMPO_WORD = "tempo"
+# The tempo's two states, by the names the Imprint Dongle's port takes:
+# zmk-lantern's LANTERN_TEMPO_LIST (src/tempo.h); one a pick.
+TEMPOS = ("on", "off")
 # `palette --wait` and `effect --wait` poll for the dongle at flash-dongle.sh
 # --wait's rate.
 WAIT_POLL_S = 0.5
@@ -971,7 +976,7 @@ def exchange(dev, word, line, seconds):
 def ask_dongle(word, arguments, args):
     """Send the word with its arguments (none: the ask, "word?") to the
     Imprint Dongle, after --wait, and print its reply line; the exit status
-    of palette, effect and intro: 0 for a set's ok or an ask's answer, 1 for
+    of palette, effect, intro and tempo: 0 for a set's ok or an ask's answer, 1 for
     an error or no reply."""
     line = word + ("?" if not arguments else " " + " ".join(arguments))
     deadline = time.monotonic() + args.wait
@@ -1031,6 +1036,10 @@ def cmd_effect(args):
 
 def cmd_intro(args):
     return ask_dongle(INTRO_WORD, [args.intro] if args.intro else [], args)
+
+
+def cmd_tempo(args):
+    return ask_dongle(TEMPO_WORD, [args.state] if args.state else [], args)
 
 
 def cmd_image(args):
@@ -1260,7 +1269,7 @@ def parser():
         description="Find canon's devices on USB (the Imprint Dongle and the Prospector Dongle by their firmware "
                     "stamp or USB product string, the halves of the Cyboard Imprint by their stamp), read their "
                     "serial logs, take a PNG of the Prospector Dongle's screen, set or ask the key LEDs' palette "
-                    "and pick their effect and their intro through the Imprint Dongle, and check the firmware stamp of every ZMK "
+                    "and pick their effect, their intro and their tempo through the Imprint Dongle, and check the firmware stamp of every ZMK "
                     "device on USB against origin/main. Devices: %s." % names,
         epilog="Exit status: 0 ok, 1 device or runtime failure (check: something to report), 2 usage, "
                "3 check could not compute the digests.",
@@ -1386,6 +1395,30 @@ def parser():
                    help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
                         "within the same N ask again while it answers 'not ready' (default 0, no wait)")
     s.set_defaults(func=cmd_intro)
+
+    s = sub.add_parser(
+        "tempo", help="pick or ask whether the effects run faster the faster you type (the tempo), through the Imprint Dongle",
+        description="Write 'tempo on' or 'tempo off' (with no state: 'tempo?') on the Imprint Dongle's port at 115200 "
+                    "and print the dongle's reply line. With a state the dongle stores the pick, sends it to both "
+                    "halves over the split (zmk-lantern's tempo behavior; a half that is away gets it when it is "
+                    "back) and answers 'tempo ok' with the state; each half keeps the pick across boots and, on, "
+                    "runs the effects that grow with a press's age (the rings, the disc, the stain, the beams, the "
+                    "water, the dart) up to twice as fast at eight presses a second over the last two seconds, "
+                    "both halves' presses counted; the heatmap and the layer keys keep their own time. Until the "
+                    "first pick the tempo runs. With no state the reply is 'tempo' with the dongle's pick, or "
+                    "'tempo none' before any. Refuses while another process holds the port (it would take the "
+                    "reply). Never sets 1200 baud.",
+        epilog="Exit status: 0 'tempo ok' (pick) or the state (ask), 1 'tempo error', no reply, or no "
+               "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage.",
+    )
+    s.add_argument("state", nargs="?", choices=TEMPOS, metavar="STATE",
+                   help="on or off")
+    s.add_argument("--seconds", type=seconds, default=3.0, metavar="N",
+                   help="give up on the reply after N seconds (default 3)")
+    s.add_argument("--wait", type=wait_seconds, default=0.0, metavar="N",
+                   help="first poll up to N seconds, every 0.5 s, for the Imprint Dongle with its port, and "
+                        "within the same N ask again while it answers 'not ready' (default 0, no wait)")
+    s.set_defaults(func=cmd_tempo)
 
     s = sub.add_parser(
         "check", help="compare the firmware stamp of every ZMK device on USB with the digest origin/main would build",

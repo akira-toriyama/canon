@@ -83,3 +83,17 @@
         compatible = "lantern,behavior-intro";
         #binding-cells = <2>;
     };
+
+    // &tempo: zmk-lantern's tempo behavior (its src/tempo.c), never on a
+    // key. The Imprint Dongle's code invokes it with the pick
+    // `scripts/dongle.py tempo on|off` sends (param1 = one of the module's
+    // tempo bits, src/tempo.h), and ZMK's split transport carries it to both
+    // halves by this node's name, as &effect; each half stores the pick and
+    // runs the tempo, its effects faster the faster the user types, or not
+    // (the halves' confs build it), the dongle stores it and resends it with
+    // the palette and the other picks (CLAUDE.md, Invariants; the glossary:
+    // tempo).
+    tempo: tempo {
+        compatible = "lantern,behavior-tempo";
+        #binding-cells = <2>;
+    };
