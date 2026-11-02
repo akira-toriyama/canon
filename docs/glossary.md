@@ -302,8 +302,10 @@ that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half
 and the half is in use, and for the [[intro]] at boot: it drives the half's LED
 rail (assimilator-bt P1.02, the pin ZMK's `ext_power` driver would own)
 itself, on with a cable and off on battery or after five minutes without a key
-(ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`), so the LEDs cost the battery
-nothing. Each half decides when to light from its own port and its own keys.
+on either half (ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`, for the half's
+own keys; the other half's reach it through the [[Imprint Dongle]]'s relay
+and the module's wake, `CONFIG_LANTERN_WAKE_ON_HIT`), so the LEDs cost the
+battery nothing. Each half lights from its own port.
 - Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]], pick, hit and layer sides (the behaviors, the port, the resend, the relay to the halves), the Prospector Dongle none of it.
 - The product halves paint no picture (`CONFIG_LANTERN_NO_PICTURE`, t-skdt): the keys stay black while lit, each press, or a held [[layer]], draws the [[effect]] in the [[palette]]'s colours at full brightness under the frame's cap (`CONFIG_LANTERN_BRIGHTNESS`, 16 %, sets it), and the [[intro]] plays as the boot light; the [[countdown]] is off. ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature; off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
@@ -440,7 +442,7 @@ of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), whose
 hardware 2026-10-28).
 - canon's pairs (t-6ttk's research, 5-6): Number slot 0, Symbol 1 slot 1, Symbol 2 slot 3 (the same keys as Symbol 1, told apart by colour), Function slot 4, Vkey LL and LM slot 1, Vkey RM and RR slot 3; the four arrow layers are left out, as an arrow key's hold-tap raises its layer for a mere tap. The highest held layer the pairs name shows.
 - A layer shows 60 ms after it becomes the highest held layer the pairs name, so a short tap does not flash, and goes as soon as no named layer is held. Number, Symbol 1, Symbol 2 and Function light keys of the right half only (10, 16, 16 and 12), each Vkey layer 15 on each half; a held Ctrl or Alt thumb (`TU_LL`, `TU_LM`) lights its Vkey layer too.
-- Only a lit half shows it: the dongle sends to a half at peripheral latency 0, as the hit (the [[crossing ring]]), and a half dark for idle shows it from its own next key. Nothing is stored: a half drops the keys when its link or its USB power goes.
+- Only a lit half shows it: the dongle sends to a half at peripheral latency 0, as the hit (the [[crossing ring]]), and a half dark for idle shows it from its own next key or from the other half's press that raises the layer, which wakes it. Nothing is stored: a half drops the keys when its link or its USB power goes.
 - A pick's colour paints every layer in it, so Symbol 1 and Symbol 2 then look alike; under the frame's cap a layer of many keys or a whitish colour shows dimmer than one of few.
 - **Don't call it:** layer indicator, layer lights, layer highlight, active keys, 使える鍵だけ光る in English text
 

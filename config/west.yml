@@ -41,8 +41,10 @@ manifest:
       revision: 7573f28dca29b3485a01f839f9f46522ce5e52e3
       path: modules/zmk-beacon
     # zmk-lantern (own module): the halves' key LEDs, lit only while USB
-    # powers the half and it is in use (ZMK's idle state after
-    # CONFIG_ZMK_IDLE_TIMEOUT turns them off), an intro as the boot light,
+    # powers the half and it is in use (CONFIG_ZMK_IDLE_TIMEOUT without a key
+    # on either half turns them off: ZMK's idle state for the half's own keys,
+    # the module's wake for the other half's, which reach it as the hit), an
+    # intro as the boot light,
     # the bands or the star waves, the pick scripts/dongle.py intro hands the
     # Imprint Dongle saying which (config/lantern_rail.dtsi, imprint_left.conf
     # / imprint_right.conf), and what they show: every key black until a press,
@@ -62,7 +64,7 @@ manifest:
     # after a merge there.
     - name: zmk-lantern
       remote: akira-toriyama
-      revision: 49e0eef2300828264e65698c4856e2c6d47f5404
+      revision: ef90f08e3627550bb6d03ad639b4f593d2834c50
       path: modules/zmk-lantern
   self:
     path: config

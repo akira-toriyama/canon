@@ -314,11 +314,22 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `imprint_left.conf` / `imprint_right.conf` carry `CONFIG_ZMK_IDLE_TIMEOUT=300000`, the module's
   idle rule (`CONFIG_LANTERN_OFF_WHEN_IDLE`, its default): five minutes without a key, sensor or
   pointing
-  input on a half, and its LEDs go dark on USB too, lit again at the next input; each half counts
-  for itself, and a cable plugged into an idle half plays the intro and goes dark again until its
-  next key (the module's source says why nothing else lights it). The timeout is ZMK's, not the module's (ZMK's activity state already counts
-  the inputs, and t-6ttk's effects read the same); with `CONFIG_ZMK_SLEEP=n` it moves nothing
-  else in a half but the battery sampling, paused while idle (the half's zmk.map, 2026-10-19).
+  input on a half, and as long without a key press of the other half, which the dongle relays as
+  the hit (the wake, `CONFIG_LANTERN_WAKE_ON_HIT`, the module's default with `CONFIG_ZMK_SLEEP=n`;
+  t-6ttk, 2026-11-01: up to zmk-lantern 49e0eef each half counted for itself, so a half left
+  untouched for five minutes stayed dark while the other was typed and the crossing ring stopped at
+  it, the user's report of 2026-10-28; on hardware 2026-11-02, zmk-lantern#34's trial images on
+  both halves with a 20 s timeout and the pick `cross-ring`: two presses on one half past the
+  timeout, and the second's ring reached the other, both ways, the user's OK on sight), and its
+  LEDs go dark on USB too, lit again at the next
+  input of either half (the waking press itself draws no effect, the next does); a cable plugged
+  into an idle half plays the intro and goes dark again until its next key or the other half's
+  (the module's source says why nothing else lights it). The timeout is ZMK's, not the module's
+  (ZMK's activity state already counts the half's own inputs, and t-6ttk's effects read the same;
+  the wake runs the other half's presses against the same timeout on a clock of the module's,
+  since ZMK's activity cannot be moved from a module); with `CONFIG_ZMK_SLEEP=n` it moves nothing
+  else in a half but the battery sampling, paused while idle (the half's zmk.map, 2026-10-19), so
+  a half the wake keeps lit samples no battery.
   Never re-enable the node: the driver turns the rail on at init and
   restores a stored `ext_power/state/EXT_POWER` at settings load, and the left half's NVS holds off
   (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
