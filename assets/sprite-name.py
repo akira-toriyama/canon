@@ -15,7 +15,8 @@ and the `names` file's entry of that place gives `ja`, composed
 (NFC), taken when it is 15 bytes of UTF-8 at most and every character is in
 the katakana font (KATAKANA_RANGES, a copy of zmk-beacon's
 sprite_pack.KATAKANA_RANGES: change the two together). Without a config, an
-order, a dictionary or an entry, or with one the HP bar cannot show, or
+order file, a name dictionary or an entry, or with a name the HP bar cannot
+show, or
 with a file that is not what the sender reads (where the sender's daily run
 is a config error, a build falls back and says so), the
 name as before (projects t-er81, the sender's SpriteName.from): the GIF's
@@ -151,7 +152,7 @@ def read_names(path):
             entries = json.load(f)
     except OSError:
         return None, "cannot read the name dictionary"
-    except ValueError:
+    except (ValueError, RecursionError):
         return None, NOT_A_DICTIONARY
     if not isinstance(entries, list):
         return None, NOT_A_DICTIONARY
@@ -160,7 +161,8 @@ def read_names(path):
         if not isinstance(entry, dict):
             return None, NOT_A_DICTIONARY
         number = entry.get("no")
-        if isinstance(number, bool) or not isinstance(number, (int, float)) or number != int(number):
+        if (isinstance(number, bool) or not isinstance(number, (int, float))
+                or isinstance(number, float) and not number.is_integer()):
             return None, NOT_A_DICTIONARY
         number = int(number)
         if number in japanese:

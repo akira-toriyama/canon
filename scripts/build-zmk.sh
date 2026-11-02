@@ -379,7 +379,8 @@ if [ "$LOGGING" -eq 1 ]; then echo " logging     : ${LOGGING_CONF[*]}"; fi
 if [ "$RESET" -eq 1 ]; then echo " reset       : CONFIG_ZMK_SETTINGS_RESET_ON_START=y"; fi
 if [ -n "$SPRITE" ]; then
   # The name's alphabet, never its length: matched against the public list of
-  # names, a rare length names the subject (assets/sprite-name.py).
+  # names, a rare length names the subject (assets/sprite-name.py). The
+  # alphabet and the sizes still tell something of the GIF (CLAUDE.md, Privacy).
   if printf '%s' "$SPRITE_NAME" | LC_ALL=C grep -q '[^ -~]'; then name_kind="a katakana name"; else name_kind="an ASCII name"; fi
   echo " sprite      : a $(wc -c <"$SPRITE" | tr -d ' ') byte GIF, $name_kind (prospector only; neither printed)"
 fi
