@@ -72,7 +72,10 @@ bands for a second instead (the glossary: intro).
 effect through
 the Imprint Dongle, which sends it to both halves over the split, where it
 survives a power cycle, and `python3 scripts/dongle.py effect` asks for it;
-until the first pick the halves draw the crossing ring. A colour after the
+until the first pick the halves draw the crossing ring. `python3
+scripts/dongle.py effect --daily` picks the effect of the day instead, the
+eight press effects in turn, one a day by the date, which is how the halves
+get a new effect each morning. A colour after the
 name, `python3 scripts/dongle.py effect <name> RRGGBB`, draws that effect in
 the one colour (the stain dyes in it), and the pick without one returns to the
 palette's colours. The effects that grow from a key run faster the faster you
