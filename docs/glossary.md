@@ -223,7 +223,9 @@ carries the modifiers), the front otherwise.
 
 ### sprite pack
 A [[sprite]]'s GIF repacked into the distinct pictures it shows and the order
-it shows them in, each picture drawable on its own; file extension `.spk`,
+it shows them in, each picture drawable on its own, the canvas cut to the box
+the pictures ink (a transparent margin in one view would otherwise shrink and
+lift the other, both drawn at one scale; zmk-beacon#63, t-t4y4); file extension `.spk`,
 magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py`: at build time
 to embed, and by a sender to write into the [[sprite room]] over BLE (format
 and why:

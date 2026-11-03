@@ -38,7 +38,7 @@ manifest:
     # scripts/build-zmk.sh checks it out at this pin before every build.
     - name: zmk-beacon
       remote: akira-toriyama
-      revision: 7573f28dca29b3485a01f839f9f46522ce5e52e3
+      revision: 2cbeabd6f504a87db80d4b35ee9373f1ee5637fa
       path: modules/zmk-beacon
     # zmk-lantern (own module): the halves' key LEDs, lit only while USB
     # powers the half and it is in use (CONFIG_ZMK_IDLE_TIMEOUT without a key
