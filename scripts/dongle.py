@@ -2,9 +2,9 @@
 # Which USB device is which of canon's build targets (the two dongles and the
 # two halves of the Cyboard Imprint), a serial log reader that follows them, a
 # PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
-# and their effect, in one colour or the palette's, their intro and their tempo
-# picked through the Imprint Dongle (palette, effect, intro, tempo:
-# zmk-lantern's port), and
+# and their effect, in one colour or the palette's, or the day's (effect
+# --daily), their intro and their tempo picked through the Imprint Dongle
+# (palette, effect, intro, tempo: zmk-lantern's port), and
 # whether the firmware on USB is the one origin/main
 # would build (check: the firmware stamp, scripts/stamp.py).
 #
@@ -876,6 +876,12 @@ EFFECT_WORD = "effect"
 # zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
 # effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
 EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart", "heatmap", "layer-keys")
+# The effects `effect --daily` cycles through, one a day in this order: every
+# press effect, never the layer keys, which light nothing for a key press and
+# so would leave one day in the round without a press effect (t-gwsw's
+# layering: one press effect a day, the layer keys only by hand, on top of
+# it). A new press effect joins the round by joining EFFECTS.
+DAILY_EFFECTS = tuple(e for e in EFFECTS if e != "layer-keys")
 INTRO_WORD = "intro"
 # The intros a half can play as the boot light, by the names the Imprint
 # Dongle's port takes: zmk-lantern's table LANTERN_INTRO_LIST (src/intro.h), in
@@ -1050,7 +1056,24 @@ def effect_arguments(tokens):
     return names + colours
 
 
+def daily_effect(day):
+    """The effect of the day: DAILY_EFFECTS at the day's proleptic Gregorian
+    ordinal (date.toordinal(), 1 for 0001-01-01) modulo their count, so every
+    machine that asks on the same local date names the same effect, with no
+    state file, and the round moves on by one each day."""
+    return DAILY_EFFECTS[day.toordinal() % len(DAILY_EFFECTS)]
+
+
 def cmd_effect(args):
+    if args.daily:
+        if args.effects:
+            raise Failure("--daily takes no name and no colour: the day's effect, in the palette's colours", 2)
+        day = datetime.date.today()
+        name = daily_effect(day)
+        print("dongle.py: the effect of %s is %s (day %d, %d of the %d in the round)"
+              % (day.isoformat(), name, day.toordinal(), day.toordinal() % len(DAILY_EFFECTS),
+                 len(DAILY_EFFECTS)), file=sys.stderr)
+        return ask_dongle(EFFECT_WORD, [name], args)
     return ask_dongle(EFFECT_WORD, effect_arguments(args.effects), args)
 
 
@@ -1379,16 +1402,24 @@ def parser():
                     "colour after the names, one at most, draws every picked effect in that one colour (the stain "
                     "dyes in it) in place of the palette's colours; a pick without one returns to the palette's. "
                     "With no name the reply is 'effect' with the dongle's pick, and its colour when one is set, or "
-                    "'effect none' before any. Refuses while another process holds the port (it would take the "
-                    "reply). Never sets 1200 baud. Names: %s." % ", ".join(EFFECTS),
+                    "'effect none' before any. --daily picks the effect of the day instead, without a colour: "
+                    "the press effects (%s) in that order, one a day round and round (the day's ordinal modulo "
+                    "their count), the same on any machine on the same date; the LaunchAgent in dotfiles sends "
+                    "it every morning after the day's palette, so the halves draw a new effect each day in the "
+                    "day's sprite's colours (a stored pick of the layer keys is replaced: add them by hand, "
+                    "'effect NAME layer-keys'). Refuses while another process holds the port (it would take the "
+                    "reply). Never sets 1200 baud. Names: %s." % (", ".join(DAILY_EFFECTS), ", ".join(EFFECTS)),
         epilog="Exit status: 0 'effect ok' (pick) or the names (ask), 1 'effect error', no reply, or no "
                "Imprint Dongle on USB (--wait N polls for it first, as palette's), 2 usage (a name not in the "
-               "list, two colours, or a colour alone).",
+               "list, two colours, a colour alone, or --daily with a name or a colour).",
     )
     s.add_argument("effects", nargs="*", metavar="NAME|RRGGBB",
                    help="the effects to draw, one or more of: %s; then, at most once, the colour every one of "
                         "them draws in, six hex digits (# or 0x allowed in front); no colour = the palette's "
                         "colours" % ", ".join(EFFECTS))
+    s.add_argument("--daily", action="store_true",
+                   help="pick the effect of the day (the press effects in turn, one a day, no colour) in place "
+                        "of names; stderr names it and its place in the round")
     dongle_options(s)
     s.set_defaults(func=cmd_effect)
 
