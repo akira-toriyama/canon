@@ -486,4 +486,5 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - Fleet-managed, never edited here (fleet-sync in akira-toriyama/.github overwrites them):
   `.github/workflows/{actionlint,commit-lint,repo-policy,taplo,task-status,version-preview,zizmor}.yml`,
   `.github/zizmor.yml`, `.github/dependabot.yml`, `docs/commit-convention.md`. `glyph.toml` came
-  from `glyph init --gemoji --v1-window` and carries a hand edit (#197): edit it, never regenerate it.
+  from glyph v3's `glyph init --gemoji --v1-window`, carries a hand edit (#197) and has had its v1-acceptance
+  window removed: edit it, never regenerate it.
