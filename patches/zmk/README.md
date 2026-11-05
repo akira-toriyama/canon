@@ -74,7 +74,7 @@ applies stops the next build.
 ## The patches
 
 Every build target builds against the patched tree; patched code compiles
-only where ZMK compiles that file. Upstream state checked 2026-10-04.
+only where ZMK compiles that file. Upstream state checked 2026-11-05.
 
 ### security-changed-auto-unpair.patch
 
@@ -110,8 +110,11 @@ writes 0 to index 234 of a 2-byte array. The case compiles only with
 in [config/imprint_dongle.conf](../../config/imprint_dongle.conf) in the same
 change as this patch (2026-09-24): the Imprint Dongle.
 
-Upstream: not submitted. An upstream bug fix of its own, independent of
-zmk#3390.
+Upstream: [zmk#3556](https://github.com/zmkfirmware/zmk/pull/3556) (this
+diff, with a BLE test, `app/tests/ble/split/battery-level-host-disconnect`,
+that fails on zmk 4dd95d78 and passes with the check), open since
+2026-11-05; fixes [zmk#3522](https://github.com/zmkfirmware/zmk/issues/3522).
+A bug fix of its own, independent of zmk#3390.
 
 ### usb-hid-prime-on-ready.patch
 
@@ -277,6 +280,7 @@ not depend on that happening.
   `ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_HID` depend on that option (or put the
   ring check under `#if`): the 0x21 path reads `pending_head` and
   `pending_tail`, which upstream defines only under it; then regenerate.
+- zmk#3556: delete split-battery-source-bounds.patch; it sets no option.
 - zmk#3390: set `CONFIG_ZMK_HID_VKEY=y` in config/imprint_dongle.conf (the
   default page and report ID leave chord and the keymap unchanged) and cut
   vkey-report.patch down to what #3390 lacks: the split battery report, with
