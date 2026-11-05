@@ -8,7 +8,7 @@
 #   ./scripts/build-zmk.sh <board>:<shield>  # a pair that build.yaml does not list
 #   ./scripts/build-zmk.sh imprint_dongle --logging
 #   ./scripts/build-zmk.sh imprint --reset
-#   ./scripts/build-zmk.sh prospector --sprite /Volumes/HDD/assets/canon/prospector/sprites/<name>.gif
+#   ./scripts/build-zmk.sh prospector --sprite <collection>/<number>.gif
 #   ./scripts/build-zmk.sh prospector --module ../zmk-beacon
 #   ./scripts/build-zmk.sh imprint --module ../zmk-lantern --module ../zmk-beacon
 #   ./scripts/build-zmk.sh prospector --kconfig CONFIG_LV_USE_SYSMON=y \
@@ -35,6 +35,11 @@
 #                     personal files kept off the repository (assets/README.md):
 #                     never committed, never in CI or a release, and this script
 #                     prints neither the GIF's path nor the name.
+#   --sender-config <sender.json>
+#                     the sprite sender's config, whose name dictionary names
+#                     --sprite's GIF; without it $SPRITE_SENDER_CONFIG, which
+#                     dotfiles sets (a shell under a VS Code started before the
+#                     switch that set it has not got it).
 #   --module <dir>    build against the Zephyr module checkout <dir>, its working
 #                     tree as it is: in place of the revision config/west.yml pins
 #                     when an own module has that name (its zephyr/module.yml),
@@ -72,7 +77,7 @@
 # container are scripts/zmk-west.sh, which CI runs too.
 #
 # Environment: ZMK_WS (default ~/.cache/zmk-canon), ZMK_IMAGE (default
-# zmkfirmware/zmk-build-arm:stable).
+# zmkfirmware/zmk-build-arm:stable), SPRITE_SENDER_CONFIG (--sender-config's).
 set -euo pipefail
 
 # Relative --sprite and --module paths are the caller's.
@@ -88,6 +93,7 @@ LOGGING=0
 RESET=0
 SPRITE=""
 SPRITE_NAME=""
+SENDER_CONFIG=""
 MODULE_DIRS=()
 MODULE_NAMES=()
 MODULE_REVS=()
@@ -124,10 +130,11 @@ while [ $# -gt 0 ]; do
     --update) FORCE_UPDATE=1 ;;
     --logging) LOGGING=1 ;;
     --reset) RESET=1 ;;
-    --sprite | --module | --kconfig | --tag)
+    --sprite | --sender-config | --module | --kconfig | --tag)
       if [ $# -eq 0 ] || [ -z "$1" ]; then die 2 "$arg needs a value"; fi
       case "$arg" in
         --sprite) SPRITE="$1" ;;
+        --sender-config) SENDER_CONFIG="$1" ;;
         --module) MODULE_DIRS+=("$1") ;;
         --kconfig) KCONFIG+=("$1") ;;
         --tag) TAG="$1" ;;
@@ -151,11 +158,21 @@ fi
 if [ "$RESET" -eq 1 ] && [ -n "$SPRITE" ]; then
   die 2 "--reset and --sprite do not combine"
 fi
+if [ -n "$SENDER_CONFIG" ] && [ -z "$SPRITE" ]; then
+  die 2 "--sender-config needs --sprite"
+fi
 if [ -n "$SPRITE" ]; then
   case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
   # Never the path in a message: a GIF's file name names its subject.
   if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
-  SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" "$SPRITE")"
+  # Taken here so that a relative value is the caller's, as the flag's is.
+  SENDER_CONFIG="${SENDER_CONFIG:-${SPRITE_SENDER_CONFIG:-}}"
+  if [ -n "$SENDER_CONFIG" ]; then
+    case "$SENDER_CONFIG" in /*) ;; *) SENDER_CONFIG="$CALLER_DIR/$SENDER_CONFIG" ;; esac
+    SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" --sender-config "$SENDER_CONFIG" "$SPRITE")"
+  else
+    SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" "$SPRITE")"
+  fi
 fi
 # The own modules config/west.yml pins (name, west path, commit): every build
 # checks each out at its pin, and a --module of the same name stands in.

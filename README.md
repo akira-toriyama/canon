@@ -164,7 +164,7 @@ Flashing `prospector.uf2` onto a
 levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
 showing their mean (or the one half that has a reading), yellow under 50 % and
 red under 20 %, under a sprite that the Mac swaps over BLE: zmk-beacon's
-sprite sender sends the next GIF of the collection on the external drive once
+sprite sender sends the next GIF of the collection once
 a day (zmk-beacon's README, "The sprite sender"; a LaunchAgent in dotfiles;
 on hardware 2026-10-13), its back view while a modifier is held on the
 keyboard. It listens
@@ -213,14 +213,17 @@ GIF animation (local builds only):
 `./scripts/build-zmk.sh prospector --sprite <gif>` builds
 `firmware/prospector-sprite.uf2` with the GIF above the HP bar and the sprite
 name above it, the name dictionary's katakana name when the HP bar can show
-it, else the file name's (rules: [assets/README.md](assets/README.md));
+it, else its English one, whole, else the file name's (rules:
+[assets/README.md](assets/README.md));
 the build converts the GIF into a sprite pack and embeds that, not the GIF
 (zmk-beacon's [docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md));
 flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
 Keep the GIF outside the repository (where: [assets/README.md](assets/README.md))
 and never commit it. The CI / release
-`prospector.uf2` has no animation, so flashing it removes the sprite and its
-name and leaves only the HP bar. The sprite plays at three quarters of the GIF's own tempo and
+`prospector.uf2` embeds no animation: flashing it removes an embedded sprite,
+but the sprite room survives a flash, so the sprite pack the sprite sender last
+wrote there keeps playing with its sprite name; with an empty sprite room only
+the HP bar remains. The sprite plays at three quarters of the GIF's own tempo and
 steps with the key presses (either half, any key) while you type; zmk-beacon's
 README has the details and lists which GIFs work.
 

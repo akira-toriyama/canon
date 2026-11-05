@@ -16,7 +16,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   passively for that, and since zmk-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
   shield's default) it also advertises connectably as `Prospector Dongle` so that the sprite sender
   (zmk-beacon's `tools/sprite-sender`, run once a day by a LaunchAgent in dotfiles, config and state
-  next to the GIFs on the external drive; the glossary) can write a sprite pack into its sprite room
+  in dotfiles-private; the glossary) can write a sprite pack into its sprite room
   (2026-10-12; daily on hardware since 2026-10-13); it never pairs (`CONFIG_ZMK_BLE=n`). On USB it is
   one CDC ACM port, product `Prospector Dongle`, no HID (2026-09-26). Its screen turns off after five minutes without
   a key press (`CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; seen with 20 s on 2026-10-04).
@@ -49,7 +49,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   update; otherwise zmk@main and the branches stay at the cached commits), `--clean`, `--reset`
   (`CONFIG_ZMK_SETTINGS_RESET_ON_START=y`: wipes settings and bonds at every boot), `--logging`,
   `--kconfig CONFIG_X=V`, `--tag <name>`, `--module <dir>` (a local tree of an own module in place
-  of its pin, or of one not pinned yet; repeatable), `--sprite`.
+  of its pin, or of one not pinned yet; repeatable), `--sprite`, `--sender-config`.
 - Images: `firmware/<shield>[-sprite][-logging][-kconfig][-<module>…][_RESET][-<tag>].uf2`
   (`-<module>` is the name without `zmk-`: `-beacon`, `-lantern`, in name order); a bare
   `<shield>.uf2` / `<shield>_RESET.uf2` (what flash-watch.sh, flash-reset.sh and `flash-dongle.sh
@@ -138,6 +138,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   plug it back, one Prospector Dongle run; if that fails the same way, reboot the Mac and run the
   Prospector Dongle again; then the keyboard devices. The devices stay on that hub (the external
   drives sit on the Mac's own ports, the Imprint devices on the monitor: the layout is fixed).
+- **A test never runs the sprite sender's `daily` without `--dry-run`, nor `send`**: any build on this
+  Mac, a bare `swift build` in a scratch copy too, reaches the real Prospector Dongle over BLE, and the
+  sprite room keeps no copy of what it overwrites; a replug or a flash does not bring it back
+  (2026-11-05, e-ehzy: a review's scripts overwrote it four times, each sure its run stopped before
+  the send). A brief for an agent says so in words. To see the path past `--dry-run`, stub `Sender` in
+  a copy and check that the stub took. `report` only reads.
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
   `src/usb/msc_uf2.c`): not a truncated copy.
@@ -450,23 +456,22 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   GIF that does not fit, naming the pool size that would. The CI and release
   `prospector.uf2` carries neither sprite nor name, but flashing it removes neither: the sprite
   room survives a flash and its pack plays at boot (zmk-beacon's README; seen 2026-10-13 after
-  flash-dongle.sh put the pinned image on). The GIFs and
-  `SOURCES.md` live off the repository on the user's external drive,
-  `/Volumes/HDD/assets/canon/prospector/sprites/` (`shot` PNGs: `.../prospector/shots/`), the same
-  absolute path from any checkout or worktree ([assets/README.md](assets/README.md); t-kbjr). The
-  drive is exFAT: copy onto it with `cp -X`, and give `--sprite` one file, never a `*.gif` glob,
-  which also matches macOS's `._` sidecar files. `assets/`'s ignore rules stay as a guard.
-- [assets/sprite-name.py](assets/sprite-name.py) gives the name: the sprite sender's name
-  dictionary's katakana name when the HP bar can show it, looked up as the sender does (the
-  `sender.json` above the GIF, the GIF's place in its order file, `names.json`; t-rq9h), else the
-  file name's (t-er81); the name dictionary names the collection's subjects and lives next to the GIFs.
+  flash-dongle.sh put the pinned image on). The GIFs are a sparse clone off the repository that
+  only dotfiles-private's `sprite-sender/` names (`sender.json`, `clone.sh`; e-ehzy): write neither
+  its repository nor its path here. `shot` PNGs go to `~/.cache/zmk-canon/shots/`
+  ([assets/README.md](assets/README.md)). `assets/`'s ignore rules stay as a guard.
+- [assets/sprite-name.py](assets/sprite-name.py) gives the name: for a `<number>.gif`, the name
+  dictionary's katakana name of that number when the HP bar can show it, else its English one,
+  whole (t-rq9h; the config `--sender-config` or `$SPRITE_SENDER_CONFIG` names the name dictionary, and
+  the script copies zmk-beacon's `tools/name_dictionary.py`, so change the two together); else the
+  file name's (t-er81), which for a number is the number.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
   the configure step fails (reproduced 2026-09-29). Of the sprite, build-zmk.sh prints only the
   GIF's size, whether the name is katakana or ASCII and, in the `images:` line, the sprite image's
   FLASH use, which grows by the pack's size; zmk-beacon's build prints its `Sprite:` line (canvas,
   bits a pixel, colours, pictures, frames, bytes). For a GIF of the collection the alphabet says
-  whether the name dictionary's name fit, and the sizes can point to the GIF, so these lines stay
+  whether the name dictionary's katakana name fit, and the sizes can point to the GIF, so these lines stay
   out of anything public, like the sprite sender's (zmk-beacon's README). `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
   `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
   the name: never print or paste from them. The screen layout (zmk-beacon's README, the
