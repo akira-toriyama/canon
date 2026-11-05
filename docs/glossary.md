@@ -354,7 +354,7 @@ carries to both halves through the [[behavior]] node `effect` of
 alone asks (`effect …`, the colour last when one is set, `effect none`).
 - The default (t-5hqx): until the Mac's first pick, and whenever the stored pick names none of the built nine, a half draws the [[crossing ring]] (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`).
 - The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn, as `&intro` and `&tempo` bind the other picks (its README); canon's keymap binds none of them, the Mac picks, and none is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
-- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h); bits 7 and 9 are no effect's, so `layer-keys` is bit 8 and `heatmap` bit 10, the line above the layer keys, which stay the last line), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together; the daily effect (t-2d9r, not built yet) is to be one press effect at a time, the [[layer keys]] never in the rotation and only by hand with it (`effect dart layer-keys`), since over a press effect the layer's keys share the frame's cap and dim while it draws (t-gwsw, the user's choice on 2026-11-02).
+- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h); bits 7 and 9 are no effect's, so `layer-keys` is bit 8 and `heatmap` bit 10, the line above the layer keys, which stay the last line), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together; the daily effect (t-2d9r) is one press effect at a time, the [[layer keys]] never in the rotation and only by hand with it (`effect dart layer-keys`), since over a press effect the layer's keys share the frame's cap and dim while it draws (t-gwsw, the user's choice on 2026-11-02).
 - The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
 - The daily effect (t-2d9r): `python3 scripts/dongle.py effect --daily` picks the press effect of the day, the eight (every effect but the [[layer keys]], which alone light nothing for a press: `DAILY_EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py)) in `EFFECTS`' order at the local date's ordinal (`date.toordinal()`) modulo eight, without a colour, so the same date names the same effect on any machine and no state is kept; the LaunchAgent in the user's dotfiles sends it every morning as the stage after the daily [[palette]] (a morning whose swap or palette failed changes neither), so the halves draw a new effect each day in that day's sprite's colours. The layer keys join only by hand, `effect <name> layer-keys`, for that day (t-gwsw's layering).
 - **Don't call it:** animation, lighting mode, RGB effect, underglow effect (ZMK's underglow is off on every target), 光り方, エフェクト設定
@@ -596,18 +596,16 @@ and sends it; a LaunchAgent in the user's dotfiles
 runs it once a day, and a failed day is skipped; its `colours` subcommand prints
 the colours of the GIF it last sent, for the [[palette]]. Its config (`sender.json`) and
 state live in the private dotfiles-private, the state ignored by git, and the
-collection is a sparse clone only that config names
-([`assets/README.md`](../assets/README.md)), off every repository.
+collection is a sparse clone only that config and the `clone.sh` beside it name
+([`assets/README.md`](../assets/README.md)), off the user's own repositories.
 - **Don't call it:** BLESend, uploader, daily swap script, 送信スクリプト, 送信アプリ
 
 ### name dictionary
 The species names CSV the [[sprite sender]]'s config names (`names` in
 `sender.json`) that gives a GIF's number a katakana and an English name, read at
-each run: no generated file. zmk-beacon's
-[`tools/name_dictionary.py`](https://github.com/akira-toriyama/zmk-beacon/blob/main/tools/name_dictionary.py)
-holds the rule for the [[sprite name]], and
-[`assets/sprite-name.py`](../assets/sprite-name.py) copies it. It names the
-collection's subjects, so it is a clone off every repository, like the collection.
+each run: no generated file. It names the collection's subjects, so it is a clone
+off the user's own repositories, like the collection.
+- The rule for the [[sprite name]]: zmk-beacon's [`tools/name_dictionary.py`](https://github.com/akira-toriyama/zmk-beacon/blob/main/tools/name_dictionary.py), and [`assets/sprite-name.py`](../assets/sprite-name.py) copies it.
 - **Don't call it:** name table, 和名表, species list, lookup file, dictionary alone in prose, 辞書 alone in English text
 
 ### keymap-drawer

@@ -38,7 +38,8 @@
 #   --sender-config <sender.json>
 #                     the sprite sender's config, whose name dictionary names
 #                     --sprite's GIF; without it $SPRITE_SENDER_CONFIG, which
-#                     dotfiles sets.
+#                     dotfiles sets (a shell under a VS Code started before the
+#                     switch that set it has not got it).
 #   --module <dir>    build against the Zephyr module checkout <dir>, its working
 #                     tree as it is: in place of the revision config/west.yml pins
 #                     when an own module has that name (its zephyr/module.yml),
@@ -76,7 +77,7 @@
 # container are scripts/zmk-west.sh, which CI runs too.
 #
 # Environment: ZMK_WS (default ~/.cache/zmk-canon), ZMK_IMAGE (default
-# zmkfirmware/zmk-build-arm:stable).
+# zmkfirmware/zmk-build-arm:stable), SPRITE_SENDER_CONFIG (--sender-config's).
 set -euo pipefail
 
 # Relative --sprite and --module paths are the caller's.
@@ -164,9 +165,11 @@ if [ -n "$SPRITE" ]; then
   case "$SPRITE" in /*) ;; *) SPRITE="$CALLER_DIR/$SPRITE" ;; esac
   # Never the path in a message: a GIF's file name names its subject.
   if [ ! -f "$SPRITE" ] || [ ! -r "$SPRITE" ]; then die 2 "--sprite: no readable GIF at that path"; fi
+  # Taken here so that a relative value is the caller's, as the flag's is.
+  SENDER_CONFIG="${SENDER_CONFIG:-${SPRITE_SENDER_CONFIG:-}}"
   if [ -n "$SENDER_CONFIG" ]; then
     case "$SENDER_CONFIG" in /*) ;; *) SENDER_CONFIG="$CALLER_DIR/$SENDER_CONFIG" ;; esac
-    SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" --config "$SENDER_CONFIG" "$SPRITE")"
+    SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" --sender-config "$SENDER_CONFIG" "$SPRITE")"
   else
     SPRITE_NAME="$(python3 "$REPO/assets/sprite-name.py" "$SPRITE")"
   fi

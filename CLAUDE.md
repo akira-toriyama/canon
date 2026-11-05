@@ -49,7 +49,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   update; otherwise zmk@main and the branches stay at the cached commits), `--clean`, `--reset`
   (`CONFIG_ZMK_SETTINGS_RESET_ON_START=y`: wipes settings and bonds at every boot), `--logging`,
   `--kconfig CONFIG_X=V`, `--tag <name>`, `--module <dir>` (a local tree of an own module in place
-  of its pin, or of one not pinned yet; repeatable), `--sprite`.
+  of its pin, or of one not pinned yet; repeatable), `--sprite`, `--sender-config`.
 - Images: `firmware/<shield>[-sprite][-logging][-kconfig][-<module>…][_RESET][-<tag>].uf2`
   (`-<module>` is the name without `zmk-`: `-beacon`, `-lantern`, in name order); a bare
   `<shield>.uf2` / `<shield>_RESET.uf2` (what flash-watch.sh, flash-reset.sh and `flash-dongle.sh
@@ -462,7 +462,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   ([assets/README.md](assets/README.md)). `assets/`'s ignore rules stay as a guard.
 - [assets/sprite-name.py](assets/sprite-name.py) gives the name: for a `<number>.gif`, the name
   dictionary's katakana name of that number when the HP bar can show it, else its English one,
-  whole (t-rq9h; the config `--sender-config` or `$SPRITE_SENDER_CONFIG` names the dictionary, and
+  whole (t-rq9h; the config `--sender-config` or `$SPRITE_SENDER_CONFIG` names the name dictionary, and
   the script copies zmk-beacon's `tools/name_dictionary.py`, so change the two together); else the
   file name's (t-er81), which for a number is the number.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
@@ -471,7 +471,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   GIF's size, whether the name is katakana or ASCII and, in the `images:` line, the sprite image's
   FLASH use, which grows by the pack's size; zmk-beacon's build prints its `Sprite:` line (canvas,
   bits a pixel, colours, pictures, frames, bytes). For a GIF of the collection the alphabet says
-  whether the name dictionary's name fit, and the sizes can point to the GIF, so these lines stay
+  whether the name dictionary's katakana name fit, and the sizes can point to the GIF, so these lines stay
   out of anything public, like the sprite sender's (zmk-beacon's README). `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
   `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
   the name: never print or paste from them. The screen layout (zmk-beacon's README, the
