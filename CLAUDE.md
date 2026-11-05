@@ -16,7 +16,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   passively for that, and since zmk-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
   shield's default) it also advertises connectably as `Prospector Dongle` so that the sprite sender
   (zmk-beacon's `tools/sprite-sender`, run once a day by a LaunchAgent in dotfiles, config and state
-  next to the GIFs on the external drive; the glossary) can write a sprite pack into its sprite room
+  in dotfiles-private; the glossary) can write a sprite pack into its sprite room
   (2026-10-12; daily on hardware since 2026-10-13); it never pairs (`CONFIG_ZMK_BLE=n`). On USB it is
   one CDC ACM port, product `Prospector Dongle`, no HID (2026-09-26). Its screen turns off after five minutes without
   a key press (`CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; seen with 20 s on 2026-10-04).
@@ -450,16 +450,15 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   GIF that does not fit, naming the pool size that would. The CI and release
   `prospector.uf2` carries neither sprite nor name, but flashing it removes neither: the sprite
   room survives a flash and its pack plays at boot (zmk-beacon's README; seen 2026-10-13 after
-  flash-dongle.sh put the pinned image on). The GIFs and
-  `SOURCES.md` live off the repository on the user's external drive,
-  `/Volumes/HDD/assets/canon/prospector/sprites/` (`shot` PNGs: `.../prospector/shots/`), the same
-  absolute path from any checkout or worktree ([assets/README.md](assets/README.md); t-kbjr). The
-  drive is exFAT: copy onto it with `cp -X`, and give `--sprite` one file, never a `*.gif` glob,
-  which also matches macOS's `._` sidecar files. `assets/`'s ignore rules stay as a guard.
-- [assets/sprite-name.py](assets/sprite-name.py) gives the name: the sprite sender's name
-  dictionary's katakana name when the HP bar can show it, looked up as the sender does (the
-  `sender.json` above the GIF, the GIF's place in its order file, `names.json`; t-rq9h), else the
-  file name's (t-er81); the name dictionary names the collection's subjects and lives next to the GIFs.
+  flash-dongle.sh put the pinned image on). The GIFs are a sparse clone off the repository that
+  only dotfiles-private's `sprite-sender/` names (`sender.json`, `clone.sh`; e-ehzy): write neither
+  its repository nor its path here. `shot` PNGs go to `~/.cache/zmk-canon/shots/`
+  ([assets/README.md](assets/README.md)). `assets/`'s ignore rules stay as a guard.
+- [assets/sprite-name.py](assets/sprite-name.py) gives the name: for a `<number>.gif`, the name
+  dictionary's katakana name of that number when the HP bar can show it, else its English one,
+  whole (t-rq9h; the config `--sender-config` or `$SPRITE_SENDER_CONFIG` names the dictionary, and
+  the script copies zmk-beacon's `tools/name_dictionary.py`, so change the two together); else the
+  file name's (t-er81), which for a number is the number.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
   the configure step fails (reproduced 2026-09-29). Of the sprite, build-zmk.sh prints only the

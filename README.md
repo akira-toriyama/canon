@@ -164,7 +164,7 @@ Flashing `prospector.uf2` onto a
 levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
 showing their mean (or the one half that has a reading), yellow under 50 % and
 red under 20 %, under a sprite that the Mac swaps over BLE: zmk-beacon's
-sprite sender sends the next GIF of the collection on the external drive once
+sprite sender sends the next GIF of the collection once
 a day (zmk-beacon's README, "The sprite sender"; a LaunchAgent in dotfiles;
 on hardware 2026-10-13), its back view while a modifier is held on the
 keyboard. It listens
