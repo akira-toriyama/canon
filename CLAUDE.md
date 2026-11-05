@@ -138,6 +138,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   plug it back, one Prospector Dongle run; if that fails the same way, reboot the Mac and run the
   Prospector Dongle again; then the keyboard devices. The devices stay on that hub (the external
   drives sit on the Mac's own ports, the Imprint devices on the monitor: the layout is fixed).
+- **A test never runs the sprite sender's `daily` without `--dry-run`, nor `send`**: any build on this
+  Mac, a bare `swift build` in a scratch copy too, reaches the real Prospector Dongle over BLE, and the
+  sprite room keeps no copy of what it overwrites; a replug or a flash does not bring it back
+  (2026-11-05, e-ehzy: a review's scripts overwrote it four times, each sure its run stopped before
+  the send). A brief for an agent says so in words. To see the path past `--dry-run`, stub `Sender` in
+  a copy and check that the stub took. `report` only reads.
 - An unchanged image copies in about 3 s, not 24 s (Prospector Dongle, bootloader 0.6.1, 2026-09-26:
   it skips matching pages, `src/flash_nrf5x.c`, and finishes only once every block has arrived,
   `src/usb/msc_uf2.c`): not a truncated copy.
