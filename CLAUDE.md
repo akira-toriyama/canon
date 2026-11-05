@@ -340,8 +340,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   reads it with `kUSBVendorString` (never "USB Vendor Name") and compares it with `origin/main`
   through the work tree's `stamp.py` (bumping its `ALGORITHM` turns every flashed device
   `off-main` until it is flashed again); its lines and `--json` are the contract with the daily
-  check in dotfiles (t-ajkz). macOS's keyboard type is keyed on VID, PID and country code, not the
-  manufacturer, and chord matches the product string: the stamp changes neither (Imprint Dongle,
+  check in dotfiles (t-ajkz: the LaunchAgent `org.nixos.canon-firmware-check`,
+  `system/modules/scripts/canon-firmware-check.py`, hourly 10:00-21:00 through the `canon-dongle`
+  wrapper, one terminal-notifier notification a day for a device that is not `current`, for the
+  check failing, and for seven days without a device; it fetches the clone's `origin/main` over
+  https each run and leaves the work tree alone). macOS's keyboard type is keyed on VID, PID and
+  country code, not the manufacturer, and chord matches the product string: the stamp changes neither (Imprint Dongle,
   2026-10-13). The halves carry it too: plugged in to charge, they show it the same way
   (the right half on 2026-10-19: it enumerates without a product string, and stamped it is reported
   with its target; unstamped it would be reported without one).
