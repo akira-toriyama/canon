@@ -23,7 +23,9 @@ Usage and rules:
 - The name above the HP bar comes from `sprite-name.py <gif>` (its header), by
   the rule the sprite sender runs by. For a `<number>.gif`, it is the name
   dictionary's katakana name of that number when it is 15 bytes of UTF-8 at most
-  and all in the katakana font, composed, else its English name, whole. The name
+  and all in the katakana font, composed, else its English name, whole (a
+  gender sign at its end folded to a space and `F` or `M`, a typographic
+  apostrophe to `'`, nothing else: zmk-beacon's `fold_english`). The name
   dictionary is the species names CSV of the config that `--sender-config` gives,
   else `$SPRITE_SENDER_CONFIG`, which dotfiles sets.
 - Otherwise the name is the file name with the extension dropped, spaces and tabs
