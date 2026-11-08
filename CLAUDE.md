@@ -446,7 +446,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - **This repository is public; the sprite GIF is personal, and the sprite name names its subject.**
   Never put a GIF or anything made of one (sprite packs, frames, C arrays, previews, `shot` PNGs)
   into a commit, PR, issue, CI or release, nor its subject, file name or sprite name into their
-  text or a doc.
+  text or a doc. The picture ban enforces the first half (t-gm39, 2026-11-08): the hub's
+  `picture-ban` reusable (caller `.github/workflows/picture-ban.yml`) fails a PR on a tracked
+  picture by name or first bytes (GIF, PNG, JPEG, WebP, BMP), a sprite pack (`.spk`, the embedded
+  `.inc`), a path naming the sprites' source or a `sprites/` directory, or a binary of 16 KiB or
+  more (the repository tracks no binary), and the same script is every clone's pre-commit hook
+  (the Commits section), so a picture never reaches history, where a red PR would still leave it.
 - Local only: `./scripts/build-zmk.sh prospector --sprite <gif>` writes
   `firmware/prospector-sprite.uf2` (zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`): the configure step
   converts the GIF into a sprite pack (zmk-beacon's `tools/sprite_pack.py`, format and reasons in
@@ -485,13 +490,17 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   glyph's `<:gemoji:>[(scope)]<sigil> <subject>`; the sigil is the version signal (`=` none, `~`
   patch, `^` minor, `!` major; `%` acts as `!` past 1.0), the gemoji decides nothing (`glyph
   emoji`); English imperative subjects, lowercase start; a PR title (the squash subject) is linted
-  too. `glyph lint --range origin/main..HEAD` before pushing; `glyph hook install` once per clone.
+  too. `glyph lint --range origin/main..HEAD` before pushing; once per clone, `glyph hook install`
+  and `bash ../.github/scripts/picture-ban-check.sh --install-hook` (the picture ban's pre-commit
+  hook, run from the hub's clone beside this one; a worktree shares its clone's hooks; the hook
+  fails a commit when that clone has moved, and says how to reinstall).
 - PR bodies end with `SetStatus-task: https://github.com/akira-toriyama/projects/blob/main/.furrow/bodies/<id>.md <lane>`.
 - Public repository on free Actions minutes: PR gates are deterministic checks only (build,
   commit-lint, shellcheck, verify-eiji-sync, verify-vkey-sync, draw-keymap's `fail_on_error`,
-  actionlint, zizmor, repo-policy, taplo, the glossary build); never add a workflow that calls a
-  paid API; Claude reviews run locally. The main ruleset requires `lint / lint` and all four
-  builds (prospector's since 2026-10-04): a new build.yaml target joins it.
+  actionlint, zizmor, repo-policy, picture-ban, taplo, the glossary build); never add a workflow
+  that calls a paid API; Claude reviews run locally. The main ruleset requires `lint / lint`, all
+  four builds (prospector's since 2026-10-04) and `picture-ban / picture-ban` (since 2026-11-08):
+  a new build.yaml target joins it.
 - Fleet-managed, never edited here (fleet-sync in akira-toriyama/.github overwrites them):
   `.github/workflows/{actionlint,commit-lint,repo-policy,taplo,task-status,version-preview,zizmor}.yml`,
   `.github/zizmor.yml`, `.github/dependabot.yml`, `docs/commit-convention.md`. `glyph.toml` came
