@@ -10,9 +10,12 @@ the name dictionary, the CSV `names` of the sprite sender's config
 (--sender-config, else $SPRITE_SENDER_CONFIG, which dotfiles sets), the rows of
 that number: the Japanese row's name, composed (NFC), else the English row's,
 whole, each when it is 15 bytes of UTF-8 at most and all in the katakana font or
-all printable ASCII. That rule, the CSV's columns and its language ids copy
-zmk-beacon's tools/name_dictionary.py and sprite_pack.KATAKANA_RANGES: change
-them together. A copy, because this runs before the pinned clone is checked out,
+all printable ASCII; the English name is first folded where the collection's
+names need it and nowhere else (a gender sign at its end to a space and F or M,
+a typographic apostrophe to the ASCII one: fold_english). That rule, the fold,
+the CSV's columns and its language ids copy zmk-beacon's
+tools/name_dictionary.py (its fold_english) and sprite_pack.KATAKANA_RANGES:
+change them together. A copy, because this runs before the pinned clone is checked out,
 and moving the pin moves every target's firmware stamp. The one difference is
 Kconfig's, below.
 
@@ -97,6 +100,16 @@ def from_file_name(file_name):
     return name
 
 
+def fold_english(name):
+    """zmk-beacon's name_dictionary.fold_english: a trailing gender sign to a
+    space and F or M, U+2019 to the ASCII apostrophe, nothing else."""
+    if name.endswith("\u2640"):
+        name = name[:-1] + " F"
+    elif name.endswith("\u2642"):
+        name = name[:-1] + " M"
+    return name.replace("\u2019", "'")
+
+
 def shown(text):
     """Whether the HP bar shows a row's name, whole (a cut name would be another
     name), and Kconfig takes it."""
@@ -160,8 +173,11 @@ def from_dictionary(gif, config_path):
     if problem:
         return None, problem
     for language in ("ja", "en"):
-        if language in species and shown(species[language]):
-            return species[language], None
+        if language not in species:
+            continue
+        name = fold_english(species[language]) if language == "en" else species[language]
+        if shown(name):
+            return name, None
     return None, None
 
 
