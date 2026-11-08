@@ -218,7 +218,7 @@ BLE or one the build made from a GIF and embedded (zmk-beacon's
 A pack from the [[sprite sender]] holds a front and a back view: the back
 plays while a modifier is held on the keyboard (the [[status advertisement]]
 carries the modifiers), the front otherwise.
-- The GIF is a personal file: embedded only by a local build, `./scripts/build-zmk.sh prospector --sprite <gif>` into `firmware/prospector-sprite.uf2`, never committed and never in CI or a release ([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and shows the room's.
+- The GIF is a personal file: embedded only by a local build, `./scripts/build-zmk.sh prospector --sprite <gif>` into `firmware/prospector-sprite.uf2`, or by a run of zmk-beacon's reusable workflow in a private repository made from its template repository [prospector-sprite-template](https://github.com/akira-toriyama/prospector-sprite-template) (an image without `CONFIG_BEACON_SPRITE_RECEIVE`, which the [[sprite sender]] cannot reach; zmk-beacon's README, "Pokémon sprites"), never committed and never in CI or a release ([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and shows the room's.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (that is the file), スプライト画像
 
 ### sprite pack
