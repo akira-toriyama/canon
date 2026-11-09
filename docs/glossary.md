@@ -44,7 +44,7 @@ flowchart TB
     CHORD["chord (separate repository)"]
   end
   subgraph COMPANION["companion display"]
-    PROSPECTOR["Prospector Dongle (shield prospector, zmk-beacon)"]
+    PROSPECTOR["Prospector Dongle (shield prospector, zmk-vfx-beacon)"]
   end
   BOARD --- SHIELD
   SHIELD --> KEYMAP
@@ -91,14 +91,14 @@ The companion status display: a beekeeb pre-soldered
 [Prospector](https://shop.beekeeb.com/products/pre-soldered-prospector-zmk-dongle)
 (XIAO nRF52840 and a Waveshare 1.69" LCD; no ambient light sensor, touch panel
 unwired) running shield `prospector` of the own module
-[zmk-beacon](https://github.com/akira-toriyama/zmk-beacon). It shows both
+[zmk-vfx-beacon](https://github.com/akira-toriyama/zmk-vfx-beacon). It shows both
 halves' battery from the [[Imprint Dongle]]'s [[status advertisement]], which
 it scans for passively, under a [[sprite]]; it advertises connectably only so
 that the [[sprite sender]] can write a [[sprite pack]] into its [[sprite room]], and never
 pairs, so it does not replace the Imprint Dongle.
 - USB: one CDC ACM port with product string `Prospector Dongle`, no HID. Setting the port to 1200 baud reboots it into the UF2 bootloader, which `scripts/flash-dongle.sh` uses (both seen on hardware 2026-09-26); 2400 baud sends a [[screen dump]].
-- The screen turns off after five minutes without a key press on the [[Cyboard Imprint]] and lights at the next one (zmk-beacon's `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; the cycle seen on hardware 2026-10-04 with a 20 s setting): a dark screen is not a dead device.
-- Config: [`config/prospector.conf`](../config/prospector.conf) (canon's additions only); the shield's defaults live in zmk-beacon, pinned by commit in [`config/west.yml`](../config/west.yml)
+- The screen turns off after five minutes without a key press on the [[Cyboard Imprint]] and lights at the next one (zmk-vfx-beacon's `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300; the cycle seen on hardware 2026-10-04 with a 20 s setting): a dark screen is not a dead device.
+- Config: [`config/prospector.conf`](../config/prospector.conf) (canon's additions only); the shield's defaults live in zmk-vfx-beacon, pinned by commit in [`config/west.yml`](../config/west.yml)
 - **Don't call it:** XIAO, XIAO ドングル, Canon Dongle, scanner alone, Prospector alone in prose (the vendor's product; `prospector` is the shield), beacon (the module's name), second dongle, 表示ドングル
 
 ---
@@ -119,7 +119,7 @@ has three names: its node name, its canonical name and its `display-name`.
 - Node name: the index macro in `config/layers.h`. `config/arrow_behaviors.dtsi`, `config/macros.dtsi`, `config/behavior_macros.h` and the `layers` pairs of the [[behavior]] node `layer` in `config/imprint_behaviors.dtsi` use the same macros, so do not rename them.
 - Canonical name: the name in prose and commits, words separated by spaces (`Symbol 1`, `Left Arrow`, `Vkey LL`), no hyphens or brackets.
 - `display-name`: the short name in the firmware, shown in the [[keymap-drawer]] SVG and carried by the [[status advertisement]]. It matches `[A-Za-z][A-Za-z0-9]{0,3}` and is unique:
-  - 4 ASCII characters at most: the status advertisement carries only the first 4 bytes, 0-padded (zmk-beacon `src/status_payload.h`; the Prospector Dongle does not show the name).
+  - 4 ASCII characters at most: the status advertisement carries only the first 4 bytes, 0-padded (zmk-vfx-beacon `src/status_payload.h`; the Prospector Dongle does not show the name).
   - Unique: keymap-drawer keys layers by name, so a repeated name silently drops a layer, and with exit 0 `fail_on_error` does not catch it. Measured 2026-09-26 with keymap-drawer 0.23.0: one arrow sub-layer named `Fn` left 12 layers, Function's keys gone and stderr empty.
   - A letter, then letters and digits: keymap-drawer makes the SVG anchor id by turning spaces into `-` and dropping every character before the first ASCII letter or outside `[A-Za-z0-9-_:.]`, so `Fn!`, `Fn?` and `1Fn` all become `Fn`, while such a name is its own id.
   - Sources read 2026-09-26: keymap-drawer 0.23.0 `keymap_drawer/parse/zmk.py:211` and `keymap_drawer/draw/utils.py:26-35`.
@@ -204,41 +204,41 @@ level, the highest active [[layer]]'s index and the first 4 bytes of its
 `display-name`, a count of key presses, and the modifiers held, confirmed as
 holds so that a [[hold-tap]] thumb's tap never counts) on a second, non-connectable
 advertising set next to ZMK's own, every 200 ms; no pairing, no bond, no BLE
-slot on either side. Both ends and the byte layout are zmk-beacon's
-([`src/status_payload.h`](https://github.com/akira-toriyama/zmk-beacon/blob/main/src/status_payload.h)).
+slot on either side. Both ends and the byte layout are zmk-vfx-beacon's
+([`src/status_payload.h`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/src/status_payload.h)).
 - Enabled by `CONFIG_BEACON_STATUS_BROADCAST=y` and `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) (why the second line: the comment there); the halves' builds do not have it.
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知
 
 ### sprite
 The animation the [[Prospector Dongle]] plays above the [[HP bar]]: a
 [[sprite pack]], either the one last written into its [[sprite room]] over
-BLE or one the build made from a GIF and embedded (zmk-beacon's
+BLE or one the build made from a GIF and embedded (zmk-vfx-beacon's
 `CONFIG_BEACON_SPRITE_GIF`; size, tempo, key-press stepping and limits:
-[zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite)).
+[zmk-vfx-beacon's README](https://github.com/akira-toriyama/zmk-vfx-beacon#the-sprite)).
 A pack from the [[sprite sender]] holds a front and a back view: the back
 plays while a modifier is held on the keyboard (the [[status advertisement]]
 carries the modifiers), the front otherwise.
-- The GIF is a personal file: embedded only by a local build, `./scripts/build-zmk.sh prospector --sprite <gif>` into `firmware/prospector-sprite.uf2`, or by a run of zmk-beacon's reusable workflow in a private repository made from its template repository [prospector-sprite-template](https://github.com/akira-toriyama/prospector-sprite-template) (an image without `CONFIG_BEACON_SPRITE_RECEIVE`, which the [[sprite sender]] cannot reach; zmk-beacon's README, "Pokémon sprites"), never committed and never in CI or a release ([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and shows the room's.
+- The GIF is a personal file: embedded only by a local build, `./scripts/build-zmk.sh prospector --sprite <gif>` into `firmware/prospector-sprite.uf2`, or by a run of zmk-vfx-beacon's reusable workflow in a private repository made from its template repository [prospector-sprite-template](https://github.com/akira-toriyama/prospector-sprite-template) (an image without `CONFIG_BEACON_SPRITE_RECEIVE`, which the [[sprite sender]] cannot reach; zmk-vfx-beacon's README, "Pokémon sprites"), never committed and never in CI or a release ([`assets/README.md`](../assets/README.md)); `prospector.uf2` embeds none and shows the room's.
 - **Don't call it:** mascot, pet, avatar, character, GIF alone (that is the file), スプライト画像
 
 ### sprite pack
 A [[sprite]]'s GIF repacked into the distinct pictures it shows and the order
 it shows them in, each picture drawable on its own, the canvas cut to the box
 the pictures ink (a transparent margin in one view would otherwise shrink and
-lift the other, both drawn at one scale; zmk-beacon#63, t-t4y4); file extension `.spk`,
-magic `SPK1`, written by zmk-beacon's `tools/sprite_pack.py`: at build time
+lift the other, both drawn at one scale; zmk-vfx-beacon#63, t-t4y4); file extension `.spk`,
+magic `SPK1`, written by zmk-vfx-beacon's `tools/sprite_pack.py`: at build time
 to embed, and by a sender to write into the [[sprite room]] over BLE (format
 and why:
-[zmk-beacon's docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md)).
+[zmk-vfx-beacon's docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/docs/sprite-pack.md)).
 It carries the [[sprite name]].
 - Made from the personal GIF, it stays out of commits, PRs and issues like the GIF.
 - **Don't call it:** sprite sheet, pack alone, spk file, frame list, スプライトパック
 
 ### sprite room
-The 384 KiB flash partition of the [[Prospector Dongle]] (zmk-beacon's shield
+The 384 KiB flash partition of the [[Prospector Dongle]] (zmk-vfx-beacon's shield
 overlay, `sprite_partition`, 0x80000-0xdffff) that holds one [[sprite pack]]
 written over BLE by the [[sprite sender]]; the device plays it at once and again after a
-reboot or a reflash, and erases it for the next (zmk-beacon's
+reboot or a reflash, and erases it for the next (zmk-vfx-beacon's
 `CONFIG_BEACON_SPRITE_RECEIVE`, protocol in its `src/ble_receiver.c`). A
 transfer that fails leaves the embedded sprite, or none, until the next one.
 - **Don't call it:** slot, sprite partition in prose (that is the node), flash area, storage, 部屋 alone in English, スプライト領域
@@ -253,8 +253,8 @@ writes into the [[sprite room]], and by
 [`assets/sprite-name.py`](../assets/sprite-name.py) for a local sprite
 build, where a GIF of another name gives its file name with the extension
 dropped, trimmed, the first letter upper-cased and cut to 15 bytes, and
-`build-zmk.sh --sprite` passes the name to zmk-beacon as
-[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-beacon/blob/main/Kconfig).
+`build-zmk.sh --sprite` passes the name to zmk-vfx-beacon as
+[`CONFIG_BEACON_SPRITE_NAME`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/Kconfig).
 It names the GIF's subject, so it never appears in commits, PRs or docs; the
 name row is empty until a pack plays.
 - **Don't call it:** caption, label, title, character name, キャラ名, 名札
@@ -263,8 +263,8 @@ name row is empty until a pack plays.
 The bitmap font the [[Prospector Dongle]] draws a katakana [[sprite name]] in:
 PKMN Strict from [nue-of-k/pkmn](https://github.com/nue-of-k/pkmn) (MIT), the
 letters of the first Game Boy games at two pixels a dot and a pixel bolder,
-rendered as whole blocks, never a name's subset, into zmk-beacon's
-[`src/font_pkmn.c`](https://github.com/akira-toriyama/zmk-beacon/blob/main/src/font_pkmn.c)
+rendered as whole blocks, never a name's subset, into zmk-vfx-beacon's
+[`src/font_pkmn.c`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/src/font_pkmn.c)
 by its `tools/pkmn_font.py`; an ASCII name keeps LVGL's unscii 16.
 - **Don't call it:** Pokémon font, pokemon font, ポケモンフォント, kana font, pkmn font, PKMN Strict in prose, name font
 
@@ -272,16 +272,16 @@ by its `tools/pkmn_font.py`; an ASCII name keeps LVGL's unscii 16.
 The [[Prospector Dongle]]'s battery reading in a box along the bottom of the
 screen: `HP` and a battle-screen style bar with its value on it (`65/100`),
 the bar as long as the mean of both halves' levels, or the one half that has
-a reading ([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-screen)).
+a reading ([zmk-vfx-beacon's README](https://github.com/akira-toriyama/zmk-vfx-beacon#the-screen)).
 In a [[sprite]] build the box has a first row with the [[sprite name]], centred
 above `HP` and the bar (t-rq9h; a second row under them until 2026-10-26).
 - **Don't call it:** battery bar, life bar, health bar, gauge, HP ゲージ, 体力バー
 
 ### screen dump
 The [[Prospector Dongle]]'s screen, sent over its USB serial port when the host
-sets the port to 2400 baud (zmk-beacon's `CONFIG_BEACON_SCREEN_DUMP`, on by
+sets the port to 2400 baud (zmk-vfx-beacon's `CONFIG_BEACON_SCREEN_DUMP`, on by
 default in the `prospector` shield; record format:
-[`src/screen_dump.c`](https://github.com/akira-toriyama/zmk-beacon/blob/main/src/screen_dump.c)).
+[`src/screen_dump.c`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/src/screen_dump.c)).
 `python3 scripts/dongle.py shot` turns it into a PNG and refuses an `--out`
 path inside any git work tree.
 - A [[sprite]] build's PNG shows the sprite and its [[sprite name]]: it never goes into a commit, a PR or an issue.
@@ -290,17 +290,18 @@ path inside any git work tree.
 ### own module
 A Zephyr module of the user's own that [`config/west.yml`](../config/west.yml)
 pins under its `akira-toriyama` remote by a full commit SHA, never a branch or
-tag: zmk-beacon and [[zmk-lantern]] today. The scripts treat them alike
+tag: zmk-vfx-beacon and [[zmk-vfx-lantern]] today. The scripts treat them alike
 (`python3 scripts/stamp.py pins` lists them): the [[firmware stamp]] digests
 each pin's tree id, every build checks each clone out at its pin, and
 `./scripts/build-zmk.sh --module <dir>` builds a local tree in place of one (the
-[[image]] carries `-beacon`, `-lantern`).
+[[image]] carries `-beacon`, `-lantern`: the name without `zmk-vfx-`).
+- Their names follow ZMK's module rule `zmk-<type>-<description>`, type `vfx`; `zephyr/module.yml`'s name, the repository and the west project and path are the same name (t-g1p7, 2026-11-09).
 - A third needs no script change, only its project written like the two ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** custom module, private module, third-party module (ZMK's and Cyboard's are upstream and not own), 自作モジュール
 
-### zmk-lantern
+### zmk-vfx-lantern
 The own ZMK module
-([akira-toriyama/zmk-lantern](https://github.com/akira-toriyama/zmk-lantern))
+([akira-toriyama/zmk-vfx-lantern](https://github.com/akira-toriyama/zmk-vfx-lantern))
 that lights the [[Cyboard Imprint]]'s key LEDs only while USB powers a half
 and the half is in use, and for the [[intro]] at boot: it drives the half's LED
 rail (assimilator-bt P1.02, the pin ZMK's `ext_power` driver would own)
@@ -309,7 +310,7 @@ on either half (ZMK's idle state, `CONFIG_ZMK_IDLE_TIMEOUT`, for the half's
 own keys; the other half's reach it through the [[Imprint Dongle]]'s relay
 and the module's wake, `CONFIG_LANTERN_WAKE_ON_HIT`), so the LEDs cost the
 battery nothing. Each half lights from its own port.
-- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]], pick, hit and layer sides (the behaviors, the port, the resend, the relay to the halves), the Prospector Dongle none of it.
+- Pinned by commit in [`config/west.yml`](../config/west.yml), like zmk-vfx-beacon. canon's side: [`config/lantern_rail.dtsi`](../config/lantern_rail.dtsi) (the disabled `EXT_POWER` node, the hog, the `lantern,rail` node), [`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) (the key LEDs' strip and the [[palette]] slot each key shows; each half's overlay adds the key under each LED in chain order and the strip's length) and the idle line of [`config/imprint_left.conf`](../config/imprint_left.conf) / [`config/imprint_right.conf`](../config/imprint_right.conf); the Imprint Dongle builds the module's [[palette]], pick, hit and layer sides (the behaviors, the port, the resend, the relay to the halves), the Prospector Dongle none of it.
 - The product halves paint no picture (`CONFIG_LANTERN_NO_PICTURE`, t-skdt): the keys stay black while lit, each press, or a held [[layer]], draws the [[effect]] in the [[palette]]'s colours at full brightness under the frame's cap (`CONFIG_LANTERN_BRIGHTNESS`, 16 %, sets it), and the [[intro]] plays as the boot light; the [[countdown]] is off. ZMK's underglow is off on every target (`config/imprint.conf`). No `&rgb_ug` key ([CLAUDE.md](../CLAUDE.md), Invariants).
 - **Don't call it:** backlight (ZMK's `backlight` is a different feature; fine as a figure of speech in prose), underglow alone (ZMK's feature; off on every target; the module paints the LEDs itself), lantern alone in prose, LED module, バックライトモジュール
 
@@ -321,8 +322,8 @@ the [[Cyboard Imprint]] keep in their settings across boots, and whose colours t
 ZMK's split transport carries to both halves by its name, and resends the
 palette after each battery report of a half, so a half that was away gets it
 when it is back.
-- The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c), which reads the [[effect]]'s line too; the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/palette.c).
-- The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-beacon's `tools/sprite_colours.py`: the heaviest lively colour first), which the LaunchAgent in the user's dotfiles hands to `python3 scripts/dongle.py palette --wait 600` after each successful swap (every morning since 2026-10-21), so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
+- The line on the dongle's USB serial port and its replies (`palette ok …`, `palette none`, `palette error: …`): zmk-vfx-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/port.c), which reads the [[effect]]'s line too; the storage, the behavior and the resend: its [`src/palette.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/palette.c).
+- The daily palette (t-0967): the five colours the [[sprite sender]]'s `sprite-sender colours` prints for the GIF it last sent (zmk-vfx-beacon's `tools/sprite_colours.py`: the heaviest lively colour first), which the LaunchAgent in the user's dotfiles hands to `python3 scripts/dongle.py palette --wait 600` after each successful swap (every morning since 2026-10-21), so the key LEDs follow the [[Prospector Dongle]]'s [[sprite]]; a day whose swap failed sends no palette.
 - The dongle's split run queue holds a whole palette and all three picks, the [[effect]]'s, the [[intro]]'s and the [[tempo]]'s, for both halves at once, three invocations a half for every palette set (two slots a call; the slots not sent are cleared to black, which the halves show as slot 0) and one for each pick: `CONFIG_ZMK_SPLIT_BLE_CENTRAL_SPLIT_RUN_QUEUE_SIZE=12` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) ([CLAUDE.md](../CLAUDE.md), Invariants). A device flashed across the change from four slots to six ignores its stored palette: `palette none` until the next set.
 - A palette taken from a [[sprite]] GIF is personal, like the GIF: its values go into no commit, PR, issue or doc, only the command's shape does.
 - The [[countdown]] to the idle dark, when a trial image builds it, cycles through the palette's distinct colours after the first, the whole half in one at a time, ten seconds each (the first colour has no stage of its own: it shows where the bands put it); the product images leave it off.
@@ -333,8 +334,8 @@ What a half's key LEDs do between its last key and the idle dark: every ten
 seconds a new picture, the bands, then the whole half in each colour of the
 [[palette]] after the first, then the bands again, until the five minutes of
 `CONFIG_ZMK_IDLE_TIMEOUT` turn the LEDs off; a key brings the bands back
-([[zmk-lantern]]'s `CONFIG_LANTERN_COUNTDOWN` and `CONFIG_LANTERN_COUNTDOWN_STAGE_MS`,
-on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/keys.c); t-gsm2, t-x82q).
+([[zmk-vfx-lantern]]'s `CONFIG_LANTERN_COUNTDOWN` and `CONFIG_LANTERN_COUNTDOWN_STAGE_MS`,
+on by default at 10000, its [`src/keys.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/keys.c); t-gsm2, t-x82q).
 - Each half counts its own keys, while dark too (a trackball input moves ZMK's idle, not the pictures; a cable plugged in lights the picture the keys say). Colours that paint alike at the LEDs' brightness count once, and the first colour has no stage of its own (it shows where the bands put it, so on the right half, whose keys are all in slots 2 to 4, nowhere), so a day of three colours cycles through three pictures, the bands and two solid ones; one colour is the bands until the dark. The dark falls on whichever picture the cycle is at then. In canon#272 (2026-10-20) a stage was a minute, the five minutes over the colour count, and the last colour held until the dark; the user chose the ten-second cycle on hardware the same day.
 - Off in the product images since t-5hqx (`CONFIG_LANTERN_COUNTDOWN=n` in the halves' confs): with no picture the stages would only paint the whole half in a colour; a trial image (`--kconfig CONFIG_LANTERN_COUNTDOWN=y`) brings it back.
 - **Don't call it:** fade, dimming, idle animation, timeout display, 段階表示, 消灯カウントダウン
@@ -353,16 +354,16 @@ carries to both halves through the [[behavior]] node `effect` of
 [[palette]], and resends with it after each battery report of a half; `effect`
 alone asks (`effect …`, the colour last when one is set, `effect none`).
 - The default (t-5hqx): until the Mac's first pick, and whenever the stored pick names none of the built nine, a half draws the [[crossing ring]] (`CONFIG_LANTERN_EFFECT_DEFAULT_CROSS_RING`).
-- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn, as `&intro` and `&tempo` bind the other picks (its README); canon's keymap binds none of them, the Mac picks, and none is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
-- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.h); bits 7 and 9 are no effect's, so `layer-keys` is bit 8 and `heatmap` bit 10, the line above the layer keys, which stay the last line), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together; the daily effect (t-2d9r) is one press effect at a time, the [[layer keys]] never in the rotation and only by hand with it (`effect dart layer-keys`), since over a press effect the layer's keys share the frame's cap and dim while it draws (t-gwsw, the user's choice on 2026-11-02).
-- The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
+- The colour (t-rgp5): with one, every picked effect draws in that one colour, the [[stain]]'s dye too, in place of its colour source in the [[palette]] (that entry lists each effect's); a pick without a colour returns to the palette's. The dongle and the halves keep it with the pick (after the mask under `lantern/effect/mask`, one value; the behavior's second parameter, 0xRRGGBB, 0 for the palette's), and a change of the colour clears a half's running effects as a change of the pick does. Without a host zmk-vfx-lantern lets a split central's keymap bind `&effect <mask> <colour>` or its node `effect_next`, the next effect in turn, as `&intro` and `&tempo` bind the other picks (its README); canon's keymap binds none of them, the Mac picks, and none is verified on hardware. The colour on hardware 2026-10-27 (the stain red, then the palette's colours again; a stored pick survived the flash from the image before the colour).
+- The names and the bit each carries: [[zmk-vfx-lantern]]'s table `LANTERN_EFFECT_LIST` ([`src/effect.h`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/effect.h); bits 7 and 9 are no effect's, so `layer-keys` is bit 8 and `heatmap` bit 10, the line above the layer keys, which stay the last line), and the names alone, in its order, `EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py); a new effect lands in both, with the conf line that builds it and an entry here, in one PR. Two or more names draw together; the daily effect (t-2d9r) is one press effect at a time, the [[layer keys]] never in the rotation and only by hand with it (`effect dart layer-keys`), since over a press effect the layer's keys share the frame's cap and dim while it draws (t-gwsw, the user's choice on 2026-11-02).
+- The line on the dongle's port and its replies (`effect ok …`, `effect …`, `effect none`, `effect error: …`): zmk-vfx-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/effect.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/effect.c); the drawing: its `src/keys.c`.
 - The daily effect (t-2d9r): `python3 scripts/dongle.py effect --daily` picks the press effect of the day, the eight (every effect but the [[layer keys]], which alone light nothing for a press: `DAILY_EFFECTS` in [`scripts/dongle.py`](../scripts/dongle.py)) in `EFFECTS`' order at the local date's ordinal (`date.toordinal()`) modulo eight, without a colour, so the same date names the same effect on any machine and no state is kept; the LaunchAgent in the user's dotfiles sends it every morning as the stage after the daily [[palette]] (a morning whose swap or palette failed changes neither), so the halves draw a new effect each day in that day's sprite's colours. The layer keys join only by hand, `effect <name> layer-keys`, for that day (t-gwsw's layering).
 - **Don't call it:** animation, lighting mode, RGB effect, underglow effect (ZMK's underglow is off on every target), 光り方, エフェクト設定
 
 ### thin ring
 The [[effect]] `thin-ring`: from each pressed key a ring one key wide spreads
 at twelve key units a second and fades out within a second, each press in the
-[[palette]]'s next colour ([[zmk-lantern]]'s `CONFIG_LANTERN_THIN_RING`, its
+[[palette]]'s next colour ([[zmk-vfx-lantern]]'s `CONFIG_LANTERN_THIN_RING`, its
 `src/effects/thin_ring.c`; t-6ttk, OK on hardware 2026-10-21).
 - With the hit (the [[crossing ring]]'s relay) a press of the other half rings in too, in across the split.
 - **Don't call it:** ripple (zmk-rgb-matrix's name for the idea; fine in prose about that project), wave, ring alone where the [[crossing ring]] could be meant
@@ -390,7 +391,7 @@ fading until it has left the board, in the colour of the pressed key's band
 ([`config/lantern_keys.dtsi`](../config/lantern_keys.dtsi) `slots`), so both
 halves draw one press in one colour (`CONFIG_LANTERN_CROSS_RING`; t-6ttk, OK on
 hardware 2026-10-26).
-- The hit: the [[Imprint Dongle]] relays each half's key presses to the other half through the [[behavior]] node `hit` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) ([[zmk-lantern]]'s `src/hit.c`), only to a half whose link runs at peripheral latency 0, which a half asks for while USB powers it (its `src/latency.c`): a half on battery is dark and gets nothing.
+- The hit: the [[Imprint Dongle]] relays each half's key presses to the other half through the [[behavior]] node `hit` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi) ([[zmk-vfx-lantern]]'s `src/hit.c`), only to a half whose link runs at peripheral latency 0, which a half asks for while USB powers it (its `src/latency.c`): a half on battery is dark and gets nothing.
 - **Don't call it:** split ring, cross ring in prose (the Kconfig is `CROSS_RING` and the port's word `cross-ring`), 半分をまたぐ輪 in English text
 
 ### beams
@@ -416,7 +417,7 @@ keys stay black until a wave passes and the pressed key's first waves flicker
 between the first and last colours four times a second (`CONFIG_LANTERN_WATER`;
 t-6ttk, OK on hardware 2026-10-27).
 - With the hit the other half's presses start waves too, low: about a fifth of a crest from an inner column, three fifths from a thumb.
-- The research's wavelength of two keys stood still on the Imprint's grid of keys a unit apart (every key in step, the sign swapping key to key); three keys a wave show the travel (zmk-lantern#18's review).
+- The research's wavelength of two keys stood still on the Imprint's grid of keys a unit apart (every key in step, the sign swapping key to key); three keys a wave show the travel (zmk-vfx-lantern#18's review).
 - **Don't call it:** ripple (the [[thin ring]]'s idea), waves, water surface, 水面 in English text
 
 ### dart
@@ -429,7 +430,7 @@ colour is the [[palette]]'s first at the pressed key and slides along the
 colours as it runs, the last a board's width on, so the bar changes colour
 on its way (`CONFIG_LANTERN_DART`; t-6ttk, OK on hardware 2026-10-27).
 - With the hit the bar runs on into the other half: a press of an inner column comes in across the split at about two thirds of its strength, a thumb's nearly full; the other half shows most of a bar from an inner key.
-- The last colour shows only from a bar that started at an outer column: from an inner column it leaves the board three quarters of the way along the palette (zmk-lantern's review, 2026-10-27).
+- The last colour shows only from a bar that started at an outer column: from an inner column it leaves the board three quarters of the way along the palette (zmk-vfx-lantern's review, 2026-10-27).
 - **Don't call it:** sweep (the research's early name), comet, streak, runner, 打鍵で走る光 in English text
 
 ### heatmap
@@ -442,7 +443,7 @@ cold and running along the colours to the first at the top, so the keys you
 type most and the keys around them glow, and cool when you stop
 (`CONFIG_LANTERN_HEATMAP`; t-6ttk, QMK's TYPING_HEATMAP from its idea, OK on
 hardware 2026-11-02).
-- Each half warms from its own presses only: a press of the other half warms nothing. Each half keeps its heat itself, so a burst of typing past the engine's ring of sixteen presses cools every key to its end; more than sixteen presses of both halves within one frame, and the oldest never count (zmk-lantern's `src/effects/heatmap.c`). The glow is gone within seven seconds of the last press.
+- Each half warms from its own presses only: a press of the other half warms nothing. Each half keeps its heat itself, so a burst of typing past the engine's ring of sixteen presses cools every key to its end; more than sixteen presses of both halves within one frame, and the oldest never count (zmk-vfx-lantern's `src/effects/heatmap.c`). The glow is gone within seven seconds of the last press.
 - The footprints (bit 9; each pressed key lit at once in the palette's next colour and fading out over two seconds, the user's own idea of 2026-10-28, OK on hardware the morning of 2026-11-02 and in main for canon#305) were dropped for the heatmap the same day: the user kept one of the two effects whose keys stay lit after a press. The press glow (2026-10-21, twice NG) and the held (2026-10-27, NG) lit one key too. Bit 9 joins bit 7 as a bit no effect takes again; a stored pick of it falls to the default.
 - **Don't call it:** heat map, typing heatmap in prose (QMK's name), hot keys, key usage, afterglow, footprints (dropped), ヒートマップ in English text
 
@@ -453,7 +454,7 @@ parameters as Base at that key) light in the [[palette]] slot it is paired
 with, and a key press draws nothing; the [[Imprint Dongle]], where the
 [[keymap]] runs, sends the halves those keys through the behavior node `layer`
 of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), whose
-`layers` pairs name the layers shown and their slots ([[zmk-lantern]]'s
+`layers` pairs name the layers shown and their slots ([[zmk-vfx-lantern]]'s
 `CONFIG_LANTERN_LAYER_KEYS` on the halves, its `src/effects/layer_keys.c`, and
 `CONFIG_LANTERN_LAYER`, on by the node, its `src/layer.c`; t-6ttk, OK on
 hardware 2026-10-28).
@@ -471,13 +472,13 @@ user types, and the pick of it (t-6ttk, 2026-11-02): with the tempo on, the
 presses a second over the last two seconds, both halves' presses counted, and
 return to their own speed within a couple of seconds of the typing slowing; the
 speed changes smoothly and a ring in flight bends, never jumps; the [[heatmap]]
-and the [[layer keys]] keep their own time ([[zmk-lantern]]'s
+and the [[layer keys]] keep their own time ([[zmk-vfx-lantern]]'s
 `CONFIG_LANTERN_TEMPO`, its `src/keys.c`; `config/imprint_left.conf` builds it).
 - The pick: `python3 scripts/dongle.py tempo on|off` hands the [[Imprint Dongle]] the pick, one state, which it keeps in its settings (`lantern/tempo/mask`) and carries to both halves through the [[behavior]] node `tempo` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the [[effect]]'s pick, and resends with the palette after each battery report of a half; `tempo` alone asks (`tempo on`, `tempo off`, `tempo none`).
 - The default: until the Mac's first pick, and whenever the stored pick names neither state, the tempo runs (the module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y).
-- The states and the bit each carries (`on` 0, `off` 1; two bits because an empty mask is no pick): zmk-lantern's `LANTERN_TEMPO_LIST` ([`src/tempo.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/tempo.h)) and `TEMPOS` in [`scripts/dongle.py`](../scripts/dongle.py). One state a pick (both: `tempo error: on or off, not both`).
-- The line on the dongle's port and its replies (`tempo ok …`, `tempo …`, `tempo none`, `tempo error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/tempo.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/tempo.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/pick.c); the speed: its `src/keys.c` (the beats, the last sixteen presses' times).
-- On hardware 2026-11-02 (t-6ttk; trial images of zmk-lantern 4d95faf on both halves, the Imprint Dongle unchanged, the pick cross-ring): the user's OK on sight. The pick itself is on hardware from canon's pin bump PR.
+- The states and the bit each carries (`on` 0, `off` 1; two bits because an empty mask is no pick): zmk-vfx-lantern's `LANTERN_TEMPO_LIST` ([`src/tempo.h`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/tempo.h)) and `TEMPOS` in [`scripts/dongle.py`](../scripts/dongle.py). One state a pick (both: `tempo error: on or off, not both`).
+- The line on the dongle's port and its replies (`tempo ok …`, `tempo …`, `tempo none`, `tempo error: …`): zmk-vfx-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/tempo.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/tempo.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/pick.c); the speed: its `src/keys.c` (the beats, the last sixteen presses' times).
+- On hardware 2026-11-02 (t-6ttk; trial images of zmk-vfx-lantern 4d95faf on both halves, the Imprint Dongle unchanged, the pick cross-ring): the user's OK on sight. The pick itself is on hardware from canon's pin bump PR.
 - **Don't call it:** typing speed, velocity, Velocikey (QMK's name for the idea), speed multiplier, 速さ連動, テンポ設定
 
 ### intro
@@ -490,8 +491,8 @@ a second of the [[palette]]'s bands (`CONFIG_LANTERN_INTRO_BANDS`; the pick's
 - The pick: `python3 scripts/dongle.py intro <name>` hands the [[Imprint Dongle]] the pick, one name, which it keeps in its settings and carries to both halves through the [[behavior]] node `intro` of [`config/imprint_behaviors.dtsi`](../config/imprint_behaviors.dtsi), as the [[effect]]'s pick, and resends with the palette after each battery report of a half; `intro` alone asks (`intro …`, `intro none`).
 - The default: until the Mac's first pick, and whenever the stored pick names an intro not built, a half plays the star waves (`CONFIG_LANTERN_INTRO_DEFAULT_STAR_WAVES`).
 - A key pressed while an intro plays draws no effect; nothing cuts it short.
-- The names and the bit each carries: [[zmk-lantern]]'s table `LANTERN_INTRO_LIST` ([`src/intro.h`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.h)) and `INTROS` in [`scripts/dongle.py`](../scripts/dongle.py); a new intro lands in both, with the conf line that builds it and an entry here, in one PR. One intro a pick (two names: `intro error: one intro at a time`).
-- The line on the dongle's port and its replies (`intro ok …`, `intro …`, `intro none`, `intro error: …`): zmk-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/intro.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/intro.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-lantern/blob/main/src/pick.c); the playing: its `src/keys.c`, one file an intro under its `src/intros/`.
+- The names and the bit each carries: [[zmk-vfx-lantern]]'s table `LANTERN_INTRO_LIST` ([`src/intro.h`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/intro.h)) and `INTROS` in [`scripts/dongle.py`](../scripts/dongle.py); a new intro lands in both, with the conf line that builds it and an entry here, in one PR. One intro a pick (two names: `intro error: one intro at a time`).
+- The line on the dongle's port and its replies (`intro ok …`, `intro …`, `intro none`, `intro error: …`): zmk-vfx-lantern's [`src/port.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/port.c); the storage, the behavior and the resend: its [`src/intro.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/intro.c) on the shared [`src/pick.c`](https://github.com/akira-toriyama/zmk-vfx-lantern/blob/main/src/pick.c); the playing: its `src/keys.c`, one file an intro under its `src/intros/`.
 - **Don't call it:** boot animation, splash screen, boot light (the module's name for the window the intro fills; not the show), opening (the task's working name), オープニング in English text
 
 ### star waves
@@ -500,7 +501,7 @@ colour a key at a time and never white (t-ky8x, 2026-10-27): a star crossing
 the half from the outer keys to the thumbs, waves and rings in and back out, the
 three colours flowing outward as crests, and a star running back out (the flow
 and the star out, t-x46t, 2026-10-27), the user's pick after Pokemon's first
-games ([[zmk-lantern]]'s `CONFIG_LANTERN_INTRO_STAR_WAVES`, its
+games ([[zmk-vfx-lantern]]'s `CONFIG_LANTERN_INTRO_STAR_WAVES`, its
 `src/intros/star_waves.c`; t-5v1f, 2026-10-22). The intro the halves play until
 the Mac's first pick.
 - **Don't call it:** the intro (one of two now), star-wave, 星, スターウェーブ in English text
@@ -524,7 +525,7 @@ peripherals. canon's four: `imprint_left` / `imprint_right` (the halves),
 `imprint_dongle` (the [[Imprint Dongle]]) and `prospector` (the
 [[Prospector Dongle]]).
 - Config: [`build.yaml`](../build.yaml), the single source of board × shield
-- Origin: the three imprint shields come from the Cyboard module (`zmk-keyboards`, `zephyr-4.1` branch), `prospector` from the own module zmk-beacon (pinned by commit). canon has no local shield: `imprint_dongle` went upstream with [Cyboard-DigitalTailor/zmk-keyboards#19](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/19) on 2026-07-28 and the local copy was removed.
+- Origin: the three imprint shields come from the Cyboard module (`zmk-keyboards`, `zephyr-4.1` branch), `prospector` from the own module zmk-vfx-beacon (pinned by commit). canon has no local shield: `imprint_dongle` went upstream with [Cyboard-DigitalTailor/zmk-keyboards#19](https://github.com/Cyboard-DigitalTailor/zmk-keyboards/pull/19) on 2026-07-28 and the local copy was removed.
 - **Don't call it:** half, side, panel, 分割キーボード
 
 ### west
@@ -586,11 +587,11 @@ which it finds by USB product string; canon holds only the ZMK side.
 
 ### sprite sender
 The Mac program that writes a [[sprite pack]] into the [[Prospector Dongle]]'s
-[[sprite room]] over BLE: zmk-beacon's
-[`tools/sprite-sender`](https://github.com/akira-toriyama/zmk-beacon/tree/main/tools/sprite-sender)
+[[sprite room]] over BLE: zmk-vfx-beacon's
+[`tools/sprite-sender`](https://github.com/akira-toriyama/zmk-vfx-beacon/tree/main/tools/sprite-sender)
 (a Swift app, `SpriteSender.app`), which takes the next `<number>.gif` of the
 collection, one a run, in number order over the range its config sets
-([zmk-beacon's README](https://github.com/akira-toriyama/zmk-beacon#the-sprite-sender)),
+([zmk-vfx-beacon's README](https://github.com/akira-toriyama/zmk-vfx-beacon#the-sprite-sender)),
 packs it with its back view, names it from the [[name dictionary]] when it can
 and sends it; a LaunchAgent in the user's dotfiles
 runs it once a day, and a failed day is skipped; its `colours` subcommand prints
@@ -605,7 +606,7 @@ The species names CSV the [[sprite sender]]'s config names (`names` in
 `sender.json`) that gives a GIF's number a katakana and an English name, read at
 each run: no generated file. It names the collection's subjects, so it is a clone
 off the user's own repositories, like the collection.
-- The rule for the [[sprite name]]: zmk-beacon's [`tools/name_dictionary.py`](https://github.com/akira-toriyama/zmk-beacon/blob/main/tools/name_dictionary.py), and [`assets/sprite-name.py`](../assets/sprite-name.py) copies it.
+- The rule for the [[sprite name]]: zmk-vfx-beacon's [`tools/name_dictionary.py`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/tools/name_dictionary.py), and [`assets/sprite-name.py`](../assets/sprite-name.py) copies it.
 - **Don't call it:** name table, 和名表, species list, lookup file, dictionary alone in prose, 辞書 alone in English text
 
 ### keymap-drawer
@@ -626,6 +627,6 @@ hand.
 - One canonical name per concept. When several names circulate, pick the winner here and list the others on its `Don't call it:` line.
 - A canonical name is spelled as in the code: ZMK identifiers keep their form (`&mt`, `&mo`, `DEFAULT_LAYER`, `imprint_left`).
 - A definition is 1–2 sentences; link to the config or source for behavior instead of restating it.
-- Where a term meets another repository ([chord](https://github.com/akira-toriyama/chord), [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon), [zmk-lantern](https://github.com/akira-toriyama/zmk-lantern)), link to the meeting point.
+- Where a term meets another repository ([chord](https://github.com/akira-toriyama/chord), [zmk-vfx-beacon](https://github.com/akira-toriyama/zmk-vfx-beacon), [zmk-vfx-lantern](https://github.com/akira-toriyama/zmk-vfx-lantern)), link to the meeting point.
 - A new term goes into this file in the PR that introduces it; rename a term in code, docs and this file in the same PR.
 - The glossary site builds from this file (`.github/workflows/glossary.yml` → akira-toriyama/glossary-site): one H1, H2 sections, H3 entries, wikilinks to H3 terms. Its renderer ends a list item at the line end, so a bullet stays on one line; it splits a `Don't call it:` line into aliases at every `,` and `、`, so a note inside an alias has no comma; and in an entry it reads a `#` after a space as a tag.

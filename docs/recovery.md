@@ -151,7 +151,7 @@ What the scripts do ([flash-impl.sh](../scripts/flash-impl.sh)):
   not a setting (derived from source).
 - Slot 0 must be the left half: the split battery report's `source`, which
   chord passes on as `CHORD_BATTERY_SOURCE` (its README's example maps 0 to
-  left), and the left byte of the status advertisement (zmk-beacon
+  left), and the left byte of the status advertisement (zmk-vfx-beacon
   `src/status_broadcaster.c`) read it so. The current bonds have it
   (2026-09-27, each half powered off in turn; projects t-eray). The Prospector
   Dongle's HP bar shows the mean of both halves, so a swap does not show there.
@@ -257,7 +257,7 @@ build's INFO level.
 - `./scripts/flash-dongle.sh --reset firmware/imprint_dongle_RESET.uf2` erases
   the Imprint Dongle alone, which leaves the halves with bonds it lacks:
   re-pairing all three is B.
-- The Prospector Dongle holds no bonds (zmk-beacon's shield sets
+- The Prospector Dongle holds no bonds (zmk-vfx-beacon's shield sets
   `CONFIG_ZMK_BLE=n`; it only observes the status advertisement) and needs no
   recovery step. Its bootloader also mounts as `XIAO-SENSE`: never double-tap
   it or open its port at 1200 baud while `flash-watch.sh` / `flash-reset.sh`

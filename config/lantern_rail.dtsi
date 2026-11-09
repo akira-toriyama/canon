@@ -1,4 +1,4 @@
-// The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's (config/west.yml),
+// The halves' LED rail (assimilator-bt P1.02) is zmk-vfx-lantern's (config/west.yml),
 // not ZMK's ext_power driver's: the module turns the rail on while USB powers
 // the half and it is in use, and for the boot light, and off on battery and
 // while the half is idle (its README; CLAUDE.md, Invariants). For the halves'
@@ -32,7 +32,7 @@
 // with -EIO in the convert step before the GLOBAL forwarding (ZMK
 // app/src/behavior.c, app/src/behaviors/behavior_ext_power.c), so the press
 // never reaches the halves; an &rgb_ug that did would run the strip with the
-// rail off on battery (zmk-lantern's README).
+// rail off on battery (zmk-vfx-lantern's README).
 //
 // gpios and settle-ms copy the board's EXT_POWER control-gpios and
 // init-delay-ms (zmk-keyboards boards/cyboard/assimilator-bt/assimilator-bt.dts):

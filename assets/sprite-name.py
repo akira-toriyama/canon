@@ -13,7 +13,7 @@ whole, each when it is 15 bytes of UTF-8 at most and all in the katakana font or
 all printable ASCII; the English name is first folded where the collection's
 names need it and nowhere else (a gender sign at its end to a space and F or M,
 a typographic apostrophe to the ASCII one: fold_english). That rule, the fold,
-the CSV's columns and its language ids copy zmk-beacon's
+the CSV's columns and its language ids copy zmk-vfx-beacon's
 tools/name_dictionary.py (its fold_english) and sprite_pack.KATAKANA_RANGES:
 change them together. A copy, because this runs before the pinned clone is checked out,
 and moving the pin moves every target's firmware stamp. The one difference is
@@ -25,7 +25,7 @@ tool refuses (where those last two are a config error in the sender's daily run,
 a build falls back and says so), the name as before (projects t-er81): the GIF's
 file name with its extension dropped (`.gif` alone leaves nothing), spaces and
 tabs trimmed at both ends, the first letter upper-cased ("my sprite.gif" -> "My
-sprite"), cut to the 15 bytes a sprite pack's name holds (zmk-beacon's build
+sprite"), cut to the 15 bytes a sprite pack's name holds (zmk-vfx-beacon's build
 stops on a longer one since c92ffcf) and trimmed again. So `<number>.gif` then
 shows the number. Only `names` is read: a config the sender refuses for another
 key (`order`, `front`, `state`, `back`, `range`) still gives the name dictionary's
@@ -41,7 +41,7 @@ few). For a GIF of the collection the alphabet still says whether the katakana
 name fit, a fact about the name, so the line stays out of commits, PRs and docs
 like the name. stdout is UTF-8 whatever the locale.
 
-build-zmk.sh passes the name to zmk-beacon as CONFIG_BEACON_SPRITE_NAME, whose
+build-zmk.sh passes the name to zmk-vfx-beacon as CONFIG_BEACON_SPRITE_NAME, whose
 sprite_pack.py checks it again. Committed, like assets/README.md: the two
 exceptions to the ignore rule on assets/, while the personal files live off the
 repository. The name names the subject, so never paste the output into a commit,
@@ -101,7 +101,7 @@ def from_file_name(file_name):
 
 
 def fold_english(name):
-    """zmk-beacon's name_dictionary.fold_english: a trailing gender sign to a
+    """zmk-vfx-beacon's name_dictionary.fold_english: a trailing gender sign to a
     space and F or M, U+2019 to the ASCII apostrophe, nothing else."""
     if name.endswith("\u2640"):
         name = name[:-1] + " F"

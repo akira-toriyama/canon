@@ -9,8 +9,8 @@
 #   ./scripts/build-zmk.sh imprint_dongle --logging
 #   ./scripts/build-zmk.sh imprint --reset
 #   ./scripts/build-zmk.sh prospector --sprite <collection>/<number>.gif
-#   ./scripts/build-zmk.sh prospector --module ../zmk-beacon
-#   ./scripts/build-zmk.sh imprint --module ../zmk-lantern --module ../zmk-beacon
+#   ./scripts/build-zmk.sh prospector --module ../zmk-vfx-beacon
+#   ./scripts/build-zmk.sh imprint --module ../zmk-vfx-lantern --module ../zmk-vfx-beacon
 #   ./scripts/build-zmk.sh prospector --kconfig CONFIG_LV_USE_SYSMON=y \
 #     --kconfig CONFIG_LV_USE_PERF_MONITOR=y --tag perf
 #   ./scripts/build-zmk.sh --update          # west update first
@@ -28,7 +28,7 @@
 #   --reset           CONFIG_ZMK_SETTINGS_RESET_ON_START=y on the real shield: the
 #                     image erases the settings, BLE bonds included, at every
 #                     boot. Flash it with flash-reset.sh, then the normal image.
-#   --sprite <gif>    zmk-beacon's animated sprite (CONFIG_BEACON_SPRITE_GIF) in
+#   --sprite <gif>    zmk-vfx-beacon's animated sprite (CONFIG_BEACON_SPRITE_GIF) in
 #                     the prospector target only, named above the HP bar after
 #                     the sprite sender's name dictionary, else the GIF's file
 #                     name (assets/sprite-name.py). Sprite GIFs are
@@ -44,8 +44,8 @@
 #                     tree as it is: in place of the revision config/west.yml pins
 #                     when an own module has that name (its zephyr/module.yml),
 #                     added when the manifest lacks it yet. Repeatable. The
-#                     images carry -<name> without a leading zmk- (-beacon,
-#                     -lantern), in name order.
+#                     images carry -<name> without its leading zmk-vfx- or
+#                     zmk- (-beacon, -lantern), in name order.
 #   --kconfig CONFIG_NAME=VALUE
 #                     one more Kconfig line for every target, merged after
 #                     config/<shield>.conf and the sprite and logging lines.
@@ -151,7 +151,7 @@ while [ $# -gt 0 ]; do
 done
 
 # A reset image only erases the settings: logging adds nothing to it, and the
-# prospector has no settings to reset (zmk-beacon: CONFIG_ZMK_BLE=n).
+# prospector has no settings to reset (zmk-vfx-beacon: CONFIG_ZMK_BLE=n).
 if [ "$RESET" -eq 1 ] && [ "$LOGGING" -eq 1 ]; then
   die 2 "--reset and --logging do not combine"
 fi
@@ -202,6 +202,16 @@ module_index() {
   done
 }
 
+# A --module's image suffix: its name without ZMK's zmk-<type>- prefix for the
+# own modules' type, vfx, or else without zmk-, so that zmk-vfx-beacon and
+# zmk-vfx-lantern keep the images' -beacon and -lantern.
+module_suffix() {
+  case "$1" in
+    zmk-vfx-*) echo "${1#zmk-vfx-}" ;;
+    *) echo "${1#zmk-}" ;;
+  esac
+}
+
 # Zephyr keys modules by the name in zephyr/module.yml (zephyr_module.py
 # parse_modules): that name decides which pin, if any, the checkout replaces.
 for i in ${MODULE_DIRS[@]+"${!MODULE_DIRS[@]}"}; do
@@ -214,15 +224,15 @@ for i in ${MODULE_DIRS[@]+"${!MODULE_DIRS[@]}"}; do
   [ -n "$name" ] || die 2 "--module: $dir/zephyr/module.yml declares no name:"
   case "$name" in *[!A-Za-z0-9._-]*) die 2 "--module: the module name $name does not fit an image name" ;; esac
   # Its suffix would be the sprite build's, which the stamp drops (scripts/stamp.py).
-  [ "${name#zmk-}" != sprite ] || die 2 "--module: the module name $name would give the image the sprite build's suffix"
+  [ "$(module_suffix "$name")" != sprite ] || die 2 "--module: the module name $name would give the image the sprite build's suffix"
   [ -z "$(module_index "$name")" ] || die 2 "--module: two checkouts of $name"
   MODULE_DIRS[i]="$dir"
   MODULE_NAMES+=("$name")
   MODULE_REVS+=("$(git -C "$dir" describe --always --dirty 2>/dev/null || echo 'no git revision')")
   # Kconfig quotes the value it was given for an undefined symbol, and the
-  # sprite's name is private: a zmk-beacon before 0a64fc9 (or one that renamed
+  # sprite's name is private: a zmk-vfx-beacon before 0a64fc9 (or one that renamed
   # the symbol) would print it on the way to failing.
-  if [ "$name" = zmk-beacon ] && [ -n "$SPRITE" ] && ! grep -Eq '^[[:space:]]*config[[:space:]]+BEACON_SPRITE_NAME[[:space:]]*$' "$dir/Kconfig" 2>/dev/null; then
+  if [ "$name" = zmk-vfx-beacon ] && [ -n "$SPRITE" ] && ! grep -Eq '^[[:space:]]*config[[:space:]]+BEACON_SPRITE_NAME[[:space:]]*$' "$dir/Kconfig" 2>/dev/null; then
     die 2 "--module: $dir/Kconfig defines no BEACON_SPRITE_NAME, so Kconfig would print the sprite's name; build this checkout without --sprite"
   fi
 done
@@ -237,11 +247,11 @@ for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
     *$'\n'*) die 2 "--kconfig takes one line" ;;
     CONFIG_BEACON_SPRITE_*) die 2 "--kconfig: CONFIG_BEACON_SPRITE_* go only through --sprite" ;;
     CONFIG_ZMK_DISPLAY=* | CONFIG_ZMK_DISPLAY_* | CONFIG_BEACON_SCREEN=* | CONFIG_BT=*)
-      # zmk-beacon's BEACON_SPRITE_GIF depends on its status screen,
+      # zmk-vfx-beacon's BEACON_SPRITE_GIF depends on its status screen,
       # BEACON_SCREEN, which needs ZMK's custom status screen and Bluetooth;
       # such a line can turn it off, and Kconfig only warns about an
       # assignment that does not take: the -sprite image would lack the sprite.
-      # A --module zmk-beacon from 0a64fc9 to before 7e86e58, whose
+      # A --module zmk-vfx-beacon from 0a64fc9 to before 7e86e58, whose
       # BEACON_SPRITE_NAME depends on BEACON_SPRITE, would also print the name.
       if [ -n "$SPRITE" ]; then die 2 "--kconfig: ${kv%%=*} does not combine with --sprite"; fi
       ;;
@@ -321,7 +331,7 @@ plan() {
     local extra=() name
     for name in "${MODULES_SORTED[@]}"; do
       extra+=("/workspace/.modules/$name")
-      SUFFIX="$SUFFIX-${name#zmk-}"
+      SUFFIX="$SUFFIX-$(module_suffix "$name")"
     done
     CMAKE_ARGS+=("-DZMK_EXTRA_MODULES=$(IFS=';' && echo "${extra[*]}")")
   fi

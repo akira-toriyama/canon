@@ -34,10 +34,10 @@
 #     board, the first overlay, the keymap, what those include from config/,
 #     and anything under config/boards/ and config/dts/,
 #   - the tree id of each own module's pin (the projects of config/west.yml
-#     under OWN_URL_BASE: zmk-beacon, zmk-lantern), in place of the SHA (a PR
+#     under OWN_URL_BASE: zmk-vfx-beacon, zmk-vfx-lantern), in place of the SHA (a PR
 #     head and its squash commit share the tree). A pin is an input of every
 #     target, the halves included: a bump moves all four. A manifest with
-#     zmk-beacon alone digests as before t-66ww; the first with zmk-lantern
+#     zmk-vfx-beacon alone digests as before t-66ww; the first with zmk-vfx-lantern
 #     (#263 to #266) had hashed its SHA as text, so those digests moved.
 # Comments are left out of the config/ files, build.yaml, west.yml and
 # zmk-west.sh (#-lines of .conf except Kconfig's `# CONFIG_X is not set`, which

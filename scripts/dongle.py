@@ -4,7 +4,7 @@
 # PNG of the Prospector Dongle's screen, the key LEDs' palette set or asked
 # and their effect, in one colour or the palette's, or the day's (effect
 # --daily), their intro and their tempo picked through the Imprint Dongle
-# (palette, effect, intro, tempo: zmk-lantern's port), and
+# (palette, effect, intro, tempo: zmk-vfx-lantern's port), and
 # whether the firmware on USB is the one origin/main
 # would build (check: the firmware stamp, scripts/stamp.py).
 #
@@ -22,7 +22,7 @@
 #
 # The rate of a port is a command to the firmware, whichever program sets it,
 # acted on when the rate changes: 1200 reboots any of the four into its UF2
-# bootloader (zmk-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
+# bootloader (zmk-vfx-beacon's CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD), and 2400
 # makes the Prospector Dongle send its screen (CONFIG_BEACON_SCREEN_DUMP).
 # `log` sets 115200 8N1 and no other rate; `shot` sets 2400 and then 115200
 # again, never 1200; `palette`, `effect`, `intro` and `tempo` write their line at 115200. None sets TIOCEXCL: flash-dongle.sh's stty must still
@@ -58,7 +58,7 @@ import stamp  # scripts/stamp.py, beside this file
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 # Build target (build.yaml shield) -> USB product string. Contracts:
-#   prospector      CONFIG_USB_DEVICE_PRODUCT in zmk-beacon's
+#   prospector      CONFIG_USB_DEVICE_PRODUCT in zmk-vfx-beacon's
 #                   boards/shields/prospector/prospector.conf
 #   imprint_dongle  ZMK_KEYBOARD_NAME in zmk-keyboards'
 #                   boards/shields/imprint_dongle/Kconfig.defconfig, which
@@ -97,7 +97,7 @@ US = "\x1f"  # plumbing field separator: a tab would collapse empty fields under
 POLL_S = 0.2
 MAX_LINE = 65536
 
-# The screen dump's records (zmk-beacon src/screen_dump.c, whose header is the
+# The screen dump's records (zmk-vfx-beacon src/screen_dump.c, whose header is the
 # contract: change both together and bump DUMP_VERSION). Integers are
 # little-endian.
 #   start  tag version:u8 format:u8 width:u16 height:u16
@@ -133,7 +133,7 @@ SIX_BITS = bytes((v << 2) | (v >> 4) for v in range(64))
 # macros), and the split central's LOG_HEXDUMP_DBG of position_state
 # (split/bluetooth/central.c), whose data rows are the bitmap of pressed key
 # positions. A bare "invoking" would also drop central.c's "... before
-# invoking peripheral behavior" error. Kept on purpose: zmk-beacon's keystroke
+# invoking peripheral behavior" error. Kept on purpose: zmk-vfx-beacon's keystroke
 # counts, its broadcaster's minute line ("N modifiers confirmed": a count, no
 # key) and the split discovery line "Found position state characteristic".
 KEY_EVENT = re.compile(
@@ -622,7 +622,7 @@ def the_device(device):
 
 def refuse_inside_repository(path, why):
     """Any git work tree, not only this checkout: canon's other worktrees and
-    the zmk-beacon checkouts are public repositories too. This checkout is
+    the zmk-vfx-beacon checkouts are public repositories too. This checkout is
     refused without git's help as well."""
     top = work_tree(path) or (REPO if is_inside(path, REPO) else None)
     if top is not None:
@@ -698,7 +698,7 @@ class Dump:
             return False
         version, fmt, width, height = struct.unpack_from("<BBHH", self.buf, 4)
         if version != DUMP_VERSION:
-            raise Failure("a version %d screen dump, and dongle.py reads version %d: canon and its zmk-beacon "
+            raise Failure("a version %d screen dump, and dongle.py reads version %d: canon and its zmk-vfx-beacon "
                           "pin disagree with the image" % (version, DUMP_VERSION))
         if fmt not in DUMP_FORMATS or width == 0 or height == 0:
             raise Failure("a malformed start record: format %d, %dx%d" % (fmt, width, height))
@@ -824,7 +824,7 @@ def read_dump(fd, port, seconds):
         if left <= 0:
             if dump.width is None:
                 raise Failure("no screen dump from the Prospector Dongle within %g s: an image without "
-                              "zmk-beacon's CONFIG_BEACON_SCREEN_DUMP ignores 2400 baud" % seconds)
+                              "zmk-vfx-beacon's CONFIG_BEACON_SCREEN_DUMP ignores 2400 baud" % seconds)
             raise Failure("the dump stopped after %d bands (%g s)" % (dump.bands, seconds))
         dump.feed(read_some(fd, port, min(left, 0.5)))
     return dump
@@ -873,7 +873,7 @@ PALETTE_WORD = "palette"
 PALETTE_SLOTS = 6
 EFFECT_WORD = "effect"
 # The effects a half can draw, by the names the Imprint Dongle's port takes:
-# zmk-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
+# zmk-vfx-lantern's table LANTERN_EFFECT_LIST (src/effect.h), in its order. A new
 # effect lands here with the conf line that builds it (CLAUDE.md, Invariants).
 EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart", "heatmap", "layer-keys")
 # The effects `effect --daily` cycles through, one a day in this order: every
@@ -884,23 +884,23 @@ EFFECTS = ("thin-ring", "disc", "stain", "cross-ring", "beams", "water", "dart",
 DAILY_EFFECTS = tuple(e for e in EFFECTS if e != "layer-keys")
 INTRO_WORD = "intro"
 # The intros a half can play as the boot light, by the names the Imprint
-# Dongle's port takes: zmk-lantern's table LANTERN_INTRO_LIST (src/intro.h), in
+# Dongle's port takes: zmk-vfx-lantern's table LANTERN_INTRO_LIST (src/intro.h), in
 # its order; one a pick. A new intro lands here with the conf line that builds
 # it (CLAUDE.md, Invariants).
 INTROS = ("bands", "star-waves")
 TEMPO_WORD = "tempo"
 # The tempo's two states, by the names the Imprint Dongle's port takes:
-# zmk-lantern's LANTERN_TEMPO_LIST (src/tempo.h); one a pick.
+# zmk-vfx-lantern's LANTERN_TEMPO_LIST (src/tempo.h); one a pick.
 TEMPOS = ("on", "off")
 # The --wait of palette, effect, intro and tempo polls for the dongle at
 # flash-dongle.sh --wait's rate.
 WAIT_POLL_S = 0.5
-# Before their line: more spaces than zmk-lantern's port.c holds in a line
+# Before their line: more spaces than zmk-vfx-lantern's port.c holds in a line
 # (its LINE_LIMIT, 167 with nine effect names) and a newline, so that whatever
 # a lost connection left in the dongle's buffer (a set typed in a terminal and
 # never sent) overflows with them and is dropped at the newline without a
 # reply (its feed()); a bare newline would complete the leftover, run it and
-# answer it, the answer passing for ours. zmk-lantern's tools/lantern_port.py
+# answer it, the answer passing for ours. zmk-vfx-lantern's tools/lantern_port.py
 # sends the same prelude.
 PRELUDE = b" " * 1024 + b"\n"
 
@@ -919,7 +919,7 @@ def colour(text):
 
 def reply_pattern(word):
     """The reply to the word at the start of a line: the firmware writes it a
-    newline first and last (zmk-lantern's port.c, reply()), so a logging
+    newline first and last (zmk-vfx-lantern's port.c, reply()), so a logging
     image's log thread, interrupted mid-line, finishes its line after the
     reply, and a log module's name that ends in the word ("lantern_palette:")
     never starts a line."""
@@ -963,7 +963,7 @@ def wait_for_device(device, seconds):
 
 def not_ready(word):
     """The dongle's reply to the word while its settings have not loaded yet
-    (zmk-lantern's port.c): one that just booted, its USB up before them."""
+    (zmk-vfx-lantern's port.c): one that just booted, its USB up before them."""
     return word + " error: not ready"
 
 
@@ -1026,7 +1026,7 @@ def ask_dongle(word, arguments, args):
         print("dongle.py: %s; asking again" % reply, file=sys.stderr)
         time.sleep(WAIT_POLL_S)
     if reply is None:
-        raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-lantern's "
+        raise Failure("no reply from the Imprint Dongle within %g s: an image without zmk-vfx-lantern's "
                       "CONFIG_LANTERN_PORT ignores the line" % args.seconds)
     print(reply)
     if reply.startswith(word + " error"):
@@ -1367,7 +1367,7 @@ def parser():
 
     s = sub.add_parser(
         "shot", help="write a PNG of the Prospector Dongle's screen and print its path",
-        description="Set the Prospector Dongle's port to 2400 baud, on which its firmware (zmk-beacon "
+        description="Set the Prospector Dongle's port to 2400 baud, on which its firmware (zmk-vfx-beacon "
                     "CONFIG_BEACON_SCREEN_DUMP) renders the screen once more and sends it; check the bands "
                     "against their CRC-32 and write an RGB PNG (mode 0600 when created). The port goes back "
                     "to 115200 afterwards and never to 1200, which reboots the dongle into its bootloader. "
@@ -1383,7 +1383,7 @@ def parser():
         "palette", help="set or ask the key LEDs' palette through the Imprint Dongle",
         description="Write 'palette RRGGBB ...' (with no colour: 'palette?') on the Imprint Dongle's port at 115200 "
                     "and print the dongle's reply line. With colours the dongle stores them in slots 0.. (the rest "
-                    "cleared to 000000), sends them to both halves over the split (zmk-lantern's palette behavior; "
+                    "cleared to 000000), sends them to both halves over the split (zmk-vfx-lantern's palette behavior; "
                     "a half that is away gets them when it is back) and answers 'palette ok' with the six slots; "
                     "each half keeps the six across boots and draws its effects from them (which colour each "
                     "effect takes: docs/glossary.md, palette; a black slot shows slot 0). With no colour "
@@ -1403,7 +1403,7 @@ def parser():
         "effect", help="pick or ask the key LEDs' effect through the Imprint Dongle",
         description="Write 'effect NAME ... [RRGGBB]' (with no name: 'effect?') on the Imprint Dongle's port at "
                     "115200 and print the dongle's reply line. With names the dongle stores the pick, sends it to "
-                    "both halves over the split (zmk-lantern's effect behavior; a half that is away gets it when it "
+                    "both halves over the split (zmk-vfx-lantern's effect behavior; a half that is away gets it when it "
                     "is back) and answers 'effect ok' with the names, and the colour when one was given; each half "
                     "keeps the pick across boots and draws the picked effects its image builds (the product images "
                     "build all nine; two or more names draw together), the crossing ring until the first pick. A "
@@ -1435,7 +1435,7 @@ def parser():
         "intro", help="pick or ask the intro the key LEDs play as the boot light, through the Imprint Dongle",
         description="Write 'intro NAME' (with no name: 'intro?') on the Imprint Dongle's port at 115200 and print "
                     "the dongle's reply line. With a name the dongle stores the pick, sends it to both halves over "
-                    "the split (zmk-lantern's intro behavior; a half that is away gets it when it is back) and "
+                    "the split (zmk-vfx-lantern's intro behavior; a half that is away gets it when it is back) and "
                     "answers 'intro ok' with the name; each half keeps the pick across boots and plays the picked "
                     "intro its image builds at every boot light (at boot, and when a cable is plugged in; the "
                     "product images build both), the star waves until the first pick. With no name the reply is "
@@ -1453,7 +1453,7 @@ def parser():
         "tempo", help="pick or ask whether the effects run faster the faster you type (the tempo), through the Imprint Dongle",
         description="Write 'tempo on' or 'tempo off' (with no state: 'tempo?') on the Imprint Dongle's port at 115200 "
                     "and print the dongle's reply line. With a state the dongle stores the pick, sends it to both "
-                    "halves over the split (zmk-lantern's tempo behavior; a half that is away gets it when it is "
+                    "halves over the split (zmk-vfx-lantern's tempo behavior; a half that is away gets it when it is "
                     "back) and answers 'tempo ok' with the state; each half keeps the pick across boots and, on, "
                     "runs the effects that grow with a press's age (the rings, the disc, the stain, the beams, the "
                     "water, the dart) up to twice as fast at eight presses a second over the last two seconds, "

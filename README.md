@@ -46,13 +46,13 @@ docs/           commit convention, glossary, pairing recovery
 Per ZMK/upstream constraints, `config/` and `build.yaml` must remain at the
 repo root (do not move). Every board/shield comes from a module (no local
 shields: imprint_dongle is upstreamed to Cyboard, and the Prospector Dongle's
-shield lives in [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon)). See [CLAUDE.md](CLAUDE.md).
+shield lives in [zmk-vfx-beacon](https://github.com/akira-toriyama/zmk-vfx-beacon)). See [CLAUDE.md](CLAUDE.md).
 
 The halves' key LEDs light only while USB powers the half and it is in use
 (five minutes without a key on either half turn them off until the next one),
 so on battery they cost nothing: the own module
-[zmk-lantern](https://github.com/akira-toriyama/zmk-lantern), pinned by commit
-in `config/west.yml` like zmk-beacon, drives their LED rail (its README says
+[zmk-vfx-lantern](https://github.com/akira-toriyama/zmk-vfx-lantern), pinned by commit
+in `config/west.yml` like zmk-vfx-beacon, drives their LED rail (its README says
 how; on hardware 2026-10-19). Lit, the keys stay black until you type: each
 key press draws the effect of the day, a thin ring, a disc, a stain, a ring
 crossing both halves, beams along the key's row and column, water, waves
@@ -163,20 +163,20 @@ Flashing `prospector.uf2` onto a
 (XIAO nRF52840 + 1.69" LCD) turns it into a display of both halves' battery
 levels, received from the Imprint Dongle's BLE status advertisement: one HP bar
 showing their mean (or the one half that has a reading), yellow under 50 % and
-red under 20 %, under a sprite that the Mac swaps over BLE: zmk-beacon's
+red under 20 %, under a sprite that the Mac swaps over BLE: zmk-vfx-beacon's
 sprite sender sends the next GIF of the collection once
-a day (zmk-beacon's README, "The sprite sender"; a LaunchAgent in dotfiles;
+a day (zmk-vfx-beacon's README, "The sprite sender"; a LaunchAgent in dotfiles;
 on hardware 2026-10-13), its back view while a modifier is held on the
 keyboard. It listens
 passively for the keyboard, advertises connectably as `Prospector Dongle` for
-the sprite (zmk-beacon's README, "Swapping the sprite over BLE"; on hardware
+the sprite (zmk-vfx-beacon's README, "Swapping the sprite over BLE"; on hardware
 2026-10-12) and never pairs. It appears on the Mac only as
 one CDC serial port (product `Prospector Dongle`, no HID keyboard; seen on
 hardware 2026-09-26), and that port is how it is reflashed (1200 baud enters
 the bootloader), how `python3 scripts/dongle.py shot` reads its screen (2400
 baud) and, in a logging build, where its log goes. The Imprint Dongle must run this repository's
 `imprint_dongle.uf2`, which carries the status advertisement. The shield and
-its screen come from [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon),
+its screen come from [zmk-vfx-beacon](https://github.com/akira-toriyama/zmk-vfx-beacon),
 whose README explains what the screen shows.
 
 Flashing (not with `flash-watch.sh`):
@@ -202,9 +202,9 @@ Dongle into bootloader or open its port at 1200 baud while `flash-watch.sh` /
 `imprint_dongle_RESET.uf2`, onto any XIAO mount; `flash-dongle.sh` refuses to
 start then).
 
-zmk-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
+zmk-vfx-beacon's shield targets beekeeb's pre-soldered unit (no ambient light
 sensor, touch panel unwired): 80% brightness, no touch. The screen turns off
-after five minutes without a key press and lights at the next one (zmk-beacon's
+after five minutes without a key press and lights at the next one (zmk-vfx-beacon's
 `CONFIG_BEACON_SCREEN_OFF_AFTER_S`, default 300 seconds; 0 keeps it lit).
 `config/prospector.conf` only adds what this manifest needs
 (`CONFIG_ZMK_RGB_UNDERGLOW=n`, see [CLAUDE.md](CLAUDE.md)).
@@ -216,7 +216,7 @@ name above it, the name dictionary's katakana name when the HP bar can show
 it, else its English one, whole, else the file name's (rules:
 [assets/README.md](assets/README.md));
 the build converts the GIF into a sprite pack and embeds that, not the GIF
-(zmk-beacon's [docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-beacon/blob/main/docs/sprite-pack.md));
+(zmk-vfx-beacon's [docs/sprite-pack.md](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/docs/sprite-pack.md));
 flash it with `./scripts/flash-dongle.sh firmware/prospector-sprite.uf2`.
 Keep the GIF outside the repository (where: [assets/README.md](assets/README.md))
 and never commit it. The CI / release
@@ -224,7 +224,7 @@ and never commit it. The CI / release
 but the sprite room survives a flash, so the sprite pack the sprite sender last
 wrote there keeps playing with its sprite name; with an empty sprite room only
 the HP bar remains. The sprite plays at three quarters of the GIF's own tempo and
-steps with the key presses (either half, any key) while you type; zmk-beacon's
+steps with the key presses (either half, any key) while you type; zmk-vfx-beacon's
 README has the details and lists which GIFs work.
 
 ### Release
