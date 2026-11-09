@@ -236,9 +236,10 @@ for kv in ${KCONFIG[@]+"${KCONFIG[@]}"}; do
   case "$kv" in
     *$'\n'*) die 2 "--kconfig takes one line" ;;
     CONFIG_BEACON_SPRITE_*) die 2 "--kconfig: CONFIG_BEACON_SPRITE_* go only through --sprite" ;;
-    CONFIG_ZMK_DISPLAY=* | CONFIG_ZMK_DISPLAY_*)
-      # zmk-beacon's BEACON_SPRITE_GIF depends on the custom status screen,
-      # which such a line can turn off, and Kconfig only warns about an
+    CONFIG_ZMK_DISPLAY=* | CONFIG_ZMK_DISPLAY_* | CONFIG_BEACON_SCREEN=* | CONFIG_BT=*)
+      # zmk-beacon's BEACON_SPRITE_GIF depends on its status screen,
+      # BEACON_SCREEN, which needs ZMK's custom status screen and Bluetooth;
+      # such a line can turn it off, and Kconfig only warns about an
       # assignment that does not take: the -sprite image would lack the sprite.
       # A --module zmk-beacon from 0a64fc9 to before 7e86e58, whose
       # BEACON_SPRITE_NAME depends on BEACON_SPRITE, would also print the name.
