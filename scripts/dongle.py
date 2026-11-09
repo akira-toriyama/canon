@@ -895,6 +895,14 @@ TEMPOS = ("on", "off")
 # The --wait of palette, effect, intro and tempo polls for the dongle at
 # flash-dongle.sh --wait's rate.
 WAIT_POLL_S = 0.5
+# Before their line: more spaces than zmk-lantern's port.c holds in a line
+# (its LINE_LIMIT, 167 with nine effect names) and a newline, so that whatever
+# a lost connection left in the dongle's buffer (a set typed in a terminal and
+# never sent) overflows with them and is dropped at the newline without a
+# reply (its feed()); a bare newline would complete the leftover, run it and
+# answer it, the answer passing for ours. zmk-lantern's tools/lantern_port.py
+# sends the same prelude.
+PRELUDE = b" " * 1024 + b"\n"
 
 
 def colour(text):
@@ -910,11 +918,12 @@ def colour(text):
 
 
 def reply_pattern(word):
-    """The reply to the word, found in a line: the firmware starts it on a line
-    of its own, but a logging image's log thread, interrupted mid-line,
-    finishes its line after it, and the word also ends a log module's name
-    ("lantern_palette:", "lantern_pick:")."""
-    return re.compile(r"(?<![A-Za-z_])" + re.escape(word) + r"(?: |$)")
+    """The reply to the word at the start of a line: the firmware writes it a
+    newline first and last (zmk-lantern's port.c, reply()), so a logging
+    image's log thread, interrupted mid-line, finishes its line after the
+    reply, and a log module's name that ends in the word ("lantern_palette:")
+    never starts a line."""
+    return re.compile(r"^" + re.escape(word) + r"(?: |$)")
 
 
 def read_reply(fd, port, seconds, word):
@@ -959,8 +968,8 @@ def not_ready(word):
 
 
 def exchange(dev, word, line, seconds):
-    """Write the line on the dongle's port and return its reply line to the
-    word, or None at the deadline."""
+    """Write the line on the dongle's port, the PRELUDE before it, and return
+    its reply line to the word, or None at the deadline."""
     port = dev.ports[0]
     holders = port_holders(dev)
     if holders:
@@ -972,8 +981,7 @@ def exchange(dev, word, line, seconds):
         raise Failure("cannot open %s: %s" % (port, e.args[-1]))
     try:
         drain(fd, port)
-        # The newline first ends whatever partial line the port may hold.
-        write_all(fd, port, ("\n" + line + "\n").encode("ascii"), seconds)
+        write_all(fd, port, PRELUDE + (line + "\n").encode("ascii"), seconds)
         return read_reply(fd, port, seconds, word)
     finally:
         os.close(fd)
