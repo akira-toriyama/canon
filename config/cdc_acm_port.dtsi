@@ -1,5 +1,5 @@
 // The half's one USB CDC ACM port: the 1200 baud entry into the UF2 bootloader
-// (zmk-beacon src/bootloader_on_1200_baud.c; the Kconfig lines are in
+// (zmk-vfx-beacon src/bootloader_on_1200_baud.c; the Kconfig lines are in
 // imprint_left.conf / imprint_right.conf), so scripts/flash-dongle.sh flashes a
 // half without a reset double-tap, as it does the dongles. For the halves'
 // overlays only, never a shared imprint overlay: the Imprint Dongle's board

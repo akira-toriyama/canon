@@ -10,7 +10,7 @@
 #      product string), its USB location, serial and /dev/cu.* port
 #      (scripts/dongle.py holds the names and the ioreg lookups)
 #   2. set that port to 1200 baud (stty) → the firmware reboots into the UF2
-#      bootloader (CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD, zmk-beacon; on the
+#      bootloader (CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD, zmk-vfx-beacon; on the
 #      halves since config/cdc_acm_port.dtsi, after #263 of 2026-10-19)
 #   3. wait for a UF2 bootloader volume (both dongles mount as XIAO-SENSE,
 #      both halves as ASSIMILATOR) whose disk belongs to the USB device at the
@@ -25,7 +25,7 @@
 #   ./scripts/flash-dongle.sh imprint_dongle    # firmware/imprint_dongle.uf2
 #   ./scripts/flash-dongle.sh imprint_left      # firmware/imprint_left.uf2; imprint_right likewise
 #   ./scripts/flash-dongle.sh firmware/prospector-sprite.uf2
-#   ./scripts/flash-dongle.sh --dry-run ../zmk-beacon/firmware/prospector.uf2
+#   ./scripts/flash-dongle.sh --dry-run ../zmk-vfx-beacon/firmware/prospector.uf2
 #
 #   --dry-run  run every check up to the 1200 baud touch, print the plan, exit 0
 #   --wait N   first poll up to N s for the device with its port (a KVM switch

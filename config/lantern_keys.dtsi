@@ -1,4 +1,4 @@
-// The halves' key LEDs are zmk-lantern's (config/west.yml): its lantern,keys
+// The halves' key LEDs are zmk-vfx-lantern's (config/west.yml): its lantern,keys
 // node names the strip (Cyboard's ws2812 node, chosen zmk,underglow), the key
 // under each LED and the palette slot each key shows (CLAUDE.md, Invariants;
 // the glossary: palette). ZMK's underglow is off on the halves (imprint.conf),
@@ -25,10 +25,10 @@
 // (keymap-drawer's physical layout: each key's top left corner, every key one
 // unit; the left half x 0-7.5 with its thumbs, the right 9-16.5, y 2-6.5, the
 // inner columns 6.5 units apart) times 100, written out once since the
-// layout is fixed. zmk-lantern's effects and its intro measure the board
+// layout is fixed. zmk-vfx-lantern's effects and its intro measure the board
 // with it (t-6ttk, t-5v1f); the module asserts an x and a y per key position.
 //
-// scatter-weights: the scatter (zmk-lantern's CONFIG_LANTERN_SCATTER, t-skdt),
+// scatter-weights: the scatter (zmk-vfx-lantern's CONFIG_LANTERN_SCATTER, t-skdt),
 // a picture in place of the bands that the product does not build (the user
 // chose the no picture): each half throws the slots over its own 29 keys at
 // random, slot s on this percentage of them (slots 1.. rounded, slot 0 the

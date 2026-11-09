@@ -10,12 +10,12 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   shields `imprint_left` / `imprint_right`, from Cyboard's `zmk-keyboards`) and its split central,
   the **Imprint Dongle** (ZMK's `xiao_ble/nrf52840/zmk`, Cyboard's shield `imprint_dongle`).
 - The companion **Prospector Dongle** (`xiao_ble/nrf52840/zmk`, shield `prospector` of the own
-  module [zmk-beacon](https://github.com/akira-toriyama/zmk-beacon), documented there) shows both
+  module [zmk-vfx-beacon](https://github.com/akira-toriyama/zmk-vfx-beacon), documented there) shows both
   halves' battery from the Imprint Dongle's status advertisement, under a sprite (its back view
   while the advertisement reports a modifier held). It scans
-  passively for that, and since zmk-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
+  passively for that, and since zmk-vfx-beacon's sprite receiver (`CONFIG_BEACON_SPRITE_RECEIVE`, the
   shield's default) it also advertises connectably as `Prospector Dongle` so that the sprite sender
-  (zmk-beacon's `tools/sprite-sender`, run once a day by a LaunchAgent in dotfiles, config and state
+  (zmk-vfx-beacon's `tools/sprite-sender`, run once a day by a LaunchAgent in dotfiles, config and state
   in dotfiles-private; the glossary) can write a sprite pack into its sprite room
   (2026-10-12; daily on hardware since 2026-10-13); it never pairs (`CONFIG_ZMK_BLE=n`). On USB it is
   one CDC ACM port, product `Prospector Dongle`, no HID (2026-09-26). Its screen turns off after five minutes without
@@ -51,7 +51,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `--kconfig CONFIG_X=V`, `--tag <name>`, `--module <dir>` (a local tree of an own module in place
   of its pin, or of one not pinned yet; repeatable), `--sprite`, `--sender-config`.
 - Images: `firmware/<shield>[-sprite][-logging][-kconfig][-<module>…][_RESET][-<tag>].uf2`
-  (`-<module>` is the name without `zmk-`: `-beacon`, `-lantern`, in name order); a bare
+  (`-<module>` is the name without `zmk-vfx-` or `zmk-`: `-beacon`, `-lantern`, in name order); a bare
   `<shield>.uf2` / `<shield>_RESET.uf2` (what flash-watch.sh, flash-reset.sh and `flash-dongle.sh
   <device>` take) is always a pinned build. West topdir `~/.cache/zmk-canon/cfgrepo` (each run syncs
   `config/`, `patches/`, `scripts/`, `build.yaml` into it); per image, `build/<image name>/` keeps
@@ -63,13 +63,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `=== STAMP <image>: ZMK Project (canon <shield> <12 hex><variant>) (N config files, M patches)`
   ends `build.log`. `python3 scripts/stamp.py digest <shield> [--ref origin/main] [--files]`
   prints the digest and table by hand.
-- Never edit the cached clone of an own module (`modules/zmk-beacon`, `modules/zmk-lantern`: the
+- Never edit the cached clone of an own module (`modules/zmk-vfx-beacon`, `modules/zmk-vfx-lantern`: the
   projects `python3 scripts/stamp.py pins` lists): every build checks each out at its pin (one a
   `--module` replaces too: the stamp takes the pin's tree id from the clone) and stops on local
   changes, so a pin bump needs no `--update`. A `--module` image on a device lasts only until the
   next pinned flash, which any session does after a merge: bump the pin here in the same sitting
   as the module's merge (2026-10-26: #278's session flashed main's `prospector.uf2` over
-  zmk-beacon#45's worktree build while the pin still predated that merge, and the katakana name
+  zmk-vfx-beacon#45's worktree build while the pin still predated that merge, and the katakana name
   in the sprite room showed as placeholder squares under the HP row until the pin bump).
   `zmk-west.sh update` takes the patches off first (west refuses to move a patched
   file); `patch` skips applied ones and fails on a stale one; a changed patch file needs the cached
@@ -85,7 +85,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 
 | Goal | Command | Healthy result |
 | --- | --- | --- |
-| Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-beacon <hash> (pin), zmk-lantern <hash> (pin)` (a `--module` tree: `<dir> @ <describe> (--module)`) |
+| Images | `./scripts/build-zmk.sh <targets> [--logging]` | `images:` lines `firmware/<name>.uf2  <12 hex>  FLASH … RAM …`, then `revisions: zmk …, zmk-keyboards …, zmk-vfx-beacon <hash> (pin), zmk-vfx-lantern <hash> (pin)` (a `--module` tree: `<dir> @ <describe> (--module)`) |
 | Flash any one device on USB, no double-tap | `./scripts/flash-dongle.sh <prospector \| imprint_dongle \| imprint_left \| imprint_right \| image.uf2>` (`--dry-run` checks only, `--wait N` for a dongle a KVM switch hid, `--reset` for `*_RESET*`; a half only over a data cable while USB powers it, both halves may stay plugged in) | last line `[HH:MM:SS] DONE <device> serial=… <image> sha256=<the build summary's 12 hex>`, exit 0; then the display, both halves typing, or the flashed half typing and lit (re-enumeration does not show which image booted). `TIMES` counts each field from the 1200 baud touch; the Imprint Dongle's phases took mount 2.2-2.6 s, copy 9.5-12.2 s, re-enumeration 0.7-1.3 s (2026-09-27, t-eray, #222); a half's: mount 2.6-2.9 s, volume gone 4.0-4.3 s (an unchanged image), back with its port 5.0-5.3 s (2026-10-19, t-y6dz, two runs per half) |
 | Flash the halves and the Imprint Dongle by double-tap (the first image with the 1200 baud entry, a `_RESET` flow, a failed run) | `./scripts/flash-watch.sh` or `./scripts/flash-reset.sh` (`--yes` skips the prompt), then double-tap one device at a time, the left half before the right (the mount order decides which is which); after a reset build, the order of [docs/recovery.md](docs/recovery.md) B (from source, not yet run on hardware) | `[HH:MM:SS] ALL DONE: left + right + dongle` (flash-reset.sh adds ` (NVS wiped)`), exit 0 |
 | Find canon's devices | `python3 scripts/dongle.py list` | each of the four targets with its `/dev/cu.*` port, `location=… serial=…`, `port free` (a half by its stamp: the right half's product string is empty); `/Volumes/XIAO-SENSE  not mounted`; `flashers  none running` |
@@ -151,13 +151,13 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   lines `MM-DD HH:MM:SS.mmm <device>`, a bar, the text; exit 0 at the deadline, 1 if a device never
   appeared; 115200 only; follows a dongle through a reboot (start it before a flash for the boot
   log); drops key-event lines unless `--raw`. ZMK logs there only in a `--logging` image (a 4 KiB
-  CDC ring keeps the boot log; ZMK at INFO); zmk-beacon's CLAUDE.md explains its periodic lines.
+  CDC ring keeps the boot log; ZMK at INFO); zmk-vfx-beacon's CLAUDE.md explains its periodic lines.
   Never write log output into a repository, nor paste `--raw` lines anywhere: they carry keystrokes.
 - Split battery and connection lines are ZMK DEBUG: build `imprint_dongle --logging --kconfig
   CONFIG_ZMK_LOGGING_MINIMAL=n`, flash `firmware/imprint_dongle-logging-kconfig.uf2`, read with
   `--grep '(?i)battery level|connected'`. DEBUG overflows the boot log and logs keycodes:
   power-cycle a half to see a connect; flash the product image back afterwards. A plain `--logging`
-  image shows levels only in zmk-beacon's minute line (`--grep 'battery [0-9]+/[0-9]+'`).
+  image shows levels only in zmk-vfx-beacon's minute line (`--grep 'battery [0-9]+/[0-9]+'`).
 
 ## Invariants
 
@@ -170,10 +170,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
     `Kconfig/soc/Kconfig.defconfig not found` on the two assimilator-bt targets (a partial red, first
     in CI on 2026-07-11, while canon's then-local `imprint_dongle` shield stayed green). The HWv2
     board is on `zephyr-4.1`, as Cyboard's own west.yml says; kept 2026-07-30 (t-wz4k).
-  - **Own `zmk-beacon`, pinned by commit SHA** so that canon takes a change without a zmk-beacon
+  - **Own `zmk-vfx-beacon`, pinned by commit SHA** so that canon takes a change without a zmk-vfx-beacon
     release (2026-09-26, t-5gxp): the `prospector` shield and the Imprint Dongle's status
     broadcaster (payload: its `src/status_payload.h`). Bump the SHA by hand after a merge there.
-  - **Own `zmk-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
+  - **Own `zmk-vfx-lantern`, pinned by commit SHA the same way** (2026-10-19, t-26y4): the halves' key
     LEDs, lit only while USB powers the half and it is in use, and the boot light; the LED rail is
     its (the invariant below). Bump the SHA by hand after a merge there.
     - What the LEDs show is the user's pick on hardware (t-skdt, t-5v1f, t-6ttk, t-5hqx;
@@ -221,7 +221,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
         its colour `CONFIG_LANTERN_EFFECT_COLOUR`, left at 0 = the palette's). Bits 7 and 9 are no
         effect's, so `layer-keys` is bit 8, mask `0x100`, and `heatmap` bit 10, `0x400`, the line
         above the layer keys, which stay the table's last line. The colour on hardware 2026-10-27
-        (t-rgp5, the pinned images of zmk-lantern 3b6c21e on all three): `effect stain FF0000` dyed
+        (t-rgp5, the pinned images of zmk-vfx-lantern 3b6c21e on all three): `effect stain FF0000` dyed
         red on a half, `effect stain` returned it to the palette's colours, and the dongle's stored
         pick survived the flash from the image before the colour (`effect dart` answered before and
         after, the four-byte mask read with the colour 0).
@@ -232,7 +232,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
       - `tempo` (`on` bit 0, `off` bit 1: the module's `LANTERN_TEMPO_LIST`, its `src/tempo.h`,
         and `TEMPOS`; t-6ttk, 2026-11-02): one state, followed at a half's next frame. Default: the tempo runs (the
         module's `CONFIG_LANTERN_TEMPO_DEFAULT`, y). On hardware 2026-11-02 (trial images of
-        zmk-lantern 4d95faf on both halves, the dongle unchanged, the pick cross-ring): the user's
+        zmk-vfx-lantern 4d95faf on both halves, the dongle unchanged, the pick cross-ring): the user's
         OK on sight; the pick is on hardware from the pin bump.
       - The module also lets a split central's keymap bind `&effect <mask> <colour>`, its node
         `effect_next` (the next effect in turn), `&intro` or `&tempo`, for a keyboard without a
@@ -252,7 +252,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
       device, the dongle too, ignores a stored palette of another slot count (an image from before
       t-0967) at load, so the dongle answers `palette none` until the Mac sends again. The daily
       palette (t-0967): the five colours of the sprite GIF the sprite sender last sent, from
-      zmk-beacon's `sprite-sender colours`, which the LaunchAgent in dotfiles hands to
+      zmk-vfx-beacon's `sprite-sender colours`, which the LaunchAgent in dotfiles hands to
       `dongle.py palette --wait 600` after each successful swap (since 2026-10-21; the values are
       GIF-derived: never in a commit, PR or doc, the Privacy section). The daily effect (t-2d9r):
       `dongle.py effect --daily`, the fourth stage of the same run, after the palette, picks the
@@ -297,9 +297,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
       2 and Function light keys of the right half only (10, 16, 16 and 12), each Vkey layer
       fifteen on each half, and a held Ctrl or Alt thumb (`TU_LL`, `TU_LM`, which hold a Vkey
       layer with the modifier) lights its Vkey layer's keys too. On hardware 2026-10-28 (the trial
-      images of zmk-lantern 959f194 on all three, the pick `layer-keys` alone): the user's OK on
+      images of zmk-vfx-lantern 959f194 on all three, the pick `layer-keys` alone): the user's OK on
       sight.
-    - The heatmap on hardware 2026-11-02 (the trial images of zmk-lantern e470587 on all three, the
+    - The heatmap on hardware 2026-11-02 (the trial images of zmk-vfx-lantern e470587 on all three, the
       pick `heatmap` alone, both halves typed): the user's OK on sight, and the footprints (bit 9;
       OK on sight that morning, the trial images of faedf33, in main for #305) dropped for it the
       same day: the user kept one of the two "keys that stay lit after a press", so a stored pick
@@ -335,7 +335,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   by content (`build.yaml`, `config/west.yml`, `scripts/zmk-west.sh`, every `patches/*/*.patch`,
   the `config/` files ZMK's candidate rule reads for the shield and board plus their includes,
   and the tree id of each own module's pin in place of its SHA), upstream left out; `<variant>` is
-  the image suffix without its leading `-sprite`. The manifests of #263 to #266 (zmk-lantern's
+  the image suffix without its leading `-sprite`. The manifests of #263 to #266 (zmk-vfx-lantern's
   first) hashed its SHA as text: a device flashed from them reads `off-main` since t-66ww, until
   it is flashed again. Comments and blank runs drop out of `config/`,
   `build.yaml`, `west.yml` and `zmk-west.sh` (except Kconfig's `# CONFIG_X is not set`), so a
@@ -359,10 +359,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `boards/shields/imprint/Kconfig.defconfig` sets it outside any `SHIELD_` guard, so a target
   without a `zmk,underglow` chosen node fails with `#error` in `rgb_underglow.c` (2026-09-25).
   `config/imprint.conf` sets `CONFIG_ZMK_RGB_UNDERGLOW=n` for every imprint target, the halves included
-  since t-69g7 (zmk-lantern paints the strip itself and asserts the `n`: ZMK's tick would repaint
+  since t-69g7 (zmk-vfx-lantern paints the strip itself and asserts the `n`: ZMK's tick would repaint
   it; up to #268 the halves' confs set it back to `y` for the module), and `config/prospector.conf`
   for the Prospector Dongle.
-- **The halves' LED rail (assimilator-bt P1.02) is zmk-lantern's, never ZMK's `ext_power` driver's**:
+- **The halves' LED rail (assimilator-bt P1.02) is zmk-vfx-lantern's, never ZMK's `ext_power` driver's**:
   `config/lantern_rail.dtsi` (both halves' overlays) keeps the board's `EXT_POWER` node disabled,
   holds the pin low with a hog until the module takes it, and declares the `lantern,rail` node;
   `imprint_left.conf` / `imprint_right.conf` carry `CONFIG_ZMK_IDLE_TIMEOUT=300000`, the module's
@@ -370,9 +370,9 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   pointing
   input on a half, and as long without a key press of the other half, which the dongle relays as
   the hit (the wake, `CONFIG_LANTERN_WAKE_ON_HIT`, the module's default with `CONFIG_ZMK_SLEEP=n`;
-  t-6ttk, 2026-11-01: up to zmk-lantern 49e0eef each half counted for itself, so a half left
+  t-6ttk, 2026-11-01: up to zmk-vfx-lantern 49e0eef each half counted for itself, so a half left
   untouched for five minutes stayed dark while the other was typed and the crossing ring stopped at
-  it, the user's report of 2026-10-28; on hardware 2026-11-02, zmk-lantern#34's trial images on
+  it, the user's report of 2026-10-28; on hardware 2026-11-02, zmk-vfx-lantern#34's trial images on
   both halves with a 20 s timeout and the pick `cross-ring`: two presses on one half past the
   timeout, and the second's ring reached the other, both ways, the user's OK on sight), and its
   LEDs go dark on USB too, lit again at the next
@@ -389,14 +389,14 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   (the stock keymap's `&ext_power EP_OFF`), which kept it dark while the right half lit (t-y4ec,
   2026-10-19); erasing it is a settings reset, bonds included. No `&ext_power` or `&rgb_ug` key:
   through the dongle a press never reaches the halves, and with the underglow off `&rgb_ug` has no
-  driver (zmk-lantern's CLAUDE.md). On battery the rail is off, as since #207 (10-18 mA per half at
+  driver (zmk-vfx-lantern's CLAUDE.md). On battery the rail is off, as since #207 (10-18 mA per half at
   rest with it on, 0.79 mA off; 2026-09-15). On hardware 2026-10-19 (t-26y4, both halves): the boot
   light on battery, then dark; lit on plugging in and dark on unplugging, per half; lit through a
   boot on USB.
 - **The Imprint Dongle builds with `CONFIG_BT_EXT_ADV` and needs `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2`**
   (`config/imprint_dongle.conf`): `CONFIG_BEACON_STATUS_BROADCAST` selects it for a second
   advertising set, and the host serves ZMK's legacy `bt_le_adv_start()` from the same pool; a pool
-  of 1 fails zmk-beacon's `BUILD_ASSERT`. Costs: about 34 KB flash and 11 KB RAM, the host on
+  of 1 fails zmk-vfx-beacon's `BUILD_ASSERT`. Costs: about 34 KB flash and 11 KB RAM, the host on
   extended HCI commands, and an extended scan following nearby AuxPtr fields, where ZMK's Zephyr
   fork lacks upstream 5ce9d0c621 (an assert on an invalid `chan_idx`; if it bites, carry it in
   `patches/zephyr/`). Hardware 2026-09-26/27 (t-eray): reconnects unchanged over 5 reboots and a
@@ -411,16 +411,16 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   first image with the 1200 baud entry, or a failed run, takes a double-tap + `cp -X` (README,
   docs/recovery.md).
 - **A canon device's port rate is a command**: 1200 baud reboots either dongle or either half into
-  its UF2 bootloader (the halves seen 2026-10-19, t-y6dz), 2400 makes the Prospector Dongle send its screen (zmk-beacon's
+  its UF2 bootloader (the halves seen 2026-10-19, t-y6dz), 2400 makes the Prospector Dongle send its screen (zmk-vfx-beacon's
   `CONFIG_BEACON_BOOTLOADER_ON_1200_BAUD`, on in its shield, since 2026-09-27 in
   `config/imprint_dongle.conf`, whose product image has the port too, and since 2026-10-19 in
   `config/imprint_left.conf` / `imprint_right.conf` with the port from `config/cdc_acm_port.dtsi`;
   `CONFIG_BEACON_SCREEN_DUMP`). Any program that sets the rate does it (`stty`, a serial monitor):
   never open a canon device's port at either rate by hand. A line `palette …` or `effect …` on
-  the Imprint Dongle's port at 115200 is a command too (zmk-lantern's `CONFIG_LANTERN_PORT`): only
+  the Imprint Dongle's port at 115200 is a command too (zmk-vfx-lantern's `CONFIG_LANTERN_PORT`): only
   `dongle.py palette`, `effect`, `intro` and `tempo` send them, each after a prelude of 1024 spaces and a
   newline, more than port.c's `LINE_LIMIT`, so that a leftover in the dongle's line buffer (a set typed
-  in a terminal and never sent) is dropped at the newline, never completed and run (t-tbrb; zmk-lantern's
+  in a terminal and never sent) is dropped at the newline, never completed and run (t-tbrb; zmk-vfx-lantern's
   `tools/lantern_port.py` sends the same), and they refuse while a log reader holds the port, which
   would take the reply. Find ports by the firmware stamp or a
   dongle's USB product string, never by VID/PID or a `/dev/cu.usbmodem*` name (it follows the USB
@@ -430,7 +430,7 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `zmk_ble_put_peripheral_addr()` (`app/src/ble.c`) saves a new advertiser in the first free slot,
   before pairing and even if pairing fails, and `reserve_peripheral_slot()` (`central.c`) maps it back
   until the Imprint Dongle's NVS reset (read 2026-10-04, ZMK 5b51501f). Consumers: chord's split
-  battery `source` and zmk-beacon's `src/status_broadcaster.c` (slot 0 → the left byte). Slot 0 is the
+  battery `source` and zmk-vfx-beacon's `src/status_broadcaster.c` (slot 0 → the left byte). Slot 0 is the
   left half (2026-09-27, t-eray); after a reset, the left half pairs first (docs/recovery.md B).
 - **Generated and tool-managed files are never formatted (`.prettierignore`) or edited where
   generated**: the AUTO-GENERATED block of `keymap_drawer.config.yaml`, `config/vkey-aliases.toml`,
@@ -456,14 +456,14 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   more (the repository tracks no binary), and the same script is every clone's pre-commit hook
   (the Commits section), so a picture never reaches history, where a red PR would still leave it.
 - Local only: `./scripts/build-zmk.sh prospector --sprite <gif>` writes
-  `firmware/prospector-sprite.uf2` (zmk-beacon's `CONFIG_BEACON_SPRITE_GIF`): the configure step
-  converts the GIF into a sprite pack (zmk-beacon's `tools/sprite_pack.py`, format and reasons in
-  its `docs/sprite-pack.md`; since zmk-beacon fe32b13, t-4dsj) and embeds the pack, never the GIF.
-  The player keeps the canvas and picture 0 in the LVGL pool, which zmk-beacon's shield sizes at
+  `firmware/prospector-sprite.uf2` (zmk-vfx-beacon's `CONFIG_BEACON_SPRITE_GIF`): the configure step
+  converts the GIF into a sprite pack (zmk-vfx-beacon's `tools/sprite_pack.py`, format and reasons in
+  its `docs/sprite-pack.md`; since zmk-vfx-beacon fe32b13, t-4dsj) and embeds the pack, never the GIF.
+  The player keeps the canvas and picture 0 in the LVGL pool, which zmk-vfx-beacon's shield sizes at
   64 KiB with a sprite (48 KiB without; `config/prospector.conf` never sets it), and CMake stops a
   GIF that does not fit, naming the pool size that would. The CI and release
   `prospector.uf2` carries neither sprite nor name, but flashing it removes neither: the sprite
-  room survives a flash and its pack plays at boot (zmk-beacon's README; seen 2026-10-13 after
+  room survives a flash and its pack plays at boot (zmk-vfx-beacon's README; seen 2026-10-13 after
   flash-dongle.sh put the pinned image on). The GIFs are a sparse clone off the repository that
   only dotfiles-private's `sprite-sender/` names (`sender.json`, `clone.sh`; e-ehzy): write neither
   its repository nor its path here. `shot` PNGs go to `~/.cache/zmk-canon/shots/`
@@ -471,18 +471,18 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
 - [assets/sprite-name.py](assets/sprite-name.py) gives the name: for a `<number>.gif`, the name
   dictionary's katakana name of that number when the HP bar can show it, else its English one,
   whole (t-rq9h; the config `--sender-config` or `$SPRITE_SENDER_CONFIG` names the name dictionary, and
-  the script copies zmk-beacon's `tools/name_dictionary.py`, so change the two together); else the
+  the script copies zmk-vfx-beacon's `tools/name_dictionary.py`, so change the two together); else the
   file name's (t-er81), which for a number is the number.
   build-zmk.sh passes the name as `CONFIG_BEACON_SPRITE_NAME` in a Kconfig fragment
   (`cfgrepo/.sprite/sprite.conf`, `EXTRA_CONF_FILE`), never `-DCONFIG_...`, which west prints when
   the configure step fails (reproduced 2026-09-29). Of the sprite, build-zmk.sh prints only the
   GIF's size, whether the name is katakana or ASCII and, in the `images:` line, the sprite image's
-  FLASH use, which grows by the pack's size; zmk-beacon's build prints its `Sprite:` line (canvas,
+  FLASH use, which grows by the pack's size; zmk-vfx-beacon's build prints its `Sprite:` line (canvas,
   bits a pixel, colours, pictures, frames, bytes). For a GIF of the collection the alphabet says
   whether the name dictionary's katakana name fit, and the sizes can point to the GIF, so these lines stay
-  out of anything public, like the sprite sender's (zmk-beacon's README). `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
-  `modules/zmk-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
-  the name: never print or paste from them. The screen layout (zmk-beacon's README, the
+  out of anything public, like the sprite sender's (zmk-vfx-beacon's README). `cfgrepo/.sprite/` and a sprite build's directory (`zephyr/.config`, the image,
+  `modules/zmk-vfx-beacon/beacon_sprite.spk` and `beacon_sprite_pack.inc`) hold the GIF, the pack and
+  the name: never print or paste from them. The screen layout (zmk-vfx-beacon's README, the
   glossary) is the user's pick (t-dzxf; t-er81, layout M of twelve trials; t-rq9h, 2026-10-26: the
   sprite name above the HP bar, centred, a katakana name in the katakana font, an ASCII one in
   unscii 16): change it only on request.

@@ -15,7 +15,7 @@
         #binding-cells = <1>;
     };
 
-    // &palette: zmk-lantern's palette behavior (config/west.yml; its
+    // &palette: zmk-vfx-lantern's palette behavior (config/west.yml; its
     // src/palette.c), never on a key. The Imprint Dongle's code invokes it
     // with the colours `scripts/dongle.py palette` sends, and ZMK's split
     // transport carries the invocation to both halves by this node's name,
@@ -28,7 +28,7 @@
         #binding-cells = <2>;
     };
 
-    // &hit: zmk-lantern's hit behavior (its src/hit.c), never on a key. The
+    // &hit: zmk-vfx-lantern's hit behavior (its src/hit.c), never on a key. The
     // Imprint Dongle sends it to a half with each key press of the other
     // half (param1 = the key position), and ZMK's split transport carries it
     // by this node's name, so the node is the same on all three, as &palette;
@@ -36,7 +36,7 @@
     // half's presses (the crossing ring, the beams, the thin ring and the
     // stain, the disc, the water and the dart; t-6ttk) and for the tempo's
     // count, and dark for idle it lights at it (the
-    // wake, zmk-lantern's CONFIG_LANTERN_WAKE_ON_HIT). The dongle sends only to
+    // wake, zmk-vfx-lantern's CONFIG_LANTERN_WAKE_ON_HIT). The dongle sends only to
     // a half whose link is at peripheral latency 0, the one USB powers (the
     // module's src/latency.c): a half on battery is dark and gets nothing.
     hit: hit {
@@ -44,7 +44,7 @@
         #binding-cells = <2>;
     };
 
-    // &layer: zmk-lantern's layer behavior (its src/layer.c), never on a key.
+    // &layer: zmk-vfx-lantern's layer behavior (its src/layer.c), never on a key.
     // The Imprint Dongle, where the keymap runs, sends a half which keys the
     // held layer binds to something of its own and the palette slot of its
     // colour, for the layer keys (t-6ttk), by this node's name, as &hit, and
@@ -61,7 +61,7 @@
                   T_LL_LAYER 1  T_LM_LAYER 1  T_RM_LAYER 3  T_RR_LAYER 3>;
     };
 
-    // &effect: zmk-lantern's effect behavior (its src/effect.c), never on a
+    // &effect: zmk-vfx-lantern's effect behavior (its src/effect.c), never on a
     // key. The Imprint Dongle's code invokes it with the pick
     // `scripts/dongle.py effect` sends (param1 = a mask of the module's
     // effect bits, src/effect.h), and ZMK's split transport carries it to
@@ -74,7 +74,7 @@
         #binding-cells = <2>;
     };
 
-    // &intro: zmk-lantern's intro behavior (its src/intro.c), never on a
+    // &intro: zmk-vfx-lantern's intro behavior (its src/intro.c), never on a
     // key. The Imprint Dongle's code invokes it with the pick
     // `scripts/dongle.py intro` sends (param1 = one of the module's intro
     // bits, src/intro.h), and ZMK's split transport carries it to both
@@ -88,7 +88,7 @@
         #binding-cells = <2>;
     };
 
-    // &tempo: zmk-lantern's tempo behavior (its src/tempo.c), never on a
+    // &tempo: zmk-vfx-lantern's tempo behavior (its src/tempo.c), never on a
     // key. The Imprint Dongle's code invokes it with the pick
     // `scripts/dongle.py tempo on|off` sends (param1 = one of the module's
     // tempo bits, src/tempo.h), and ZMK's split transport carries it to both

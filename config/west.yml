@@ -29,18 +29,18 @@ manifest:
       remote: Cyboard-DigitalTailor
       revision: zephyr-4.1
       import: config/west.yml
-    # zmk-beacon (own module): the Prospector Dongle's `prospector` shield and
+    # zmk-vfx-beacon (own module): the Prospector Dongle's `prospector` shield and
     # the Imprint Dongle's status broadcaster (CONFIG_BEACON_STATUS_BROADCAST
     # in config/imprint_dongle.conf), and tools/ (the sprite sender and
-    # sprite_colours.py, which dotfiles builds from zmk-beacon's main, not
+    # sprite_colours.py, which dotfiles builds from zmk-vfx-beacon's main, not
     # from this pin). Pinned by commit, not by tag, so canon
-    # takes a change without a zmk-beacon release; bump the SHA by hand.
+    # takes a change without a zmk-vfx-beacon release; bump the SHA by hand.
     # scripts/build-zmk.sh checks it out at this pin before every build.
-    - name: zmk-beacon
+    - name: zmk-vfx-beacon
       remote: akira-toriyama
-      revision: 86d61d47c7e33dc61d54617f6abe83db02504cbf
-      path: modules/zmk-beacon
-    # zmk-lantern (own module): the halves' key LEDs, lit only while USB
+      revision: 2a3bbc586526034c25af84998f812e68ecec3770
+      path: modules/zmk-vfx-beacon
+    # zmk-vfx-lantern (own module): the halves' key LEDs, lit only while USB
     # powers the half and it is in use (CONFIG_ZMK_IDLE_TIMEOUT without a key
     # on either half turns them off: ZMK's idle state for the half's own keys,
     # the module's wake for the other half's, which reach it as the hit), an
@@ -62,11 +62,11 @@ manifest:
     # and layer sides only; its conf sizes the split run queue for a whole
     # palette and all three picks).
     # ZMK's underglow is off on every target; config/lantern_keys.dtsi is the
-    # module's node. Pinned by commit like zmk-beacon; bump the SHA by hand
+    # module's node. Pinned by commit like zmk-vfx-beacon; bump the SHA by hand
     # after a merge there.
-    - name: zmk-lantern
+    - name: zmk-vfx-lantern
       remote: akira-toriyama
-      revision: 7e7f06bbd883232e112f2291ea0a2f505da0a3aa
-      path: modules/zmk-lantern
+      revision: ea671482e9f9c550d4adc4f3dc607d7e804bd292
+      path: modules/zmk-vfx-lantern
   self:
     path: config
