@@ -418,8 +418,11 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   `CONFIG_BEACON_SCREEN_DUMP`). Any program that sets the rate does it (`stty`, a serial monitor):
   never open a canon device's port at either rate by hand. A line `palette …` or `effect …` on
   the Imprint Dongle's port at 115200 is a command too (zmk-lantern's `CONFIG_LANTERN_PORT`): only
-  `dongle.py palette` and `dongle.py effect` send them, and they refuse while a log reader holds
-  the port, which would take the reply. Find ports by the firmware stamp or a
+  `dongle.py palette`, `effect`, `intro` and `tempo` send them, each after a prelude of 1024 spaces and a
+  newline, more than port.c's `LINE_LIMIT`, so that a leftover in the dongle's line buffer (a set typed
+  in a terminal and never sent) is dropped at the newline, never completed and run (t-tbrb; zmk-lantern's
+  `tools/lantern_port.py` sends the same), and they refuse while a log reader holds the port, which
+  would take the reply. Find ports by the firmware stamp or a
   dongle's USB product string, never by VID/PID or a `/dev/cu.usbmodem*` name (it follows the USB
   location). The option depends on `USB_CDC_ACM`, without which `=y` drops out with a mere warning:
   after a ZMK bump, grep it in `build/<shield>/zephyr/.config` of the Imprint Dongle and both halves.
