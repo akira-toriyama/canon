@@ -380,7 +380,16 @@ def manifest_without_pins(data, pins):
 
 class PinTrees:
     """Tree ids of the own modules' pins, from their clones under a west
-    topdir; a commit a clone lacks is fetched from the pin's url (network)."""
+    topdir; a commit a clone lacks is fetched from the pin's url (network).
+    A path no clone has any more is a module renamed since the commit
+    dongle.py check walks (t-g1p7, 2026-11-09: modules/zmk-beacon and
+    modules/zmk-lantern became modules/zmk-vfx-beacon and
+    modules/zmk-vfx-lantern, and west clones only the current paths): the
+    renamed repository keeps its commits and a full SHA names one commit, so
+    the clone beside that path which has the commit gives the same tree id
+    and the commit's digest stays what the device carries. Nothing is
+    fetched for such a pin: the url names the old repository, and a fetch
+    into a clone beside it could pull one module's commits into another's."""
 
     def __init__(self, topdir):
         self.topdir = topdir
@@ -392,8 +401,12 @@ class PinTrees:
             return self.cache[key]
         git_dir = os.path.join(self.topdir, pin.path)
         if not os.path.isdir(git_dir):
-            raise Failure("no clone of %s at %s: build once (scripts/build-zmk.sh), or point --topdir or ZMK_WS at the workspace"
-                          % (pin.name, git_dir))
+            tree = self.renamed(pin)
+            if tree is None:
+                raise Failure("no clone of %s at %s, nor one beside it with %s: build once (scripts/build-zmk.sh), or point --topdir or ZMK_WS at the workspace"
+                              % (pin.name, git_dir, pin.revision[:12]))
+            self.cache[key] = tree
+            return tree
         for attempt in (0, 1):
             try:
                 tree = git(git_dir, "rev-parse", "--verify", "-q", pin.revision + "^{tree}").decode().strip()
@@ -404,6 +417,22 @@ class PinTrees:
                     raise
                 git(git_dir, "fetch", "-q", pin.url, pin.revision)
         raise AssertionError
+
+    def renamed(self, pin):
+        """The pin's tree id from a clone beside its missing path that has
+        the commit, or None (see the class)."""
+        parent = os.path.dirname(os.path.join(self.topdir, pin.path))
+        if not SHA_RE.match(pin.revision) or not os.path.isdir(parent):
+            return None
+        for entry in sorted(os.listdir(parent)):
+            clone = os.path.join(parent, entry)
+            if not os.path.isdir(os.path.join(clone, ".git")):
+                continue
+            try:
+                return git(clone, "rev-parse", "--verify", "-q", pin.revision + "^{tree}").decode().strip()
+            except Failure:
+                continue
+        return None
 
 
 def digest(src, board, shield, trees):
