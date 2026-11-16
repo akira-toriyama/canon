@@ -114,29 +114,28 @@ keymap, which `#include`s `config/behavior_macros.h` and the keymap-side
 
 ### layer
 One layer of the [[keymap]], switched on and off in ZMK's layer stack. A layer
-has three names: its node name, its canonical name and its `display-name`.
+has two names: its node name and its canonical name.
 - Defined in [`config/layers.h`](../config/layers.h) (the index, in the keymap's order) and [`config/imprint.keymap`](../config/imprint.keymap) (the keys)
 - Node name: the index macro in `config/layers.h`. `config/arrow_behaviors.dtsi`, `config/macros.dtsi`, `config/behavior_macros.h` and the `layers` pairs of the [[behavior]] node `layer` in `config/imprint_behaviors.dtsi` use the same macros, so do not rename them.
-- Canonical name: the name in prose and commits, words separated by spaces (`Symbol 1`, `Left Arrow`, `Vkey LL`), no hyphens or brackets.
-- `display-name`: the short name in the firmware, shown in the [[keymap-drawer]] SVG and carried by the [[status advertisement]]. It matches `[A-Za-z][A-Za-z0-9]{0,3}` and is unique:
-  - 4 ASCII characters at most: the status advertisement carries only the first 4 bytes, 0-padded (zmk-vfx-beacon `src/status_payload.h`; the Prospector Dongle does not show the name).
+- Canonical name: the name in prose and commits and the keymap's `display-name`, which the [[keymap-drawer]] SVG shows as the layer's heading and on the keys that enter it. Words separated by spaces (`Symbol 1`, `Left Arrow`, `Vkey LL`), no hyphens or brackets, and unique as keymap-drawer reads it:
   - Unique: keymap-drawer keys layers by name, so a repeated name silently drops a layer, and with exit 0 `fail_on_error` does not catch it. Measured 2026-09-26 with keymap-drawer 0.23.0: one arrow sub-layer named `Fn` left 12 layers, Function's keys gone and stderr empty.
-  - A letter, then letters and digits: keymap-drawer makes the SVG anchor id by turning spaces into `-` and dropping every character before the first ASCII letter or outside `[A-Za-z0-9-_:.]`, so `Fn!`, `Fn?` and `1Fn` all become `Fn`, while such a name is its own id.
+  - A letter first, then letters, digits and spaces: keymap-drawer makes the SVG anchor id by turning spaces into `-` and dropping every character before the first ASCII letter or outside `[A-Za-z0-9-_:.]`, so `Fn!`, `Fn?` and `1Fn` all become `Fn`, and `Symbol 1` becomes `Symbol-1`.
   - Sources read 2026-09-26: keymap-drawer 0.23.0 `keymap_drawer/parse/zmk.py:211` and `keymap_drawer/draw/utils.py:26-35`.
-- Node name → canonical name → `display-name`. The four arrow sub-layers are named after the arrow key that enters them, never after the keys they send; the Vkey layers are thumb layers that hold only [[vkey]]s.
-  - `DEFAULT_LAYER` → Base → `Base`
-  - `NUMBER_LAYER` → Number → `Num`
-  - `SYMBOL1_LAYER` → Symbol 1 → `Sym1`
-  - `SYMBOL2_LAYER` → Symbol 2 → `Sym2`
-  - `FUNCTION_LAYER` → Function → `Fn`
-  - `LEFT_ARROW_LAYER` → Left Arrow → `LArr`
-  - `RIGHT_ARROW_LAYER` → Right Arrow → `RArr`
-  - `UP_ARROW_LAYER` → Up Arrow → `UArr`
-  - `DOWN_ARROW_LAYER` → Down Arrow → `DArr`
-  - `T_LL_LAYER` → Vkey LL → `LL`
-  - `T_LM_LAYER` → Vkey LM → `LM`
-  - `T_RM_LAYER` → Vkey RM → `RM`
-  - `T_RR_LAYER` → Vkey RR → `RR`
+  - No length limit of the firmware's: nothing on a device reads the name since the [[status advertisement]] dropped the layer (t-xe2q, 2026-11-16; up to then it carried the name's first 4 bytes, and each layer had a third, short name for it: `Num`, `Sym1`, `LArr`, `LL`). keymap-drawer wraps or shrinks a long name on a key (`Symbol 1` on two lines, `Right Arrow` at 64 %, 0.23.0).
+- Node name → canonical name. The four arrow sub-layers are named after the arrow key that enters them, never after the keys they send; the Vkey layers are thumb layers that hold only [[vkey]]s.
+  - `DEFAULT_LAYER` → Base
+  - `NUMBER_LAYER` → Number
+  - `SYMBOL1_LAYER` → Symbol 1
+  - `SYMBOL2_LAYER` → Symbol 2
+  - `FUNCTION_LAYER` → Function
+  - `LEFT_ARROW_LAYER` → Left Arrow
+  - `RIGHT_ARROW_LAYER` → Right Arrow
+  - `UP_ARROW_LAYER` → Up Arrow
+  - `DOWN_ARROW_LAYER` → Down Arrow
+  - `T_LL_LAYER` → Vkey LL
+  - `T_LM_LAYER` → Vkey LM
+  - `T_RM_LAYER` → Vkey RM
+  - `T_RR_LAYER` → Vkey RR
 - **Don't call it:** mode, page, view, モード, ページ
 
 ### behavior
@@ -199,12 +198,11 @@ half's battery level to the host: usage page `0xFF31`, Report ID `0x21`,
 
 ### status advertisement
 The BLE advertisement the [[Imprint Dongle]] broadcasts for the
-[[Prospector Dongle]]: 26 bytes of manufacturer data (each half's battery
-level, the highest active [[layer]]'s index and the first 4 bytes of its
-`display-name`, a count of key presses, and the modifiers held, confirmed as
-holds so that a [[hold-tap]] thumb's tap never counts) on a second, non-connectable
+[[Prospector Dongle]]: 9 bytes of manufacturer data (each half's battery
+level, a count of key presses, and the modifiers held, confirmed as
+holds so that a [[hold-tap]] thumb's tap never counts; no [[layer]]) on a second, non-connectable
 advertising set next to ZMK's own, every 200 ms; no pairing, no bond, no BLE
-slot on either side. Both ends and the byte layout are zmk-vfx-beacon's
+slot on either side. Both ends and the byte layout, its version 2, are zmk-vfx-beacon's
 ([`src/status_payload.h`](https://github.com/akira-toriyama/zmk-vfx-beacon/blob/main/src/status_payload.h)).
 - Enabled by `CONFIG_BEACON_STATUS_BROADCAST=y` and `CONFIG_BT_EXT_ADV_MAX_ADV_SET=2` in [`config/imprint_dongle.conf`](../config/imprint_dongle.conf) (why the second line: the comment there); the halves' builds do not have it.
 - **Don't call it:** status broadcast, beacon, telemetry, ステータス広告, 状態通知

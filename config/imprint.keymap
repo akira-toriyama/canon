@@ -32,9 +32,8 @@
   keymap {
     compatible = "zmk,keymap";
 
-    // display-name matches [A-Za-z][A-Za-z0-9]{0,3} and is unique: only its
-    // first 4 bytes reach the Prospector Dongle, and keymap-drawer silently
-    // drops a layer whose name repeats. Canonical names, reasons and sources:
+    // display-name is the layer's canonical name and is unique: keymap-drawer
+    // silently drops a layer whose name repeats. Names, reasons and sources:
     // docs/glossary.md, entry "layer".
     DEFAULT_LAYER {
       display-name = "Base";
@@ -48,7 +47,7 @@
       >;
     };
     NUMBER_LAYER {
-      display-name = "Num";
+      display-name = "Number";
       bindings = <
         &none  &none  &none  &none  &none  &none                    &none  &en_7  &en_8  &en_9  &none  &none
         &none  &none  &none  &none  &none  &none                    &none  &en_4  &en_5  &en_6  &none  &none
@@ -57,7 +56,7 @@
       >;
     };
     SYMBOL1_LAYER {
-      display-name = "Sym1";
+      display-name = "Symbol 1";
       bindings = <
         &none  &none  &none  &none  &none  &none                    &en_under  &en_pipe   &en_amp    &en_excl   &en_q      &none
         &none  &none  &none  &none  &none  &none                    &en_hash   &en_comma  &en_dot    &en_semi   &en_colon  &en_at
@@ -66,7 +65,7 @@
       >;
     };
     SYMBOL2_LAYER {
-      display-name = "Sym2";
+      display-name = "Symbol 2";
       bindings = <
         &none  &none  &none  &none  &none  &none                    &en_caret  &en_lt    &en_gt     &en_lbkt  &en_rbkt  &none
         &none  &none  &none  &none  &none  &none                    &en_eq     &en_plus  &en_minus  &en_ast   &en_pct   &en_dollar
@@ -75,7 +74,7 @@
       >;
     };
     FUNCTION_LAYER {
-      display-name = "Fn";
+      display-name = "Function";
       bindings = <
         &none  &none  &none  &none  &none  &none                    &none  &kp F1  &kp F2   &kp F3   &kp F4   &none
         &none  &none  &none  &none  &none  &none                    &none  &kp F5  &kp F6   &kp F7   &kp F8   &none
@@ -87,7 +86,7 @@
     // names that arrow key (the node's *_ARROW), not what the layer sends,
     // which may change.
     LEFT_ARROW_LAYER {
-      display-name = "LArr";
+      display-name = "Left Arrow";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -97,7 +96,7 @@
       >;
     };
     RIGHT_ARROW_LAYER {
-      display-name = "RArr";
+      display-name = "Right Arrow";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -107,7 +106,7 @@
       >;
     };
     UP_ARROW_LAYER {
-      display-name = "UArr";
+      display-name = "Up Arrow";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -117,7 +116,7 @@
       >;
     };
     DOWN_ARROW_LAYER {
-      display-name = "DArr";
+      display-name = "Down Arrow";
       bindings = <
         ROW_NONE
         ROW_NONE
@@ -127,7 +126,7 @@
       >;
     };
     T_LL_LAYER {
-      display-name = "LL";
+      display-name = "Vkey LL";
       bindings = <
         &none  &vkey 0x10  &vkey 0x11  &vkey 0x12  &vkey 0x13  &vkey 0x14                    &vkey 0x15  &vkey 0x16  &vkey 0x17    &vkey 0x18    &vkey 0x19    &none
         &none  &vkey 0x1A  &vkey 0x1B  &vkey 0x1C  &vkey 0x1D  &vkey 0x1E                    &vkey 0x1F  &vkey 0x20  &vkey 0x21    &vkey 0x22    &vkey 0x23  &none
@@ -136,7 +135,7 @@
       >;
     };
     T_LM_LAYER {
-      display-name = "LM";
+      display-name = "Vkey LM";
       bindings = <
         &none  &vkey 0x30  &vkey 0x31  &vkey 0x32  &vkey 0x33  &vkey 0x34                    &vkey 0x35  &vkey 0x36  &vkey 0x37    &vkey 0x38    &vkey 0x39    &none
         &none  &vkey 0x3A  &vkey 0x3B  &vkey 0x3C  &vkey 0x3D  &vkey 0x3E                    &vkey 0x3F  &vkey 0x40  &vkey 0x41    &vkey 0x42    &vkey 0x43  &none
@@ -145,7 +144,7 @@
       >;
     };
     T_RM_LAYER {
-      display-name = "RM";
+      display-name = "Vkey RM";
       bindings = <
         &none  &vkey 0x50  &vkey 0x51  &vkey 0x52  &vkey 0x53  &vkey 0x54                    &vkey 0x55  &vkey 0x56  &vkey 0x57    &vkey 0x58    &vkey 0x59    &none
         &none  &vkey 0x5A  &vkey 0x5B  &vkey 0x5C  &vkey 0x5D  &vkey 0x5E                    &vkey 0x5F  &vkey 0x60  &vkey 0x61    &vkey 0x62    &vkey 0x63  &none
@@ -154,7 +153,7 @@
       >;
     };
     T_RR_LAYER {
-      display-name = "RR";
+      display-name = "Vkey RR";
       bindings = <
         &none  &vkey 0x70  &vkey 0x71  &vkey 0x72  &vkey 0x73  &vkey 0x74                    &vkey 0x75  &vkey 0x76  &vkey 0x77    &vkey 0x78    &vkey 0x79    &none
         &none  &vkey 0x7A  &vkey 0x7B  &vkey 0x7C  &vkey 0x7D  &vkey 0x7E                    &vkey 0x7F  &vkey 0x80  &vkey 0x81    &vkey 0x82    &vkey 0x83  &none
