@@ -117,8 +117,8 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   single-TT hub, `bDeviceProtocol` 1, that every canon device hangs off at 12 Mbps; at
   `0x02110000` until 2026-10-21, at `0x02120000` since, t-skdt), in the hub or in the Mac's
   handling of it, not measured which: unplugging that hub from the monitor and plugging it back
-  cleared it once, and a reboot of the Mac each of the three times it was tried (2026-10-19, 10-20
-  and 10-21, t-skdt)** (2026-10-20, t-v31c): three more runs had failed the same way
+  cleared it once, and a reboot of the Mac each of the four times it was tried (2026-10-19, 10-20
+  and 10-21, t-skdt; 2026-11-16, t-xe2q)** (2026-10-20, t-v31c): three more runs had failed the same way
   at 09:26-09:49 on port 4 after the monitor's hub had reconnected at 09:12-09:16, the evening's
   on ports 1 and 3 that passed at other times, and the same device, cable, port and image had
   failed at 23:08 and passed at 23:36; the host's re-enumeration of the hub (a bus reset, the hub
@@ -133,7 +133,10 @@ Claude Code notes: what breaks, and how to build, flash and read the devices. Us
   into the state, is open: by the morning of 2026-10-20, three of four reconnections of the
   monitor's hub (a KVM switch) had been followed by it (t-v31c); that afternoon it came with no
   switch, after a run had passed at 14:42 (t-gsm2); and on 2026-10-21 runs passed after each of
-  three reconnections (t-skdt).
+  three reconnections (t-skdt). On 2026-11-16 two Prospector Dongle runs failed (15:05, the volume
+  gone before the copy; 15:10, gone 3 s into it and no port within 30 s, the log's five resets and
+  the driver terminated), whether the hub was replugged between them is not recorded, and after
+  the reboot both dongles flashed (15:36, 15:38; t-xe2q).
   Recovery: replug the stranded device, unplug the 4-port hub at the monitor for 30 s or more and
   plug it back, one Prospector Dongle run; if that fails the same way, reboot the Mac and run the
   Prospector Dongle again; then the keyboard devices. The devices stay on that hub (the external

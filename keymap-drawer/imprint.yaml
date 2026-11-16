@@ -33,33 +33,33 @@ layers:
   - {t: B, s: '&eiji_macro B'}
   - {t: N, s: '&eiji_macro N'}
   - {t: M, s: '&eiji_macro M'}
-  - {t: ↑, h: UArr, s: ↑}
+  - {t: ↑, h: Up Arrow, s: ↑}
   - ⇥
   - ⌦
   - ⏎
   - ''
-  - Fn
-  - Sym2
-  - Sym1
-  - Num
-  - {t: ←, h: LArr, s: ←}
-  - {t: ↓, h: DArr, s: ↓}
-  - {t: →, h: RArr, s: →}
+  - Function
+  - Symbol 2
+  - Symbol 1
+  - Number
+  - {t: ←, h: Left Arrow, s: ←}
+  - {t: ↓, h: Down Arrow, s: ↓}
+  - {t: →, h: Right Arrow, s: →}
   - ''
   - ''
   - '&t_ll_ctrl'
   - '&t_lm_alt'
   - ''
   - ''
-  - RM
-  - RR
+  - Vkey RM
+  - Vkey RR
   - {t: ⏎, h: ⇧}
   - {t: ⌫, h: ⌘}
   - ''
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  Num:
+  Number:
   - ''
   - ''
   - ''
@@ -118,7 +118,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  Sym1:
+  Symbol 1:
   - ''
   - ''
   - ''
@@ -177,7 +177,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  Sym2:
+  Symbol 2:
   - ''
   - ''
   - ''
@@ -236,7 +236,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  Fn:
+  Function:
   - ''
   - ''
   - ''
@@ -295,7 +295,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  LArr:
+  Left Arrow:
   - ''
   - ''
   - ''
@@ -354,7 +354,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  RArr:
+  Right Arrow:
   - ''
   - ''
   - ''
@@ -413,7 +413,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  UArr:
+  Up Arrow:
   - ''
   - ''
   - ''
@@ -472,7 +472,7 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  DArr:
+  Down Arrow:
   - ''
   - ''
   - ''
@@ -531,15 +531,15 @@ layers:
   - ''
   - {t: ⎋, h: ⌥}
   - {t: ␣, h: ⌃}
-  LL: ['', '&vkey 0x10', '&vkey 0x11', '&vkey 0x12', '&vkey 0x13', '&vkey 0x14', '&vkey 0x15', '&vkey 0x16', '&vkey 0x17', '&vkey 0x18', '&vkey 0x19', '', '', '&vkey
-      0x1A', '&vkey 0x1B', '&vkey 0x1C', '&vkey 0x1D', '&vkey 0x1E', '&vkey 0x1F', '&vkey 0x20', '&vkey 0x21', '&vkey 0x22', '&vkey 0x23', '', '', '&vkey 0x24', '&vkey
-      0x25', '&vkey 0x26', '&vkey 0x27', '&vkey 0x28', '&vkey 0x29', '&vkey 0x2A', '&vkey 0x2B', '&vkey 0x2C', '&vkey 0x2D', '', '', '', '', '', '', '', '', '', '',
-    '', '', '', '', '', '', '', '', '', '', '', '', '']
-  LM: ['', '&vkey 0x30', '&vkey 0x31', '&vkey 0x32', '&vkey 0x33', '&vkey 0x34', '&vkey 0x35', '&vkey 0x36', '&vkey 0x37', '&vkey 0x38', '&vkey 0x39', '', '', '&vkey
-      0x3A', '&vkey 0x3B', '&vkey 0x3C', '&vkey 0x3D', '&vkey 0x3E', '&vkey 0x3F', '&vkey 0x40', '&vkey 0x41', '&vkey 0x42', '&vkey 0x43', '', '', '&vkey 0x44', '&vkey
-      0x45', '&vkey 0x46', '&vkey 0x47', '&vkey 0x48', '&vkey 0x49', '&vkey 0x4A', '&vkey 0x4B', '&vkey 0x4C', '&vkey 0x4D', '', '', '', '', '', '', '', '', '', '',
-    '', '', '', '', '', '', '', '', '', '', '', '', '']
-  RM:
+  Vkey LL: ['', '&vkey 0x10', '&vkey 0x11', '&vkey 0x12', '&vkey 0x13', '&vkey 0x14', '&vkey 0x15', '&vkey 0x16', '&vkey 0x17', '&vkey 0x18', '&vkey 0x19', '', '',
+    '&vkey 0x1A', '&vkey 0x1B', '&vkey 0x1C', '&vkey 0x1D', '&vkey 0x1E', '&vkey 0x1F', '&vkey 0x20', '&vkey 0x21', '&vkey 0x22', '&vkey 0x23', '', '', '&vkey 0x24',
+    '&vkey 0x25', '&vkey 0x26', '&vkey 0x27', '&vkey 0x28', '&vkey 0x29', '&vkey 0x2A', '&vkey 0x2B', '&vkey 0x2C', '&vkey 0x2D', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+  Vkey LM: ['', '&vkey 0x30', '&vkey 0x31', '&vkey 0x32', '&vkey 0x33', '&vkey 0x34', '&vkey 0x35', '&vkey 0x36', '&vkey 0x37', '&vkey 0x38', '&vkey 0x39', '', '',
+    '&vkey 0x3A', '&vkey 0x3B', '&vkey 0x3C', '&vkey 0x3D', '&vkey 0x3E', '&vkey 0x3F', '&vkey 0x40', '&vkey 0x41', '&vkey 0x42', '&vkey 0x43', '', '', '&vkey 0x44',
+    '&vkey 0x45', '&vkey 0x46', '&vkey 0x47', '&vkey 0x48', '&vkey 0x49', '&vkey 0x4A', '&vkey 0x4B', '&vkey 0x4C', '&vkey 0x4D', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+  Vkey RM:
   - ''
   - '&vkey 0x50'
   - '&vkey 0x51'
@@ -598,7 +598,7 @@ layers:
   - ''
   - ''
   - ''
-  RR:
+  Vkey RR:
   - ''
   - '&vkey 0x70'
   - '&vkey 0x71'

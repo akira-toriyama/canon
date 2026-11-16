@@ -288,8 +288,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 <g transform="translate(784, 140)" class="key keypos-32">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">↑</text>
-<a href="#UArr">
-<text x="0" y="24" class="key hold layer-activator">UArr</text>
+<a href="#Up-Arrow">
+<text x="0" y="24" class="key hold layer-activator"><tspan style="font-size: 88%">Up Arrow</tspan></text>
 </a><text x="0" y="-24" class="key shifted">↑</text>
 </g>
 <g transform="translate(840, 140)" class="key keypos-33">
@@ -309,43 +309,47 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 <g transform="translate(84, 196)" class="key keypos-37">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#Fn">
-<text x="0" y="0" class="key tap layer-activator">Fn</text>
+<a href="#Function">
+<text x="0" y="0" class="key tap layer-activator"><tspan style="font-size: 88%">Function</tspan></text>
 </a></g>
 <g transform="translate(140, 196)" class="key keypos-38">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#Sym2">
-<text x="0" y="0" class="key tap layer-activator">Sym2</text>
+<a href="#Symbol-2">
+<text x="0" y="0" class="key tap layer-activator">
+<tspan x="0" dy="-0.6em">Symbol</tspan><tspan x="0" dy="1.2em">2</tspan>
+</text>
 </a></g>
 <g transform="translate(196, 196)" class="key keypos-39">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#Sym1">
-<text x="0" y="0" class="key tap layer-activator">Sym1</text>
+<a href="#Symbol-1">
+<text x="0" y="0" class="key tap layer-activator">
+<tspan x="0" dy="-0.6em">Symbol</tspan><tspan x="0" dy="1.2em">1</tspan>
+</text>
 </a></g>
 <g transform="translate(252, 196)" class="key keypos-40">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#Num">
-<text x="0" y="0" class="key tap layer-activator">Num</text>
+<a href="#Number">
+<text x="0" y="0" class="key tap layer-activator">Number</text>
 </a></g>
 <g transform="translate(728, 196)" class="key keypos-41">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">←</text>
-<a href="#LArr">
-<text x="0" y="24" class="key hold layer-activator">LArr</text>
+<a href="#Left-Arrow">
+<text x="0" y="24" class="key hold layer-activator"><tspan style="font-size: 70%">Left Arrow</tspan></text>
 </a><text x="0" y="-24" class="key shifted">←</text>
 </g>
 <g transform="translate(784, 196)" class="key keypos-42">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">↓</text>
-<a href="#DArr">
-<text x="0" y="24" class="key hold layer-activator">DArr</text>
+<a href="#Down-Arrow">
+<text x="0" y="24" class="key hold layer-activator"><tspan style="font-size: 70%">Down Arrow</tspan></text>
 </a><text x="0" y="-24" class="key shifted">↓</text>
 </g>
 <g transform="translate(840, 196)" class="key keypos-43">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
 <text x="0" y="0" class="key tap">→</text>
-<a href="#RArr">
-<text x="0" y="24" class="key hold layer-activator">RArr</text>
+<a href="#Right-Arrow">
+<text x="0" y="24" class="key hold layer-activator"><tspan style="font-size: 64%">Right Arrow</tspan></text>
 </a><text x="0" y="-24" class="key shifted">→</text>
 </g>
 <g transform="translate(896, 196)" class="key keypos-44">
@@ -370,13 +374,17 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 <g transform="translate(588, 224)" class="key keypos-50">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#RM">
-<text x="0" y="0" class="key tap layer-activator">RM</text>
+<a href="#Vkey-RM">
+<text x="0" y="0" class="key tap layer-activator">
+<tspan x="0" dy="-0.6em">Vkey</tspan><tspan x="0" dy="1.2em">RM</tspan>
+</text>
 </a></g>
 <g transform="translate(644, 224)" class="key keypos-51">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
-<a href="#RR">
-<text x="0" y="0" class="key tap layer-activator">RR</text>
+<a href="#Vkey-RR">
+<text x="0" y="0" class="key tap layer-activator">
+<tspan x="0" dy="-0.6em">Vkey</tspan><tspan x="0" dy="1.2em">RR</tspan>
+</text>
 </a></g>
 <g transform="translate(336, 280)" class="key keypos-52">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -416,8 +424,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 364)" class="layer-Num">
-<text x="0" y="28" class="label" id="Num">Num:</text>
+<g transform="translate(30, 364)" class="layer-Number">
+<text x="0" y="28" class="label" id="Number">Number:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -623,8 +631,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 728)" class="layer-Sym1">
-<text x="0" y="28" class="label" id="Sym1">Sym1:</text>
+<g transform="translate(30, 728)" class="layer-Symbol 1">
+<text x="0" y="28" class="label" id="Symbol-1">Symbol 1:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -836,8 +844,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 1092)" class="layer-Sym2">
-<text x="0" y="28" class="label" id="Sym2">Sym2:</text>
+<g transform="translate(30, 1092)" class="layer-Symbol 2">
+<text x="0" y="28" class="label" id="Symbol-2">Symbol 2:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1049,8 +1057,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 1456)" class="layer-Fn">
-<text x="0" y="28" class="label" id="Fn">Fn:</text>
+<g transform="translate(30, 1456)" class="layer-Function">
+<text x="0" y="28" class="label" id="Function">Function:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1258,8 +1266,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 1820)" class="layer-LArr">
-<text x="0" y="28" class="label" id="LArr">LArr:</text>
+<g transform="translate(30, 1820)" class="layer-Left Arrow">
+<text x="0" y="28" class="label" id="Left-Arrow">Left Arrow:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1456,8 +1464,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 2184)" class="layer-RArr">
-<text x="0" y="28" class="label" id="RArr">RArr:</text>
+<g transform="translate(30, 2184)" class="layer-Right Arrow">
+<text x="0" y="28" class="label" id="Right-Arrow">Right Arrow:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1654,8 +1662,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 2548)" class="layer-UArr">
-<text x="0" y="28" class="label" id="UArr">UArr:</text>
+<g transform="translate(30, 2548)" class="layer-Up Arrow">
+<text x="0" y="28" class="label" id="Up-Arrow">Up Arrow:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -1852,8 +1860,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 2912)" class="layer-DArr">
-<text x="0" y="28" class="label" id="DArr">DArr:</text>
+<g transform="translate(30, 2912)" class="layer-Down Arrow">
+<text x="0" y="28" class="label" id="Down-Arrow">Down Arrow:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -2050,8 +2058,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 3276)" class="layer-LL">
-<text x="0" y="28" class="label" id="LL">LL:</text>
+<g transform="translate(30, 3276)" class="layer-Vkey LL">
+<text x="0" y="28" class="label" id="Vkey-LL">Vkey LL:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -2329,8 +2337,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 3640)" class="layer-LM">
-<text x="0" y="28" class="label" id="LM">LM:</text>
+<g transform="translate(30, 3640)" class="layer-Vkey LM">
+<text x="0" y="28" class="label" id="Vkey-LM">Vkey LM:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -2608,8 +2616,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 4004)" class="layer-RM">
-<text x="0" y="28" class="label" id="RM">RM:</text>
+<g transform="translate(30, 4004)" class="layer-Vkey RM">
+<text x="0" y="28" class="label" id="Vkey-RM">Vkey RM:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
@@ -2887,8 +2895,8 @@ text { font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif; }
 </g>
 </g>
 </g>
-<g transform="translate(30, 4368)" class="layer-RR">
-<text x="0" y="28" class="label" id="RR">RR:</text>
+<g transform="translate(30, 4368)" class="layer-Vkey RR">
+<text x="0" y="28" class="label" id="Vkey-RR">Vkey RR:</text>
 <g transform="translate(0, 56)">
 <g transform="translate(28, 28)" class="key keypos-0">
 <rect rx="6" ry="6" x="-26" y="-26" width="52" height="52" class="key"/>
