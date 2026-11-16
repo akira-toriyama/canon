@@ -93,7 +93,8 @@ Upstream: [zmk#3385](https://github.com/zmkfirmware/zmk/pull/3385)
 (`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING`, default n), open; its
 description links this file by name, so keep the name. The earlier
 split-central-only variant, [zmk#3377](https://github.com/zmkfirmware/zmk/pull/3377)
-(`CONFIG_ZMK_SPLIT_AUTO_UNPAIR_ON_KEY_MISMATCH`), is open too.
+(`CONFIG_ZMK_SPLIT_AUTO_UNPAIR_ON_KEY_MISMATCH`), was closed in favour of it
+(2026-11-15).
 
 ### split-battery-source-bounds.patch
 
@@ -270,10 +271,8 @@ not depend on that happening.
 
 ## When an upstream PR merges
 
-- zmk#3385 or #3377: delete security-changed-auto-unpair.patch and set the
-  merged option (`CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING=y` or
-  `CONFIG_ZMK_SPLIT_AUTO_UNPAIR_ON_KEY_MISMATCH=y`) in
-  config/imprint_dongle.conf.
+- zmk#3385: delete security-changed-auto-unpair.patch and set
+  `CONFIG_ZMK_BLE_AUTO_UNPAIR_ON_KEY_MISSING=y` in config/imprint_dongle.conf.
 - zmk#3384: delete usb-hid-prime-on-ready.patch, set
   `CONFIG_ZMK_USB_HID_REPLAY_ON_READY=y` in config/imprint_dongle.conf (its
   defaults are this patch's values), and in vkey-report.patch make
